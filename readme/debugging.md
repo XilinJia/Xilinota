@@ -32,14 +32,14 @@ There's two ways to start in safe mode:
 
 ## Mobile application
 
-- In the [Configuration screen](https://github.com/XilinJia/Xilinota/blob/dev/readme/config_screen.md), press on the **Log button**, and from the options menu, press "share".
+- In the [Configuration screen](https://github.com/XilinJia/Xilinota/blob/main/readme/config_screen.md), press on the **Log button**, and from the options menu, press "share".
 - Attach the shared log (or just relevant portions) to the GitHub issue.
 
 If you recently (within two weeks) upgraded from 12.11.x to version 12.12.x, [be sure to check the log for and remove any sensitive data shared with Xilinota](https://github.com/XilinJia/Xilinota/issues/8211).
 
 # Creating a low-level bug report on Android
 
-https://developer.android.com/studio/debug/bug-report
+<https://developer.android.com/studio/debug/bug-report>
 
 To get a bug report directly from your device, do the following:
 
@@ -55,9 +55,9 @@ Some crashes cannot be investigated using Xilinota's own tools. In that case, it
 
 For this, please follow these instructions:
 
-You can send it to this address https://raw.githubusercontent.com/xilinjia/xilinota/dev/Assets/AdresseSupport.png
+You can send it to this address <https://raw.githubusercontent.com/xilinjia/xilinota/main/Assets/AdresseSupport.png>
 
-https://developer.apple.com/library/content/qa/qa1747/_index.html
+<https://developer.apple.com/library/content/qa/qa1747/_index.html>
 
 Getting Crash Logs Directly From a Device Without Xcode
 

@@ -31,7 +31,7 @@ Xilinota is available in multiple languages thanks to the help of its users. You
 
 ## Contributing to Xilinota's code
 
-If you want to start contributing to the project's code, please follow these guidelines before creating a pull request: 
+If you want to start contributing to the project's code, please follow these guidelines before creating a pull request:
 
 - The top post of the pull request should contain a full, self-contained explanation of the feature: what it does, how it does it, with examples of usage and screenshots. Also explain why you want to add this - what problem does it solve. Do not simply add a text `Implement feature #4345` or link to forum posts, because the information there will most likely be outdated or confusing (multiple discussions and opinions). The pull request needs to be self-contained.
 - Bug fixes are always welcome. Start by reviewing the [list of bugs](https://github.com/XilinJia/Xilinota/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
@@ -43,15 +43,15 @@ If you want to start contributing to the project's code, please follow these gui
 - Pull requests that address multiple issues will most likely stall and eventually be closed. This is because we might be fine with one of the changes but not with others and untangling that kind of pull request is too much hassle both for maintainers and the person who submitted it. So most of the time someone gives up and the PR gets closed. So please keep the pull request focused on one issue.
 - **Do not mark your reviewer's comments as "resolved"**. If you do that, the comments will be hidden and the reviewer will not know what are the pending issues in the pull request. Only the reviewer should resolve the comments.
 
-Building the apps is relatively easy - please [see the build instructions](https://github.com/XilinJia/Xilinota/blob/dev/BUILD.md) for more details.
+Building the apps is relatively easy - please [see the build instructions](https://github.com/XilinJia/Xilinota/blob/main/BUILD.md) for more details.
 
 ### Signing the Individual Contributor License Agreement
 
-All contributors to the project must sign our [Individual Contributor License Agreement](https://raw.githubusercontent.com/xilinjia/xilinota/dev/readme/cla.md).
+All contributors to the project must sign our [Individual Contributor License Agreement](https://raw.githubusercontent.com/xilinjia/xilinota/main/readme/cla.md).
 
 ### Coding style
 
-Please see [the coding style document](https://github.com/XilinJia/Xilinota/blob/dev/readme/dev/coding_style.md).
+Please see [the coding style document](https://github.com/XilinJia/Xilinota/blob/main/readme/dev/coding_style.md).
 
 ### GUI style
 
@@ -92,11 +92,11 @@ To add a test, simply create a new file with an extension `.test.ts` in the same
 
 #### Setting the testing environment
 
-Many utility functions are available under the package `@xilinota/lib/testing/test-utils`. Have a look for example at [Note.test.ts](https://github.com/XilinJia/Xilinota/blob/dev/packages/lib/models/Note.test.ts) to see how to setup test units with database support and synchroniser support. Note that this is not needed for all tests - if you just have a simple functions to test you won't need that extra setup.
+Many utility functions are available under the package `@xilinota/lib/testing/test-utils`. Have a look for example at [Note.test.ts](https://github.com/XilinJia/Xilinota/blob/main/packages/lib/models/Note.test.ts) to see how to setup test units with database support and synchroniser support. Note that this is not needed for all tests - if you just have a simple functions to test you won't need that extra setup.
 
 #### Testing React Hooks
 
-To test React Hooks please use the package `@testing-library/react-hooks`. See [useLayoutItemSizes.test.ts](https://github.com/XilinJia/Xilinota/blob/dev/packages/app-desktop/gui/ResizableLayout/utils/useLayoutItemSizes.test.ts) for an example.
+To test React Hooks please use the package `@testing-library/react-hooks`. See [useLayoutItemSizes.test.ts](https://github.com/XilinJia/Xilinota/blob/main/packages/app-desktop/gui/ResizableLayout/utils/useLayoutItemSizes.test.ts) for an example.
 
 #### If it is not possible to add tests
 

@@ -9,7 +9,7 @@ Pod::Spec.new do |s|
   s.description  = <<-DESC
                   react-native-alarm-notification
                    DESC
-  s.homepage     = "https://github.com/XilinJia/Xilinota/tree/dev/packages/react-native-alarm-notification"
+  s.homepage     = "https://github.com/XilinJia/Xilinota/tree/main/packages/react-native-alarm-notification"
   s.license    = { :type => "MIT", :file => "LICENSE" }
   s.authors      = { "Chukwuemeka Ihedoro" => "caihedoro@gmail.com" }
   s.platforms    = { :ios => "9.0" }

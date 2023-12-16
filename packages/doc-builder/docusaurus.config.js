@@ -50,7 +50,7 @@ const config = {
 					sidebarPath: require.resolve('./sidebars.js'),
 					breadcrumbs: false,
 					editUrl: (params) => {
-						return `https://github.com/XilinJia/Xilinota/tree/dev/readme/${params.docPath}`;
+						return `https://github.com/XilinJia/Xilinota/tree/main/readme/${params.docPath}`;
 					},
 				},
 				blog: {
@@ -59,7 +59,7 @@ const config = {
 					path: 'news',
 					routeBasePath: 'news',
 					editUrl: (params) => {
-						return `https://github.com/XilinJia/Xilinota/tree/dev/readme/news/${params.blogPath}`;
+						return `https://github.com/XilinJia/Xilinota/tree/main/readme/news/${params.blogPath}`;
 					},
 				},
 				theme: {

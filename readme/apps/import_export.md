@@ -14,7 +14,7 @@ To import Evernote data, first export your Evernote notebooks to ENEX files as d
 
 In the **desktop application**, open File > Import > ENEX and select your file. The notes will be imported into a new separate notebook. If needed they can then be moved to a different notebook, or the notebook can be renamed, etc.
 
-In the **terminal application**, in [command-line mode](https://github.com/XilinJia/Xilinota/blob/dev/readme/apps/terminal.md#command-line-mode), type `import /path/to/file.enex`. This will import the notes into a new notebook named after the filename.
+In the **terminal application**, in [command-line mode](https://github.com/XilinJia/Xilinota/blob/main/readme/apps/terminal.md#command-line-mode), type `import /path/to/file.enex`. This will import the notes into a new notebook named after the filename.
 
 ### Importing from Markdown files
 
@@ -22,10 +22,10 @@ Xilinota can import notes from plain Markdown file. You can either import a comp
 
 In the **desktop application**:
 
-* **File import**: Go to File > Import > MD - Markdown (file) and select the Markdown file. This file will then be imported to the currently selected Notebook.
-* **Directory import**: Go to File > Import > MD - Markdown (directory) and select the top level of the directory that is being imported. Directory (folder) structure will be preserved in the Notebook > Subnotebook > Note structure within Xilinota.
+- **File import**: Go to File > Import > MD - Markdown (file) and select the Markdown file. This file will then be imported to the currently selected Notebook.
+- **Directory import**: Go to File > Import > MD - Markdown (directory) and select the top level of the directory that is being imported. Directory (folder) structure will be preserved in the Notebook > Subnotebook > Note structure within Xilinota.
 
-In the **terminal application**, in [command-line mode](https://github.com/XilinJia/Xilinota/blob/dev/readme/apps/terminal.md#command-line-mode):
+In the **terminal application**, in [command-line mode](https://github.com/XilinJia/Xilinota/blob/main/readme/apps/terminal.md#command-line-mode):
 
 Type `import --format md /path/to/file.md` or `import --format md /path/to/directory/`.
 
@@ -33,10 +33,10 @@ Type `import --format md /path/to/file.md` or `import --format md /path/to/direc
 
 In general the way to import notes from any application into Xilinota is to convert the notes to ENEX files (Evernote format) and to import these ENEX files into Xilinota using the method above. Most note-taking applications support ENEX files so it should be relatively straightforward. For help about specific applications, see below:
 
-* Standard Notes: Please see [this tutorial](https://programadorwebvalencia.com/migrate-notes-from-standard-notes-to-xilinota/)
-* Tomboy Notes: Export the notes to ENEX files [as described here](https://askubuntu.com/questions/243691/how-can-i-export-my-tomboy-notes-into-evernote/608551) for example, and import these ENEX files into Xilinota.
-* OneNote: First [import the notes from OneNote into Evernote](https://discussion.evernote.com/topic/107736-is-there-a-way-to-import-from-onenote-into-evernote-on-the-mac/). Then export the ENEX file from Evernote and import it into Xilinota.
-* NixNote: Synchronise with Evernote, then export the ENEX files and import them into Xilinota. More info [in this thread](https://discourse.xilinotaapp.org/t/import-from-nixnote/183/3).
+- Standard Notes: Please see [this tutorial](https://programadorwebvalencia.com/migrate-notes-from-standard-notes-to-xilinota/)
+- Tomboy Notes: Export the notes to ENEX files [as described here](https://askubuntu.com/questions/243691/how-can-i-export-my-tomboy-notes-into-evernote/608551) for example, and import these ENEX files into Xilinota.
+- OneNote: First [import the notes from OneNote into Evernote](https://discussion.evernote.com/topic/107736-is-there-a-way-to-import-from-onenote-into-evernote-on-the-mac/). Then export the ENEX file from Evernote and import it into Xilinota.
+- NixNote: Synchronise with Evernote, then export the ENEX files and import them into Xilinota. More info [in this thread](https://discourse.xilinotaapp.org/t/import-from-nixnote/183/3).
 
 ## Exporting
 

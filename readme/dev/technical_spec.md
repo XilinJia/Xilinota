@@ -68,4 +68,4 @@ Please provide test units if possible.
 
 If it's for GSoC, test units are compulsory. We don't accept pull requests without.
 
-For information on how to created unit tests, please see the [Automated Tests](https://github.com/XilinJia/Xilinota/blob/dev/readme/dev/index.md#automated-tests) documentation.
+For information on how to created unit tests, please see the [Automated Tests](https://github.com/XilinJia/Xilinota/blob/main/readme/dev/index.md#automated-tests) documentation.

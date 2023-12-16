@@ -34,6 +34,6 @@ Additionally, every few minutes, the client is going to poll the server and down
 
 ## See also
 
-- [Synchronisation lock](https://github.com/XilinJia/Xilinota/blob/dev/readme/spec/sync_lock.md)
-- [E2EE: Technical spec](https://github.com/XilinJia/Xilinota/blob/dev/readme/spec/e2ee.md)
-- [E2EE: Workflow](https://github.com/XilinJia/Xilinota/blob/dev/readme/spec/e2ee/workflow.md)
+- [Synchronisation lock](https://github.com/XilinJia/Xilinota/blob/main/readme/spec/sync_lock.md)
+- [E2EE: Technical spec](https://github.com/XilinJia/Xilinota/blob/main/readme/spec/e2ee.md)
+- [E2EE: Workflow](https://github.com/XilinJia/Xilinota/blob/main/readme/spec/e2ee/workflow.md)

@@ -42,6 +42,6 @@ By default, the test units synchronise with an in-memory sync target, which is f
 
 ## See also
 
-- [Synchronisation lock](https://github.com/XilinJia/Xilinota/blob/dev/readme/dev/spec/sync_lock.md)
-- [E2EE: Technical spec](https://github.com/XilinJia/Xilinota/blob/dev/readme/dev/spec/e2ee.md)
-- [E2EE: Workflow](https://github.com/XilinJia/Xilinota/blob/dev/readme/dev/spec/e2ee/workflow.md)
+- [Synchronisation lock](https://github.com/XilinJia/Xilinota/blob/main/readme/dev/spec/sync_lock.md)
+- [E2EE: Technical spec](https://github.com/XilinJia/Xilinota/blob/main/readme/dev/spec/e2ee.md)
+- [E2EE: Workflow](https://github.com/XilinJia/Xilinota/blob/main/readme/dev/spec/e2ee/workflow.md)

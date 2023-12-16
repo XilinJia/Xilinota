@@ -85,7 +85,7 @@ class Command extends BaseCommand {
 		lines.push('');
 		lines.push('In the documentation below, the token will not be specified every time however you will need to include it.');
 		lines.push('');
-		lines.push('If needed you may also [request the token programmatically](https://github.com/XilinJia/Xilinota/blob/dev/readme/spec/clipper_auth.md)');
+		lines.push('If needed you may also [request the token programmatically](https://github.com/XilinJia/Xilinota/blob/main/readme/spec/clipper_auth.md)');
 		lines.push('');
 
 		lines.push('# Using the API');

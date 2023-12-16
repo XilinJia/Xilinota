@@ -2,7 +2,7 @@
 
 The Web Clipper is a browser extension that allows you to save web pages and screenshots from your browser. To start using it, open the Xilinota desktop application, go to the **Web Clipper Options** and follow the instructions.
 
-<img src="https://raw.githubusercontent.com/xilinjia/xilinota/dev/Assets/WebsiteAssets/images/WebExtensionScreenshot.png" style="max-width: 50%; border: 1px solid gray;">
+<img src="https://raw.githubusercontent.com/xilinjia/xilinota/main/Assets/WebsiteAssets/images/WebExtensionScreenshot.png" style="max-width: 50%; border: 1px solid gray;">
 
 # Troubleshooting the web clipper service
 
@@ -12,7 +12,7 @@ However certain things can interfere with this service and prevent it from being
 
 - Check that the service is started. You can check this in the Web clipper options in the desktop app.
 - Check that the port used by the service is not blocked by a firewall. You can find the port number in the Web clipper options in the desktop Xilinota application.
-- Check that no proxy is running on the machine, or make sure that the requests from the web clipper service are filtered and allowed. For example https://github.com/XilinJia/Xilinota/issues/561#issuecomment-392220191
+- Check that no proxy is running on the machine, or make sure that the requests from the web clipper service are filtered and allowed. For example <https://github.com/XilinJia/Xilinota/issues/561#issuecomment-392220191>
 
 If none of this work, please report it on the [forum](https://github.com/XilinJia/Xilinota/discussions) or [GitHub issue tracker](https://github.com/XilinJia/Xilinota/issues)
 

@@ -18,7 +18,7 @@ There are also a few forks of existing packages under the "fork-*" name.
 
 ## Required dependencies
 
-- Install Node 16+. On Windows, also install the build tools - https://nodejs.org/en/
+- Install Node 16+. On Windows, also install the build tools - <https://nodejs.org/en/>
   - [Enable Yarn](https://yarnpkg.com/getting-started/install): `corepack enable`
 - macOS: Install Cocoapods - `brew install cocoapods`. Apple Silicon [may require libvips](https://github.com/XilinJia/Xilinota/pull/5966#issuecomment-1007158597) - `brew install vips`.
 - Linux: Install dependencies - `sudo apt install build-essential libnss3 libsecret-1-dev python rsync`
@@ -29,21 +29,21 @@ Make sure the path to the project directory does not contain spaces or the build
 
 Before doing anything else, from the root of the project, run:
 
-	yarn install
+ yarn install
 
 Then you can test the various applications:
 
 ## Testing the desktop application
 
-	cd packages/app-desktop
-	yarn start
+ cd packages/app-desktop
+ yarn start
 
 You can also run it under WSL 2. To do so, [follow these instructions](https://www.beekeeperstudio.io/blog/building-electron-windows-ubuntu-wsl2) to setup your environment.
 
 ## Testing the Terminal application
 
-	cd packages/app-cli
-	yarn start
+ cd packages/app-cli
+ yarn start
 
 ## Testing the Mobile application
 
@@ -51,8 +51,8 @@ First you need to setup React Native to build projects with native code. For thi
 
 Then, for **Android**:
 
-	cd packages/app-mobile/android
-	./gradlew installDebug # or gradlew.bat installDebug on Windows
+ cd packages/app-mobile/android
+ ./gradlew installDebug # or gradlew.bat installDebug on Windows
 
 On **iOS**, open the file `ios/Xilinota.xcworkspace` on XCode and run the app from there.
 
@@ -60,8 +60,8 @@ Normally the **bundler** should start automatically with the application. If it 
 
 ## Building the clipper
 
-	cd packages/app-clipper/popup
-	npm run watch # To watch for changes
+ cd packages/app-clipper/popup
+ npm run watch # To watch for changes
 
 To test the extension please refer to the relevant pages for each browser: [Firefox](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Your_first_WebExtension#Trying_it_out) / [Chrome](https://developer.chrome.com/docs/extensions/mv3/getstarted/). Please note that the extension in dev mode will only connect to a dev instance of the desktop app (and vice-versa).
 
@@ -69,7 +69,7 @@ To test the extension please refer to the relevant pages for each browser: [Fire
 
 To make changes to the application, you'll need to rebuild any TypeScript file you've changed. The simplest way to do this is to watch for changes from the root of the project. Simply run this command, and it should take care of the rest:
 
-	yarn run watch
+ yarn run watch
 
 Running `yarn run tsc` would have the same effect, but without watching.
 
@@ -77,7 +77,7 @@ Running `yarn run tsc` would have the same effect, but without watching.
 
 You can specify additional parameters when running the desktop or CLI application. To do so, add `--` to the `yarn start` command, followed by your flags. For example:
 
-	yarn start --debug
+ yarn start --debug
 
 ## TypeScript
 
@@ -100,4 +100,4 @@ It still requires you to quit the application each time you want it to rebuild, 
 
 # Troubleshooting
 
-Please read for the [Build Troubleshooting Document](https://github.com/XilinJia/Xilinota/blob/dev/readme/build_troubleshooting.md) for various tips on how to get the build working.
+Please read for the [Build Troubleshooting Document](https://github.com/XilinJia/Xilinota/blob/main/readme/build_troubleshooting.md) for various tips on how to get the build working.

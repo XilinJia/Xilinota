@@ -89,7 +89,7 @@ async function createPostFile(post, filePath) {
 	}
 
 	for (const imageUrl in imageUrlsToFiles) {
-		const r = `https://raw.githubusercontent.com/xilinjia/xilinota/dev/Assets/WebsiteAssets/images/news/${basename(imageUrlsToFiles[imageUrl])}`;
+		const r = `https://raw.githubusercontent.com/xilinjia/xilinota/main/Assets/WebsiteAssets/images/news/${basename(imageUrlsToFiles[imageUrl])}`;
 		contentMd = contentMd.replace(new RegExp(pregQuote(imageUrl), 'g'), r);
 	}
 

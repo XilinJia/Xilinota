@@ -10,7 +10,7 @@ Through this tutorial you will learn about several aspect of the Xilinota API, i
 
 ## Setting up your environment
 
-Before getting any further, make sure your environment is setup correctly as described in the [Get Started guide](https://github.com/XilinJia/Xilinota/blob/dev/readme/api/get_started/plugins.md).
+Before getting any further, make sure your environment is setup correctly as described in the [Get Started guide](https://github.com/XilinJia/Xilinota/blob/main/readme/api/get_started/plugins.md).
 
 ## Registering the plugin
 
@@ -23,12 +23,12 @@ import xilinota from 'api';
 // Register the plugin
 xilinota.plugins.register({
 
-	// Run initialisation code in the onStart event handler
-	// Note that due to the plugin multi-process architecture, you should
-	// always assume that all function calls and event handlers are async.
-	onStart: async function() {
-		console.info('TOC plugin started!');
-	},
+ // Run initialisation code in the onStart event handler
+ // Note that due to the plugin multi-process architecture, you should
+ // always assume that all function calls and event handlers are async.
+ onStart: async function() {
+  console.info('TOC plugin started!');
+ },
 
 });
 ```
@@ -44,35 +44,35 @@ So within the `onStart()` event handler, add the following:
 ```typescript
 xilinota.plugins.register({
 
-	onStart: async function() {
+ onStart: async function() {
 
-		// Later, this is where you'll want to update the TOC
-		async function updateTocView() {
-			// Get the current note from the workspace.
-			const note = await xilinota.workspace.selectedNote();
+  // Later, this is where you'll want to update the TOC
+  async function updateTocView() {
+   // Get the current note from the workspace.
+   const note = await xilinota.workspace.selectedNote();
 
-			// Keep in mind that it can be `null` if nothing is currently selected!
-			if (note) {
-				console.info('Note content has changed! New note is:', note);
-			} else {
-				console.info('No note is selected');
-			}
-		}
+   // Keep in mind that it can be `null` if nothing is currently selected!
+   if (note) {
+    console.info('Note content has changed! New note is:', note);
+   } else {
+    console.info('No note is selected');
+   }
+  }
 
-		// This event will be triggered when the user selects a different note
-		await xilinota.workspace.onNoteSelectionChange(() => {
-			updateTocView();
-		});
+  // This event will be triggered when the user selects a different note
+  await xilinota.workspace.onNoteSelectionChange(() => {
+   updateTocView();
+  });
 
-		// This event will be triggered when the content of the note changes
-		// as you also want to update the TOC in this case.
-		await xilinota.workspace.onNoteChange(() => {
-			updateTocView();
-		});
+  // This event will be triggered when the content of the note changes
+  // as you also want to update the TOC in this case.
+  await xilinota.workspace.onNoteChange(() => {
+   updateTocView();
+  });
 
-		// Also update the TOC when the plugin starts
-		updateTocView();
-	},
+  // Also update the TOC when the plugin starts
+  updateTocView();
+ },
 
 });
 ```
@@ -87,17 +87,17 @@ The function below, which you can copy anywhere in your file, will use this meth
 
 ```typescript
 function noteHeaders(noteBody:string) {
-	const headers = [];
-	const lines = noteBody.split('\n');
-	for (const line of lines) {
-		const match = line.match(/^(#+)\s(.*)*/);
-		if (!match) continue;
-		headers.push({
-			level: match[1].length,
-			text: match[2],
-		});
-	}
-	return headers;
+ const headers = [];
+ const lines = noteBody.split('\n');
+ for (const line of lines) {
+  const match = line.match(/^(#+)\s(.*)*/);
+  if (!match) continue;
+  headers.push({
+   level: match[1].length,
+   text: match[2],
+  });
+ }
+ return headers;
 }
 ```
 
@@ -106,21 +106,21 @@ Then call this function from your event handler:
 ```typescript
 xilinota.plugins.register({
 
-	onStart: async function() {
+ onStart: async function() {
 
-		async function updateTocView() {
-			const note = await xilinota.workspace.selectedNote();
+  async function updateTocView() {
+   const note = await xilinota.workspace.selectedNote();
 
-			if (note) {
-				const headers = noteHeaders(note.body);
-				console.info('The note has the following headers', headers);
-			} else {
-				console.info('No note is selected');
-			}
-		}
+   if (note) {
+    const headers = noteHeaders(note.body);
+    console.info('The note has the following headers', headers);
+   } else {
+    console.info('No note is selected');
+   }
+  }
 
-		// ...
-	},
+  // ...
+ },
 
 });
 ```
@@ -135,12 +135,12 @@ const uslug = require('@xilinota/fork-uslug');
 let slugs = {};
 
 function headerSlug(headerText) {
-	const s = uslug(headerText);
-	let num = slugs[s] ? slugs[s] : 1;
-	const output = [s];
-	if (num > 1) output.push(num);
-	slugs[s] = num + 1;
-	return output.join('-');
+ const s = uslug(headerText);
+ let num = slugs[s] ? slugs[s] : 1;
+ const output = [s];
+ if (num > 1) output.push(num);
+ slugs[s] = num + 1;
+ return output.join('-');
 }
 ```
 
@@ -149,12 +149,12 @@ And you will need a utility function to escape HTML. There are many packages to 
 ```typescript
 // From https://stackoverflow.com/a/6234804/561309
 function escapeHtml(unsafe:string) {
-	return unsafe
-		.replace(/&/g, "&amp;")
-		.replace(/</g, "&lt;")
-		.replace(/>/g, "&gt;")
-		.replace(/"/g, "&quot;")
-		.replace(/'/g, "&#039;");
+ return unsafe
+  .replace(/&/g, "&amp;")
+  .replace(/</g, "&lt;")
+  .replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;")
+  .replace(/'/g, "&#039;");
 }
 ```
 
@@ -169,54 +169,54 @@ Here's how it could be done:
 ```typescript
 xilinota.plugins.register({
 
-	onStart: async function() {
-		// Create the panel object
-		const panel = await xilinota.views.panels.create('panel_1');
+ onStart: async function() {
+  // Create the panel object
+  const panel = await xilinota.views.panels.create('panel_1');
 
-		// Set some initial content while the TOC is being created
-		await xilinota.views.panels.setHtml(panel, 'Loading...');
+  // Set some initial content while the TOC is being created
+  await xilinota.views.panels.setHtml(panel, 'Loading...');
 
-		async function updateTocView() {
-			const note = await xilinota.workspace.selectedNote();
-			slugs = {}; // Reset the slugs
+  async function updateTocView() {
+   const note = await xilinota.workspace.selectedNote();
+   slugs = {}; // Reset the slugs
 
-			if (note) {
-				const headers = noteHeaders(note.body);
+   if (note) {
+    const headers = noteHeaders(note.body);
 
-				// First create the HTML for each header:
-				const itemHtml = [];
-				for (const header of headers) {
-					const slug = headerSlug(header.text);
+    // First create the HTML for each header:
+    const itemHtml = [];
+    for (const header of headers) {
+     const slug = headerSlug(header.text);
 
-					// - We indent each header based on header.level.
-					//
-					// - The slug will be needed later on once we implement clicking on a header.
-					//   We assign it to a "data" attribute, which can then be easily retrieved from JavaScript
-					//
-					// - Also make sure you escape the text before inserting it in the HTML to avoid XSS attacks
-					//   and rendering issues. For this use the `escapeHtml()` function you've added earlier.
-					itemHtml.push(`
-						<p class="toc-item" style="padding-left:${(header.level - 1) * 15}px">
-							<a class="toc-item-link" href="#" data-slug="${escapeHtml(slug)}">
-								${escapeHtml(header.text)}
-							</a>
-						</p>
-					`);
-				}
+     // - We indent each header based on header.level.
+     //
+     // - The slug will be needed later on once we implement clicking on a header.
+     //   We assign it to a "data" attribute, which can then be easily retrieved from JavaScript
+     //
+     // - Also make sure you escape the text before inserting it in the HTML to avoid XSS attacks
+     //   and rendering issues. For this use the `escapeHtml()` function you've added earlier.
+     itemHtml.push(`
+      <p class="toc-item" style="padding-left:${(header.level - 1) * 15}px">
+       <a class="toc-item-link" href="#" data-slug="${escapeHtml(slug)}">
+        ${escapeHtml(header.text)}
+       </a>
+      </p>
+     `);
+    }
 
-				// Finally, insert all the headers in a container and set the webview HTML:
-				await xilinota.views.panels.setHtml(panel, `
-					<div class="container">
-						${itemHtml.join('\n')}
-					</div>
-				`);
-			} else {
-				await xilinota.views.panels.setHtml(panel, 'Please select a note to view the table of content');
-			}
-		}
+    // Finally, insert all the headers in a container and set the webview HTML:
+    await xilinota.views.panels.setHtml(panel, `
+     <div class="container">
+      ${itemHtml.join('\n')}
+     </div>
+    `);
+   } else {
+    await xilinota.views.panels.setHtml(panel, 'Please select a note to view the table of content');
+   }
+  }
 
-		// ...
-	},
+  // ...
+ },
 
 });
 ```
@@ -241,15 +241,15 @@ The CSS file below would give the view the correct font color and family, and th
 /* In webview.css */
 
 .container {
-	background-color: var(--xilinota-background-color);
-	color: var(--xilinota-color);
-	font-size: var(--xilinota-font-size);
-	font-family: var(--xilinota-font-family);
+ background-color: var(--xilinota-background-color);
+ color: var(--xilinota-color);
+ font-size: var(--xilinota-font-size);
+ font-family: var(--xilinota-font-family);
 }
 
 .toc-item a {
-	color: var(--xilinota-color);
-	text-decoration: none;
+ color: var(--xilinota-color);
+ text-decoration: none;
 }
 ```
 
@@ -275,13 +275,13 @@ To check that everything's working, let's create a simple event handler that dis
 // something like jQuery or React. This is how it can be done using
 // plain JavaScript:
 document.addEventListener('click', event => {
-	const element = event.target;
-	// If a TOC header has been clicked:
-	if (element.className === 'toc-item-link') {
-		// Get the slug and display it:
-		const slug = element.dataset.slug;
-		console.info('Clicked header slug: ' + slug);
-	}
+ const element = event.target;
+ // If a TOC header has been clicked:
+ if (element.className === 'toc-item-link') {
+  // Get the slug and display it:
+  const slug = element.dataset.slug;
+  console.info('Clicked header slug: ' + slug);
+ }
 });
 ```
 
@@ -297,14 +297,14 @@ Change `webview.js` like so:
 
 ```javascript
 document.addEventListener('click', event => {
-	const element = event.target;
-	if (element.className === 'toc-item-link') {
-		// Post the message and slug info back to the plugin:
-		webviewApi.postMessage({
-			name: 'scrollToHash',
-			hash: element.dataset.slug,
-		});
-	}
+ const element = event.target;
+ if (element.className === 'toc-item-link') {
+  // Post the message and slug info back to the plugin:
+  webviewApi.postMessage({
+   name: 'scrollToHash',
+   hash: element.dataset.slug,
+  });
+ }
 });
 ```
 
@@ -312,27 +312,27 @@ Then from the plugin, in `src/index.ts`, you can listen to this message using th
 
 ```typescript
 xilinota.plugins.register({
-	onStart: async function() {
-		const panel = await xilinota.views.panels.create('panel_1');
+ onStart: async function() {
+  const panel = await xilinota.views.panels.create('panel_1');
 
-		// ...
+  // ...
 
-		await xilinota.views.panels.onMessage(panel, (message) => {
-			if (message.name === 'scrollToHash') {
-				// As the name says, the scrollToHash command makes the note scroll
-				// to the provided hash.
-				xilinota.commands.execute('scrollToHash', message.hash)
-			}
-		});
+  await xilinota.views.panels.onMessage(panel, (message) => {
+   if (message.name === 'scrollToHash') {
+    // As the name says, the scrollToHash command makes the note scroll
+    // to the provided hash.
+    xilinota.commands.execute('scrollToHash', message.hash)
+   }
+  });
 
-		// ...
-	}
+  // ...
+ }
 
-	// ...
+ // ...
 ```
 
 And that's it! If you run this code you should now have a fully functional TOC. The full source code is available there:
 
-https://github.com/XilinJia/Xilinota/tree/dev/packages/app-cli/tests/support/plugins/toc/
+<https://github.com/XilinJia/Xilinota/tree/main/packages/app-cli/tests/support/plugins/toc/>
 
 Various improvements can be made such as improving the styling, making the header collapsible, etc. but that tutorial should provide the basic building blocks to do so. You might also want to check the [plugin API](https://xilinotaapp.org/api/references/plugin_api/classes/xilinota.html) for further information or head to the [development forum](https://discourse.xilinotaapp.org/c/development/6) for support.

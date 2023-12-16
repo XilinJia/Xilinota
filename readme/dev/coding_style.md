@@ -19,6 +19,7 @@ When adding a rule, you will often find that many files will no longer pass the 
 Because the TypeScript compiler generates `.js` files, be sure to add these new `.js` files to `.eslintignore` and `.gitignore`.
 
 To do this,
+
 1. If the TypeScript compiler has already generated a `.js` file for the new `.ts` file, delete it.
 2. Run `yarn run updateIgnored` in the root directory of the project (or `yarn run postinstall`)
 
@@ -37,19 +38,21 @@ In TypeScript files prefer `import` to `require` so that we can benefit from typ
 In general please define types separately as it improves readability and it means the type can be re-used.
 
 **BAD:**
+
 ```ts
 const config: { [key: string]: Knex.Config } = {
-	// ...
-}	
+ // ...
+} 
 ```
 
 **Good:**
+
 ```ts
 type Config = Record<string, Knex.Config>;
 
 const config: Config = {
-	// ...
-}	
+ // ...
+} 
 ```
 
 #### Don't set the type when it can be inferred
@@ -57,18 +60,20 @@ const config: Config = {
 TypeScript can automatically detect the type so setting it explicitely in many cases is not needed, and makes the code unecessary verbose. We already have enabled the eslint rule `no-inferrable-types`, however it only applies to simple types such as string, number, etc. but not to function calls.
 
 **BAD:**
+
 ```ts
 const getSomething():string => {
-	return 'something';
+ return 'something';
 }
 
 const timestamp:number = Date.now();
 ```
 
 **Good:**
+
 ```ts
 const getSomething() => {
-	return 'something';
+ return 'something';
 }
 
 const timestamp = Date.now();
@@ -76,22 +81,22 @@ const timestamp = Date.now();
 
 ### Filenames
 
- * `camelCase.ts`: Files that export multiple things.
-   * Example: [`checkForUpdates.ts`](https://github.com/XilinJia/Xilinota/blob/dev/packages/app-desktop/checkForUpdates.ts)
- * `PascalCase.ts`: [Only if the file contains a single class, which is the default export.](https://github.com/XilinJia/Xilinota/pull/6607#discussion_r906847156)
- * `types.ts` or `fooTypes.ts`: [Shared type definitions](https://github.com/XilinJia/Xilinota/pull/6607#discussion_r906847156)
-   * Example : [`types.ts`](https://github.com/XilinJia/Xilinota/blob/dev/packages/server/src/utils/types.ts)
-
+- `camelCase.ts`: Files that export multiple things.
+  - Example: [`checkForUpdates.ts`](https://github.com/XilinJia/Xilinota/blob/main/packages/app-desktop/checkForUpdates.ts)
+- `PascalCase.ts`: [Only if the file contains a single class, which is the default export.](https://github.com/XilinJia/Xilinota/pull/6607#discussion_r906847156)
+- `types.ts` or `fooTypes.ts`: [Shared type definitions](https://github.com/XilinJia/Xilinota/pull/6607#discussion_r906847156)
+  - Example : [`types.ts`](https://github.com/XilinJia/Xilinota/blob/main/packages/server/src/utils/types.ts)
 
 ### Use the same case for imported and exported members
 
 If you create a file that exports a single function called `processData()`, the file should be named `processData.ts`. When importing, it should be imported as `processData`, too. Basically, be consistent with naming, even though JS allows things to be named differently.
 
 **BAD:**
+
 ```ts
 // ProcessDATA.ts
 export default const processData = () => {
-	// ...
+ // ...
 };
 
 // foo.ts
@@ -102,10 +107,11 @@ doDataProcessing();
 ```
 
 **Good:**
+
 ```ts
 // processData.ts
 export default const processData = () => {
-	// ...
+ // ...
 };
 
 // foo.ts
@@ -120,6 +126,7 @@ processData();
 Only import what you need so that we can potentially benefit from [tree shaking](https://webpack.js.org/guides/tree-shaking/) if we ever implement it.
 
 **BAD:**
+
 ```ts
 import * as fs from 'fs-extra';
 // ...
@@ -127,6 +134,7 @@ fs.writeFile('example.md', 'example');
 ```
 
 **Good:**
+
 ```ts
 import { writeFile } from 'fs-extra';
 // ...
@@ -136,12 +144,14 @@ writeFile('example.md', 'example');
 ### Use `camelCase` for `const`ants in new code
 
 **BAD:**
+
 ```ts
 // Bad! Don't use in new code!
 const GRAVITY_ACCEL = 9.8;
 ```
 
 **Good:**
+
 ```ts
 const gravityAccel = 9.8;
 ```
@@ -149,12 +159,13 @@ const gravityAccel = 9.8;
 ### Declare variables just before their usage
 
 **BAD:**
+
 ```ts
 // Bad!
 let foo, bar;
 
 const doThings = () => {
-	// do things unrelated to foo, bar
+ // do things unrelated to foo, bar
 };
 
 // Do things involving foo and bar
@@ -165,10 +176,11 @@ foo += Math.sin(bar + Math.tan(foo));
 ```
 
 **Good:**
+
 ```ts
 ...
 const doThings = () => {
-	// do things unrelated to foo, bar
+ // do things unrelated to foo, bar
 };
 
 // Do things involving foo and bar
@@ -180,33 +192,32 @@ foo += Math.sin(bar + Math.tan(foo));
 
 Don't allow this to lead to duplicate code, however. If constants are used multiple times, it's okay to declare them at the top of a file or in a separate, imported file.
 
-
 ### Prefer `const` to `let` (where possible)
-
 
 ### Prefer `() => {}` to `function() { ... }`
 
 Doing this avoids having to deal with the `this` keyword. Not having it makes it easier to refactor class components into React Hooks, because any use of `this` (used in classes) will be correctly detected as invalid by TypeScript.
 
 **BAD:**
+
 ```ts
 // Bad!
 function foo() {
-	...
+ ...
 }
 ```
 
 **Good:**
+
 ```ts
 const foo = () => {
-	...
+ ...
 };
 ```
 
 #### See also
- * [Frontend Armory — When should I use arrow functions with React?](https://frontarm.com/james-k-nelson/when-to-use-arrow-functions/)
 
-
+- [Frontend Armory — When should I use arrow functions with React?](https://frontarm.com/james-k-nelson/when-to-use-arrow-functions/)
 
 ### Avoid default and optional parameters
 
@@ -295,8 +306,8 @@ const url = `https://example.com?${parameters}`
 ```ts
 // Keep the data as an object
 const parameters = {
-	id: id,
-	timestamp: Date.now(),
+ id: id,
+ timestamp: Date.now(),
 };
 
 // Then we can easily add to it without string concatenation:
@@ -352,29 +363,32 @@ const html = `<div>${userContentHtml}</div>`
 New code should use [React Hooks](https://reactjs.org/docs/hooks-intro.html) and `function` components, rather than objects that extend `Component`.
 
 **Bad:**
+
 ```tsx
 // Don't do this in new code!
 class Example extends React.Component {
-	public constructor(props: { text: string }) {
-		super(props);
-	}
+ public constructor(props: { text: string }) {
+  super(props);
+ }
 
-	public render() {
-		return (
-			<div>${text}</div>
-		);
-	}
+ public render() {
+  return (
+   <div>${text}</div>
+  );
+ }
 }
 ```
 
 **Good:**
+
 ```tsx
 const Example = (props: { text: string }) => {
-	return (
-		<div>${text}</div>
-	);
+ return (
+  <div>${text}</div>
+ );
 };
 ```
+
 ### Use react [custom hooks](https://reactjs.org/docs/hooks-custom.html) to simplify long code
 
 If `eslint` gives an error about `useFoo` being called outside of a component, be sure [the custom hook is titled appropriately](https://stackoverflow.com/a/55862839).
@@ -399,15 +413,16 @@ If a column can be set to a fixed number of values, please set the type to integ
 
 ```typescript
 export enum Action {
-	Create = 1,
-	Update = 2,
-	Delete = 3,
+ Create = 1,
+ Update = 2,
+ Delete = 3,
 }
 ```
 
 We don't use built-in database enums because they make migrations difficult. They provide added readability when accessing the database directly, but it is not worth the extra trouble.
 
 ### Prefer using `tinyint(1)` to `bool`
+
 Booleans are not a distinct types in many common DBMS, including SQLite (which we use) and MySQL, so prefer using a `tinyint(1)` instead.
 
 ## Web requests and API
@@ -417,18 +432,20 @@ Booleans are not a distinct types in many common DBMS, including SQLite (which w
 We use `snake_case` for end points and query parameters.
 
 ## See also
+
 ### **Other** projects' style guides
 
 We aren't using these guides, but they may still be helpful!
- * [TypeScript Deep Dive — Style Guide](https://basarat.gitbook.io/typescript/styleguide)
- * [Google TypeScript style guide](https://google.github.io/styleguide/tsguide.html)
-	* See also [`ts.dev`'s style guide](https://ts.dev/style/#function-expressions), which is based on the Google style guide.
- * [Javascript standardstyle](https://standardjs.com/rules.html)
-	* Possibly useful for adding to `.eslintrc.js`: lists `eslint` configuration flags for each of their suggestions
+
+- [TypeScript Deep Dive — Style Guide](https://basarat.gitbook.io/typescript/styleguide)
+- [Google TypeScript style guide](https://google.github.io/styleguide/tsguide.html)
+ 	- See also [`ts.dev`'s style guide](https://ts.dev/style/#function-expressions), which is based on the Google style guide.
+- [Javascript standardstyle](https://standardjs.com/rules.html)
+ 	- Possibly useful for adding to `.eslintrc.js`: lists `eslint` configuration flags for each of their suggestions
 
 ### Posts/resources related to Xilinota's style
 
- * Forum Post: [Troubleshooting FAQ and collecting topic for contributing to Xilinota codebase](https://discourse.xilinotaapp.org/t/troubleshooting-faq-and-collecting-topic-for-contributing-to-xilinota-codebase/6501)
- * Forum Post: [How to style your code](https://discourse.xilinotaapp.org/t/how-to-style-your-code/6502)
- * GSoC: [GSoC 2022 pull request guidelines](https://github.com/XilinJia/Xilinota/blob/dev/readme/dev/gsoc/gsoc2022/pull_request_guidelines.md)
- * GitHub: [`.eslintrc.js`](https://github.com/XilinJia/Xilinota/blob/dev/.eslintrc.js)
+- Forum Post: [Troubleshooting FAQ and collecting topic for contributing to Xilinota codebase](https://discourse.xilinotaapp.org/t/troubleshooting-faq-and-collecting-topic-for-contributing-to-xilinota-codebase/6501)
+- Forum Post: [How to style your code](https://discourse.xilinotaapp.org/t/how-to-style-your-code/6502)
+- GSoC: [GSoC 2022 pull request guidelines](https://github.com/XilinJia/Xilinota/blob/main/readme/dev/gsoc/gsoc2022/pull_request_guidelines.md)
+- GitHub: [`.eslintrc.js`](https://github.com/XilinJia/Xilinota/blob/main/.eslintrc.js)

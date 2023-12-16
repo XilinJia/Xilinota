@@ -10,7 +10,7 @@ Vosk uses pre-trained language models that can be used for automatic speech reco
 
 By default Xilinota will automatically download the [lightweight models](https://alphacephei.com/vosk/models) from the official Vosk website. That language file only needs to be downloaded the first time the voice typing feature is used.
 
-You can also configure the application to download the models from your own server. To do so, set the **Voice typing language files (URL)** setting in the [Configuration screen](https://github.com/XilinJia/Xilinota/blob/dev/readme/apps/config_screen.md). You have two options:
+You can also configure the application to download the models from your own server. To do so, set the **Voice typing language files (URL)** setting in the [Configuration screen](https://github.com/XilinJia/Xilinota/blob/main/readme/apps/config_screen.md). You have two options:
 
 * **Provide the base URL**, eg `https://example.com/models`. Then Xilinota will automatically append the filename to that URL, for example it will download the French files from `https://example.com/models/fr.zip`
 

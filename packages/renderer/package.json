@@ -2,7 +2,7 @@
   "name": "@xilinota/renderer",
   "version": "2.13.1",
   "description": "The Xilinota note renderer, used the mobile and desktop application",
-  "repository": "https://github.com/XilinJia/Xilinota/tree/dev/packages/renderer",
+  "repository": "https://github.com/XilinJia/Xilinota/tree/main/packages/renderer",
   "main": "index.js",
   "types": "index.d.ts",
   "publishConfig": {

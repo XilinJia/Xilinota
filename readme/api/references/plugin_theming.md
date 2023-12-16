@@ -15,8 +15,8 @@ in your plugin's stylesheet as shown here.
 ```css
 /* webview.css */
 .container {
-	color: var(--xilinota-color);
-	font-family: var(--xilinota-font-family);
+ color: var(--xilinota-color);
+ font-family: var(--xilinota-font-family);
 }
 ```
 
@@ -27,7 +27,7 @@ These include:
 
 * [Roboto](https://fonts.google.com/specimen/Roboto?preview.text_type=custom) - (the standard UI font, `font-family` referenced above)
 * [Font Awesome](https://fontawesome.com/icons?d=gallery&p=2&m=free) - icon library
-* [icoMoon](https://icomoon.io/#preview-free) - icon library (subset, see [style.css](https://github.com/XilinJia/Xilinota/blob/dev/packages/app-desktop/style/icons/style.css))
+* [icoMoon](https://icomoon.io/#preview-free) - icon library (subset, see [style.css](https://github.com/XilinJia/Xilinota/blob/main/packages/app-desktop/style/icons/style.css))
 
 To display an icon, use CSS and HTML like the following.
 

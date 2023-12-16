@@ -6,7 +6,7 @@ Since Xilinota 2.6, the synchronous scroll feature (Sync Scroll) for two-pane Ma
 
 Xilinota has two types of editors, two-pane Markdown Editor and WYSIWYG Editor. Two-pane Markdown Editor consists of an editor pane displaying a Markdown text (Editor) and a viewer pane displaying the rendered Markdown in HTML (Viewer). Both panes have independent scroll bars, and they were linked and controlled by single scroll position expressed as a relative percentage.
 
-![Abstraction View without Sync Scroll](https://raw.githubusercontent.com/xilinjia/xilinota/dev/Assets/WebsiteAssets/images/sync_scroll/abst-wo-sync2.png)
+![Abstraction View without Sync Scroll](https://raw.githubusercontent.com/xilinjia/xilinota/main/Assets/WebsiteAssets/images/sync_scroll/abst-wo-sync2.png)
 
 Since the height of a Markdown text line is not always proportional to the height of the corresponding HTML element, displayed contents in Editor and Viewer are often inconsistent.
 
@@ -27,9 +27,10 @@ To keep the consistency of their displayed contents, both scroll bars needed to 
 
 The following figure shows the abstraction view of Sync Scroll. To manage scroll positions, the percent of the line number of a Markdown text data ("percent" in the figure) is used. To handle GUI components and events, "percent" is translated from/to "ePercent" for Editor using translation function  E2L() / L2E(). The same is true for Viewer.
 
-![Abstraction View with Sync Scroll](https://raw.githubusercontent.com/xilinjia/xilinota/dev/Assets/WebsiteAssets/images/sync_scroll/abst-sync-lp2.png)
+![Abstraction View with Sync Scroll](https://raw.githubusercontent.com/xilinjia/xilinota/main/Assets/WebsiteAssets/images/sync_scroll/abst-sync-lp2.png)
 
 The reasons why "ePercent" is not directly translated from "vPercent" and vice versa are:
+
 - Line-based "percent" is good for maintaining, because it is GUI-independent. Both "ePercent" and "vPercent" depend on GUI components and are affected by many factors such as image loading, window resizing, pane hiding/showing.
 - Direct conversion between Editor and Viewer needs both Editor and Viewer are present. If one of them is hidden, the information needed for conversion cannot be acquired.
 - Editor and Viewer run in different processes, so separation between them makes things simpler and reduces timing issues.
@@ -42,8 +43,7 @@ First, underlying Markdown Editor is explained. Editor is implemented using [Cod
 
 New additions for Sync Scroll are shown in the figure as red portions. Since a DOM don't know the mapping between lines and elements, mapping information is embedded into an HTML tag as an additional attribute `source-line` using MarkdownIt. By using the attributes, the translation capability between line numbers and their pixel positions in Viewer can be provided. The information required for the translation is cached in `scrollmap` described later.
 
-![Components and Data Interactions](https://raw.githubusercontent.com/xilinjia/xilinota/dev/Assets/WebsiteAssets/images/sync_scroll/md-editor-components-pr.png)
-
+![Components and Data Interactions](https://raw.githubusercontent.com/xilinjia/xilinota/main/Assets/WebsiteAssets/images/sync_scroll/md-editor-components-pr.png)
 
 ### Scroll Position Translation
 
@@ -51,11 +51,11 @@ The next figure explains the procedure of the translation from "ePercent" to "pe
 
 To estimate precise positions between lines/elements, linear interpolation algorithm is used as shown in the figure.
 
-![Translation from Editor to Viewer](https://raw.githubusercontent.com/xilinjia/xilinota/dev/Assets/WebsiteAssets/images/sync_scroll/trans-e2l-l2v-2.png)
+![Translation from Editor to Viewer](https://raw.githubusercontent.com/xilinjia/xilinota/main/Assets/WebsiteAssets/images/sync_scroll/trans-e2l-l2v-2.png)
 
 Similarly, the next figure explains the procedure of the translation from "vPercent" to "percent" and the translation from "percent" to "ePercent".
 
-![Translation from Viewer to Editor](https://raw.githubusercontent.com/xilinjia/xilinota/dev/Assets/WebsiteAssets/images/sync_scroll/trans-v2l-l2e-2.png)
+![Translation from Viewer to Editor](https://raw.githubusercontent.com/xilinjia/xilinota/main/Assets/WebsiteAssets/images/sync_scroll/trans-v2l-l2e-2.png)
 
 ### Caching Translation Map
 

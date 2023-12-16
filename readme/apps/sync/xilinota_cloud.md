@@ -2,4 +2,4 @@
 
 [Joplin Cloud](https://xilinotaapp.org/plans/) is a web service specifically designed for Xilinota. Besides synchronising your data, it also allows you to publish a note to the internet, or share a notebook with your friends, family or colleagues. Joplin Cloud, compared to other services, also features a number of performance improvements allowing for faster synchronisation.
 
-To use it, go to the [Configuration screen](https://github.com/XilinJia/Xilinota/blob/dev/readme/apps/config_screen.md), then to the Synchronisation section. In the list of sync targets, select "Joplin Cloud". Enter your email and password, and you're ready to use Joplin Cloud.
+To use it, go to the [Configuration screen](https://github.com/XilinJia/Xilinota/blob/main/readme/apps/config_screen.md), then to the Synchronisation section. In the list of sync targets, select "Joplin Cloud". Enter your email and password, and you're ready to use Joplin Cloud.

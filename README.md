@@ -1,6 +1,6 @@
 ![](./Assets/XilinotaLogoBlue.png)
 
-<img width="100" src="https://raw.githubusercontent.com/xilinjia/xilinota/dev/Assets/LinuxIcons/256x256.png" align="left" style="margin-right:15px"/>
+<img width="100" src="https://raw.githubusercontent.com/xilinjia/xilinota/main/Assets/LinuxIcons/256x256.png" align="left" style="margin-right:15px"/>
 
 is a free and open source (FOSS) note-taking and to-do project delivering applications running on multiple platforms (Linux, Windows, MacOS, Android, and iOS), capable of handling large number of notes organised in notebooks, and syncing notes across the platforms in various ways.
 
@@ -12,7 +12,7 @@ The aim of this project is to extend and enhance features in various directions,
 
 Majority of notable features from Joplin remain, including importing notes from various other software like Evernote, saving web-pages from a web-clipper, working with notes in standard markdown format, using links with anything possible, full-text searching, extending with community plugins and themes.
 
-To know more about Joplin, refer to https://joplinapp.org/
+To know more about Joplin, refer to <https://joplinapp.org/>
 
 ## To start
 
@@ -20,7 +20,7 @@ You can install the app and run it afresh, or, as it's compatible with Joplin's 
 
 ## New feature #1: Notes and markdown files
 
-The central belief of this feature is that the notes are valuable properties of yours, likely an extension of your mind.  Xilinota keeps the notes and notebooks in a straight-forward file structure, with notes stored in markdown files each having the title as the file name.  The files and folders are maintained up-to-date with the internal database.  This gives you better access to and use of your notes outside of Xilinota.  You can create, add, edit, or delete the files with your favorite tools on your system, and the content of these files will be synced into Xilinota when you start it.  And, in any case when you change your mind about the choice of applications, the notes are in text form and you can easily adopt new ways of management. 
+The central belief of this feature is that the notes are valuable properties of yours, likely an extension of your mind.  Xilinota keeps the notes and notebooks in a straight-forward file structure, with notes stored in markdown files each having the title as the file name.  The files and folders are maintained up-to-date with the internal database.  This gives you better access to and use of your notes outside of Xilinota.  You can create, add, edit, or delete the files with your favorite tools on your system, and the content of these files will be synced into Xilinota when you start it.  And, in any case when you change your mind about the choice of applications, the notes are in text form and you can easily adopt new ways of management.
 
 #### Disktop application
 
@@ -86,7 +86,6 @@ Embedded resources (images) are not sent or synced.  I plan to do on-demand-tran
 
 Sending notes (and sending notebooks from mobile) are to all connected devices at the moment.  So if you want to send to a specific device now, ensure that Xilinota is not running on other devices.
 
-
 ## Other notable new features
 
 ### Virtual notebooks
@@ -119,8 +118,6 @@ I've tested the apps on Linux and Android.  I don't have executables built for M
 
 ## Special note
 
-This project is re-branded on 11/14/2023.  Nomenclatures described above will appear in newer uploads.  Existing files uploaded before this re-branding still bear those of Joplin.
-
-Due to mass renaming (as Joplin is a trademarked name) in the re-branding, some links might become invalid.  Those will be gradually repaired.
+This project is re-branded on 11/14/2023.  Due to mass renaming (as Joplin is a trademarked name) in the re-branding, some links might become invalid.  Those will be gradually repaired.
 
 As this is a fork from Joplin with substantial new development, it's imaginable that the organization of Joplin does not provide any assistance on issues related to this project.

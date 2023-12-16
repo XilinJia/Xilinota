@@ -2,7 +2,7 @@
   "name": "@xilinota/utils",
   "version": "2.13.1",
   "description": "Utilities for Xilinota",
-  "repository": "https://github.com/XilinJia/Xilinota/tree/dev/packages/utils",
+  "repository": "https://github.com/XilinJia/Xilinota/tree/main/packages/utils",
   "exports": {
     ".": "./dist/index.js",
     "./env": "./dist/env.js",

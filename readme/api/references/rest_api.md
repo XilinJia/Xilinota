@@ -21,23 +21,23 @@ To prevent unauthorised applications from accessing the API, the calls must be a
 
 This would be an example of valid cURL call using a token:
 
-	curl http://localhost:41184/notes?token=ABCD123ABCD123ABCD123ABCD123ABCD123
+ curl http://localhost:41184/notes?token=ABCD123ABCD123ABCD123ABCD123ABCD123
 
 In the documentation below, the token will not be specified every time however you will need to include it.
 
-If needed you may also [request the token programmatically](https://github.com/XilinJia/Xilinota/blob/dev/readme/spec/clipper_auth.md)
+If needed you may also [request the token programmatically](https://github.com/XilinJia/Xilinota/blob/main/readme/spec/clipper_auth.md)
 
 # Using the API
 
 All the calls, unless noted otherwise, receives and send **JSON data**. For example to create a new note:
 
-	curl --data '{ "title": "My note", "body": "Some note in **Markdown**"}' http://localhost:41184/notes
+ curl --data '{ "title": "My note", "body": "Some note in **Markdown**"}' http://localhost:41184/notes
 
 In the documentation below, the calls may include special parameters such as :id or :note_id. You would replace this with the item ID or note ID.
 
 For example, for the endpoint `DELETE /tags/:id/notes/:note_id`, to remove the tag with ID "ABCD1234" from the note with ID "EFGH789", you would run for example:
 
-	curl -X DELETE http://localhost:41184/tags/ABCD1234/notes/EFGH789
+ curl -X DELETE http://localhost:41184/tags/ABCD1234/notes/EFGH789
 
 The four verbs supported by the API are the following ones:
 
@@ -50,11 +50,11 @@ The four verbs supported by the API are the following ones:
 
 You can change the fields that will be returned by the API using the `fields=` query parameter, which takes a list of comma separated fields. For example, to get the longitude and latitude of a note, use this:
 
-	curl http://localhost:41184/notes/ABCD123?fields=longitude,latitude
+ curl http://localhost:41184/notes/ABCD123?fields=longitude,latitude
 
 To get the IDs only of all the tags:
 
-	curl http://localhost:41184/tags?fields=id
+ curl http://localhost:41184/tags?fields=id
 
 By default API results will contain the following fields: **id**, **parent_id**, **title**
 
@@ -71,15 +71,15 @@ You can specify how the results should be sorted using the `order_by` and `order
 
 The following call for example will initiate a request to fetch all the notes, 10 at a time, and sorted by "updated_time" ascending:
 
-	curl http://localhost:41184/notes?order_by=updated_time&order_dir=ASC&limit=10
+ curl http://localhost:41184/notes?order_by=updated_time&order_dir=ASC&limit=10
 
 This will return a result like this
 
-	{ "items": [ /* 10 notes */ ], "has_more": true }
+ { "items": [ /* 10 notes */ ], "has_more": true }
 
 Then you will resume fetching the results using this query:
 
-	curl http://localhost:41184/notes?order_by=updated_time&order_dir=ASC&limit=10&page=2
+ curl http://localhost:41184/notes?order_by=updated_time&order_dir=ASC&limit=10&page=2
 
 Eventually you will get some results that do not contain an "has_more" paramater, at which point you will have retrieved all the results
 
@@ -88,15 +88,15 @@ As an example the pseudo-code below could be used to fetch all the notes:
 ```javascript
 
 async function fetchJson(url) {
-	return (await fetch(url)).json();
+ return (await fetch(url)).json();
 }
 
 async function fetchAllNotes() {
-	let pageNum = 1;
-	do {
-		const response = await fetchJson((http://localhost:41184/notes?page=' + pageNum++);
-		console.info('Printing notes:', response.items);
-	} while (response.has_more)
+ let pageNum = 1;
+ do {
+  const response = await fetchJson((http://localhost:41184/notes?page=' + pageNum++);
+  console.info('Printing notes:', response.items);
+ } while (response.has_more)
 }
 ```
 
@@ -116,7 +116,7 @@ Call **GET /ping** to check if the service is available. It should return "Jopli
 
 # Searching
 
-Call **GET /search?query=YOUR_QUERY** to search for notes. This end-point supports the `field` parameter which is recommended to use so that you only get the data that you need. The query syntax is as described in the main documentation: https://xilinotaapp.org/help/#searching
+Call **GET /search?query=YOUR_QUERY** to search for notes. This end-point supports the `field` parameter which is recommended to use so that you only get the data that you need. The query syntax is as described in the main documentation: <https://xilinotaapp.org/help/#searching>
 
 To retrieve non-notes items, such as notebooks or tags, add a `type` parameter and set it to the required [item type name](#item-type-id). In that case, full text search will not be used - instead it will be a simple case-insensitive search. You can also use `*` as a wildcard. This is convenient for example to retrieve notebooks or tags by title.
 
@@ -130,22 +130,22 @@ Item type IDs might be refered to in certain object you will retrieve from the A
 
 Name | Value
 ---- | -----
-note | 1   
-folder | 2   
-setting | 3   
-resource | 4   
-tag | 5   
-note_tag | 6   
-search | 7   
-alarm | 8   
-master_key | 9   
-item_change | 10   
-note_resource | 11   
-resource_local_state | 12   
-revision | 13   
-migration | 14   
-smart_filter | 15   
-command | 16   
+note | 1
+folder | 2
+setting | 3
+resource | 4
+tag | 5
+note_tag | 6
+search | 7
+alarm | 8
+master_key | 9
+item_change | 10
+note_resource | 11
+resource_local_state | 12
+revision | 13
+migration | 14
+smart_filter | 15
+command | 16
 
 # Notes
 
@@ -332,32 +332,33 @@ Creates a new resource
 
 Creating a new resource is special because you also need to upload the file. Unlike other API calls, this one must have the "multipart/form-data" Content-Type. The file data must be passed to the "data" form field, and the other properties to the "props" form field. An example of a valid call with cURL would be:
 
-	curl -F 'data=@/path/to/file.jpg' -F 'props={"title":"my resource title"}' http://localhost:41184/resources
+ curl -F 'data=@/path/to/file.jpg' -F 'props={"title":"my resource title"}' http://localhost:41184/resources
 
 To **update** the resource content, you can make a PUT request with the same arguments:
 
-	curl -X PUT -F 'data=@/path/to/file.jpg' -F 'props={"title":"my modified title"}' http://localhost:41184/resources/8fe1417d7b184324bf6b0122b76c4696
+ curl -X PUT -F 'data=@/path/to/file.jpg' -F 'props={"title":"my modified title"}' http://localhost:41184/resources/8fe1417d7b184324bf6b0122b76c4696
 
 The "data" field is required, while the "props" one is not. If not specified, default values will be used.
 
 Or if you only need to update the resource properties (title, etc.), without changing the content, you can make a regular PUT request:
 
-	curl -X PUT --data '{"title": "My new title"}' http://localhost:41184/resources/8fe1417d7b184324bf6b0122b76c4696
+ curl -X PUT --data '{"title": "My new title"}' http://localhost:41184/resources/8fe1417d7b184324bf6b0122b76c4696
 
 **From a plugin** the syntax to create a resource is also a bit special:
 
 ```javascript
-	await xilinota.data.post(
-		["resources"],
-		null,
-		{ title: "test.jpg" }, // Resource metadata
-		[
-			{
-				path: "/path/to/test.jpg", // Actual file
-			},
-		]
-	);
+ await xilinota.data.post(
+  ["resources"],
+  null,
+  { title: "test.jpg" }, // Resource metadata
+  [
+   {
+    path: "/path/to/test.jpg", // Actual file
+   },
+  ]
+ );
 ```
+
 ## PUT /resources/:id
 
 Sets the properties of the resource with ID :id

@@ -12,13 +12,13 @@ The installer may get stuck if the app was not uninstalled correctly. To fix the
 
 Now try to install again and it should work.
 
-More info there: https://github.com/electron-userland/electron-builder/issues/4057
+More info there: <https://github.com/electron-userland/electron-builder/issues/4057>
 
 ## How can I pass arguments to the Linux installation script?
 
-You can pass [arguments](https://github.com/XilinJia/Xilinota/blob/dev/Joplin_install_and_update.sh#L37) to the installation script by using this command.
+You can pass [arguments](https://github.com/XilinJia/Xilinota/blob/main/Joplin_install_and_update.sh#L37) to the installation script by using this command.
 
-<pre><code style="word-break: break-all">wget -O - https://raw.githubusercontent.com/xilinjia/xilinota/dev/Joplin_install_and_update.sh | bash -s -- --argument1 --argument2</code></pre>
+<pre><code style="word-break: break-all">wget -O - https://raw.githubusercontent.com/xilinjia/xilinota/main/Joplin_install_and_update.sh | bash -s -- --argument1 --argument2</code></pre>
 
 ## Desktop application will not launch on Linux
 
@@ -57,9 +57,9 @@ Note that the path to directory with your editor executable must exist in your P
 
 ## When I open a note in vim, the cursor is not visible
 
-It seems to be due to the setting `set term=ansi` in .vimrc. Removing it should fix the issue. See https://github.com/XilinJia/Xilinota/issues/147 for more information.
+It seems to be due to the setting `set term=ansi` in .vimrc. Removing it should fix the issue. See <https://github.com/XilinJia/Xilinota/issues/147> for more information.
 
-## All my notes got deleted after changing the WebDAV URL!
+## All my notes got deleted after changing the WebDAV URL
 
 When changing the WebDAV URL, make sure that the new location has the same exact content as the old location (i.e. copy all the Xilinota data over to the new location). Otherwise, if there's nothing on the new location, Xilinota is going to think that you have deleted all your data and will proceed to delete it locally too. So to change the WebDAV URL, please follow these steps:
 
@@ -111,7 +111,7 @@ On the local device it is assumed that the data is safe due to the OS built-in s
 
 For these reasons, because the OS or yourself can easily protect the local data, no PIN or password is currently supported to access Xilinota.
 
-There is however an issue open about it, so pull requests are welcome: https://github.com/XilinJia/Xilinota/issues/289
+There is however an issue open about it, so pull requests are welcome: <https://github.com/XilinJia/Xilinota/issues/289>
 
 ## Why is my WebDAV host not working?
 
@@ -138,7 +138,7 @@ In this case, [make sure you enter the correct WebDAV URL](https://github.com/Xi
 ### Nextcloud sync is not working
 
 - Check your username and password. **Type it manually** (without copying and pasting it) and try again.
-- Check the WebDAV URL - to get the correct URL, go to Nextcloud and, in the left sidebar, click on "Settings" and copy the WebDAV URL from there. **Do not forget to add the folder you've created to that URL**. For example, if the base the WebDAV URL is "https://example.com/nextcloud/remote.php/webdav/" and you want the notes to be synced in the "Xilinota" directory, you need to give the URL "https://example.com/nextcloud/remote.php/webdav/Xilinota" **and you need to create the "Xilinota" directory yourself**.
+- Check the WebDAV URL - to get the correct URL, go to Nextcloud and, in the left sidebar, click on "Settings" and copy the WebDAV URL from there. **Do not forget to add the folder you've created to that URL**. For example, if the base the WebDAV URL is "<https://example.com/nextcloud/remote.php/webdav/>" and you want the notes to be synced in the "Xilinota" directory, you need to give the URL "<https://example.com/nextcloud/remote.php/webdav/Xilinota>" **and you need to create the "Xilinota" directory yourself**.
 - Did you enable **2FA** (Multi-factor authentication) on Nextcloud? In that case, you need to [create an app password for Xilinota in the Nextcloud admin interface](https://github.com/XilinJia/Xilinota/issues/1453#issuecomment-486640902).
 
 ## Why did my sync and encryption passwords disappear after updating Xilinota?

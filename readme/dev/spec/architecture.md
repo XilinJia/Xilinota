@@ -2,9 +2,9 @@
 
 Xilinota as a project is organised around three main components:
 
-- The user applications: For [desktop](https://github.com/XilinJia/Xilinota/blob/dev/readme/apps/desktop.md), [mobile](https://github.com/XilinJia/Xilinota/blob/dev/readme/apps/mobile.md) and [CLI](https://github.com/XilinJia/Xilinota/blob/dev/readme/apps/terminal.md))
-- [Xilinota Server](https://github.com/XilinJia/Xilinota/blob/dev/packages/server/README.md)
-- [Web Clipper](https://github.com/XilinJia/Xilinota/blob/dev/readme/apps/clipper.md)
+- The user applications: For [desktop](https://github.com/XilinJia/Xilinota/blob/main/readme/apps/desktop.md), [mobile](https://github.com/XilinJia/Xilinota/blob/main/readme/apps/mobile.md) and [CLI](https://github.com/XilinJia/Xilinota/blob/main/readme/apps/terminal.md))
+- [Xilinota Server](https://github.com/XilinJia/Xilinota/blob/main/packages/server/README.md)
+- [Web Clipper](https://github.com/XilinJia/Xilinota/blob/main/readme/apps/clipper.md)
 
 ## User applications
 
@@ -16,15 +16,15 @@ The overall architecture for each application is as such:
 
 - Back end: This is shared by all applications. It is made of:
 
-	- Services: Provide high-level functionalities, such as the [search engine](https://github.com/XilinJia/Xilinota/tree/dev/packages/lib/services/searchengine), [plugin system](https://github.com/XilinJia/Xilinota/tree/dev/packages/lib/services/plugins) or [synchroniser](https://github.com/XilinJia/Xilinota/blob/dev/packages/lib/Synchronizer.ts).
+  - Services: Provide high-level functionalities, such as the [search engine](https://github.com/XilinJia/Xilinota/tree/main/packages/lib/services/searchengine), [plugin system](https://github.com/XilinJia/Xilinota/tree/main/packages/lib/services/plugins) or [synchroniser](https://github.com/XilinJia/Xilinota/blob/main/packages/lib/Synchronizer.ts).
 
-	- Models: The model layer sits between the services and database. They provide a higher level abstraction than SQL and utility functions to easily save data, such as notes, notebooks, etc.
+  - Models: The model layer sits between the services and database. They provide a higher level abstraction than SQL and utility functions to easily save data, such as notes, notebooks, etc.
 
-	- Database: All applications use a local [SQLite database](https://sqlite.org/index.html) to store notes, settings, cache, etc. This is only a local database.
+  - Database: All applications use a local [SQLite database](https://sqlite.org/index.html) to store notes, settings, cache, etc. This is only a local database.
 
-- Configuration: The application is configured using a `settings.json` file. Its schema is available online: https://xilinotaapp.org/schema/settings.json
+- Configuration: The application is configured using a `settings.json` file. Its schema is available online: <https://xilinotaapp.org/schema/settings.json>
 
-<img src="https://raw.githubusercontent.com/xilinjia/xilinota/dev/Assets/WebsiteAssets/images/architecture/Application.png" style="max-width: 100%;"/>
+<img src="https://raw.githubusercontent.com/xilinjia/xilinota/main/Assets/WebsiteAssets/images/architecture/Application.png" style="max-width: 100%;"/>
 
 ### Desktop application
 
@@ -44,7 +44,7 @@ Xilinota Server is used to synchronise the application data between multiple dev
 
 A typical Xilinota Server installation will use the following elements:
 
-- The [Xilinota Server application](https://github.com/XilinJia/Xilinota/blob/dev/packages/server/README.md). This is a Node.js application. It exposes a REST API that is used by the Xilinota clients to upload or download notes, notebooks, and other Xilinota objects.
+- The [Xilinota Server application](https://github.com/XilinJia/Xilinota/blob/main/packages/server/README.md). This is a Node.js application. It exposes a REST API that is used by the Xilinota clients to upload or download notes, notebooks, and other Xilinota objects.
 
 - [PostgreSQL](https://www.postgresql.org/): it is used to save the "item" metadata. An "item" can be a note, a notebook, a tag, etc. It is also used to save other informations, such as user accounts, access logs, etc.
 
@@ -56,7 +56,7 @@ A typical Xilinota Server installation will use the following elements:
 
 This is a typical Xilinota Server installation, but many of its components can be configured - for example it is possible to use a different database engine, or to use the filesystem instead of AWS S3. Any reverse proxy would also work - using Nginx is not required.
 
-<img src="https://raw.githubusercontent.com/xilinjia/xilinota/dev/Assets/WebsiteAssets/images/architecture/XilinotaServer.png" style="max-width: 100%;"/>
+<img src="https://raw.githubusercontent.com/xilinjia/xilinota/main/Assets/WebsiteAssets/images/architecture/XilinotaServer.png" style="max-width: 100%;"/>
 
 ## Web Clipper
 
@@ -66,7 +66,7 @@ It is developed using the [WebExtensions API](https://extensionworkshop.com/docu
 
 ## More information
 
-- [Plugin Architecture spec](https://github.com/XilinJia/Xilinota/blob/dev/readme/dev/spec/plugins.md)
-- [E2EE: Technical spec](https://github.com/XilinJia/Xilinota/blob/dev/readme/dev/spec/e2ee.md)
-- [E2EE: Workflow](https://github.com/XilinJia/Xilinota/blob/dev/readme/dev/spec/e2ee/workflow.md)
-- [All Xilinota technical specifications](https://github.com/XilinJia/Xilinota/tree/dev/readme/dev/spec)
+- [Plugin Architecture spec](https://github.com/XilinJia/Xilinota/blob/main/readme/dev/spec/plugins.md)
+- [E2EE: Technical spec](https://github.com/XilinJia/Xilinota/blob/main/readme/dev/spec/e2ee.md)
+- [E2EE: Workflow](https://github.com/XilinJia/Xilinota/blob/main/readme/dev/spec/e2ee/workflow.md)
+- [All Xilinota technical specifications](https://github.com/XilinJia/Xilinota/tree/main/readme/dev/spec)

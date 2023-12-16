@@ -7,7 +7,7 @@
 
 ## Configure Docker for Xilinota Server
 
-1. Copy `.env-sample` (located [here](https://raw.githubusercontent.com/xilinjia/xilinota/dev/.env-sample)) to the location of your Docker configuration files. Example: /home/[user]/docker
+1. Copy `.env-sample` (located [here](https://raw.githubusercontent.com/xilinjia/xilinota/main/.env-sample)) to the location of your Docker configuration files. Example: /home/[user]/docker
 2. Rename the file `.env-sample` to `.env`.
 3. Run the following command to test starting the server using the default configuration:
 
@@ -58,7 +58,7 @@ Ensure that the provided database and user exist as Xilinota Server will not cre
 
 ### Using docker-compose
 
-1. Using the [sample docker-compose file](https://raw.githubusercontent.com/xilinjia/xilinota/dev/docker-compose.server.yml), create a docker compose file in the location of your Docker configuration files. Example: /home/[user]/docker/docker-compose.yml
+1. Using the [sample docker-compose file](https://raw.githubusercontent.com/xilinjia/xilinota/main/docker-compose.server.yml), create a docker compose file in the location of your Docker configuration files. Example: /home/[user]/docker/docker-compose.yml
 2. Update the fields in the docker-compose file as seen in the sample file.
 
 
@@ -174,7 +174,7 @@ From `packages/server`, run `npm run start-dev`
 
 # Changelog
 
-[View the changelog](https://github.com/XilinJia/Xilinota/blob/dev/readme/changelog_server.md)
+[View the changelog](https://github.com/XilinJia/Xilinota/blob/main/readme/changelog_server.md)
 
 # License
 

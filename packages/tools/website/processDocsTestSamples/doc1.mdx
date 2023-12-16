@@ -1,3 +1,0 @@
-One paragraph
-
-Two paragraph

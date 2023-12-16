@@ -1,1 +1,0 @@
-Some **bold text** and some *italic text* &lt;EscapedTag&gt;
