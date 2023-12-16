@@ -439,13 +439,12 @@ We aren't using these guides, but they may still be helpful!
 
 - [TypeScript Deep Dive — Style Guide](https://basarat.gitbook.io/typescript/styleguide)
 - [Google TypeScript style guide](https://google.github.io/styleguide/tsguide.html)
- 	- See also [`ts.dev`'s style guide](https://ts.dev/style/#function-expressions), which is based on the Google style guide.
+  - See also [`ts.dev`'s style guide](https://ts.dev/style/#function-expressions), which is based on the Google style guide.
 - [Javascript standardstyle](https://standardjs.com/rules.html)
- 	- Possibly useful for adding to `.eslintrc.js`: lists `eslint` configuration flags for each of their suggestions
+  - Possibly useful for adding to `.eslintrc.js`: lists `eslint` configuration flags for each of their suggestions
 
 ### Posts/resources related to Xilinota's style
 
 - Forum Post: [Troubleshooting FAQ and collecting topic for contributing to Xilinota codebase](https://discourse.xilinotaapp.org/t/troubleshooting-faq-and-collecting-topic-for-contributing-to-xilinota-codebase/6501)
 - Forum Post: [How to style your code](https://discourse.xilinotaapp.org/t/how-to-style-your-code/6502)
-- GSoC: [GSoC 2022 pull request guidelines](https://github.com/XilinJia/Xilinota/blob/main/readme/dev/gsoc/gsoc2022/pull_request_guidelines.md)
 - GitHub: [`.eslintrc.js`](https://github.com/XilinJia/Xilinota/blob/main/.eslintrc.js)

@@ -1,0 +1,1 @@
+<img src="https://raw.githubusercontent.com/xilinjia/xilinota/main/Assets/WebsiteAssets/images/WebExtensionScreenshot.png" style="max-width: 50%; border: 1px solid gray;">
