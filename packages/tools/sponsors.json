@@ -1,0 +1,98 @@
+{
+	"github": [
+		{
+			"name": "tateisu"
+		},
+		{
+			"name": "matmoly"
+		},
+		{
+			"name": "KentBrockman"
+		},
+		{
+			"name": "CyberXZT"
+		},
+		{
+			"name": "avanderberg"
+		},
+		{
+			"name": "dbrandonjohnson"
+		},
+		{
+			"name": "chr15m"
+		},
+		{
+			"name": "maxtruxa"
+		},
+		{
+			"name": "konishi-t"
+		},
+		{
+			"name": "marcdw1289"
+		},
+		{
+			"name": "taskcruncher"
+		},
+		{
+			"name": "sif"
+		},
+		{
+			"name": "saarantras"
+		},
+		{
+			"name": "Hegghammer"
+		},
+		{
+			"name": "jknowles"
+		},
+		{
+			"name": "fats"
+		},
+		{
+			"name": "dchecks"
+		},
+		{
+			"name": "Galliver7"
+		}
+	],
+	"orgs": [
+		{
+			"url": "https://seirei.ne.jp",
+			"title": "Serei Network",
+			"imageName": "SeireiNetwork.png"
+		},
+		{
+			"url": "https://www.hosting.de/nextcloud/?mtm_campaign=managed-nextcloud&mtm_kwd=xilinotaapp&mtm_source=xilinotaapp-github&mtm_medium=banner",
+			"urlWebsite": "https://www.hosting.de/nextcloud/?mtm_campaign=managed-nextcloud&mtm_kwd=xilinotaapp&mtm_source=xilinotaapp-webseite&mtm_medium=banner",
+			"title": "Hosting.de",
+			"imageName": "HostingDe.png"
+		},
+		{
+			"url": "https://residence-greece.com/",
+			"title": "Greece Golden Visa",
+			"imageName": "ResidenceGreece.jpg"
+		},
+		{
+			"url": "https://grundstueckspreise.info/",
+			"title": "SP Software GmbH",
+			"imageName": "Grundstueckspreise.png"
+		},
+		{
+			"url": "https://tranio.com/spain/",
+			"title": "Property for sale in Spain",
+			"imageName": "TranioOverseasProperty.jpg"
+		},
+		{
+			"url": "https://citricsheep.com",
+			"title": "Citric Sheep",
+			"imageName": "CitricSheep.png"
+		}
+	],
+	"orgsOld": [
+		{
+			"url": "https://usrigging.com/",
+			"title": "U.S. Ringing Supply",
+			"imageName": "RingingSupply.svg"
+		}
+	]
+}

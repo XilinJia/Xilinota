@@ -1,0 +1,9 @@
+<strong>Xilinota</strong> is a note taking and to-do application, which can handle a large number of notes. The notes can be organized into notebooks and virtual notebooks, are searchable, can be copied, linked, and tagged. All notes and notebooks are kept in filesystem folders for your direct access outside Xilinota.
+
+Notes exported from Evernote and other applications can be imported into Xilinota, including the formatted content (which is converted to Markdown), resources (images, attachments, etc.) and complete metadata (geolocation, updated time, created time, etc.). Plain Markdown files can be either manually imported or added in a folder and get imported automatically.
+
+While notes can be securely synchronised using end-to-end encryption with various cloud services including Nextcloud, Dropbox, OneDrive, Xilinota also offers powerful and convenient instant sync features for all of your nates and notebooks across devices on a local network.
+
+Full text search is available on all platforms to quickly find the information you need. The app can be customised using plugins and themes, and you can also easily create your own.
+
+The application is available for Windows, Linux, macOS, Android and iOS. A Web Clipper, to save web pages and screenshots from your browser, is also available for Firefox, Chrome or any sibling browsers of Chrome .

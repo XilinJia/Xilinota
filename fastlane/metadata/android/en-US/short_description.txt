@@ -1,0 +1,1 @@
+a multi-platform note taking app with instant sync across devices

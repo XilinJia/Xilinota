@@ -1,0 +1,14 @@
+{
+	"extends": "../../tsconfig.json",
+	"include": [
+		"**/*.ts",
+		"**/*.tsx",
+	],
+	"exclude": [
+		"**/node_modules",
+		"**/dist",
+	],
+	"compilerOptions": {
+		"esModuleInterop": true,
+	},
+}

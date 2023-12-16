@@ -1,0 +1,32 @@
+{{#global.hasNotifications}}
+	{{#global.notifications}}
+	<div class="notification {{levelClassName}} content" id="notification-{{id}}">
+		{{#closeUrl}}
+			<button data-close-url="{{closeUrl}}" data-id="{{id}}" class="delete close-notification-button"></button>
+		{{/closeUrl}}
+		{{{messageHtml}}}
+	</div>
+	{{/global.notifications}}
+{{/global.hasNotifications}}
+
+<script>
+	onDocumentReady(function() {
+		const buttons = document.getElementsByClassName('close-notification-button');
+		
+		for (const button of buttons) {
+			button.addEventListener('click', function(event) {
+				const closeUrl = button.dataset.closeUrl;
+				const notificationId = button.dataset.id;
+				fetch(closeUrl, {
+					method: 'PATCH',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						read: 1,
+					}),
+				});
+
+				document.getElementById('notification-' + notificationId).style.display = 'none';
+			});
+		}
+	});
+</script>

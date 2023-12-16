@@ -1,0 +1,11 @@
+.container {
+	background-color: var(--xilinota-background-color);
+	color: var(--xilinota-color);
+	font-size: var(--xilinota-font-size);
+	font-family: var(--xilinota-font-family);
+}
+
+.toc-item a {
+	color: var(--xilinota-color);
+	text-decoration: none;
+}

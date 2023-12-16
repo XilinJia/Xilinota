@@ -1,0 +1,16 @@
+<section class="section">
+	<div class="container">
+		<div class="notification is-danger">
+			{{error.message}}
+			{{#stack}}
+				<pre>{{.}}</pre>
+			{{/stack}}
+		</div>
+		{{#owner}}
+			<p><a href="{{{global.baseUrl}}}/home">Go to home page</a></p>
+		{{/owner}}
+		{{^owner}}
+			<p><a href="{{{global.baseUrl}}}/login">Go to login page</a></p>
+		{{/owner}}
+	</div>
+</div>

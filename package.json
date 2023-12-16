@@ -1,0 +1,106 @@
+{
+  "name": "root",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/XilinJia/Xilinota.git"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "scripts": {
+    "buildParallel": "yarn workspaces foreach --verbose --interlaced --parallel --jobs 2 --topological run build && yarn run tsc",
+    "buildSequential": "yarn workspaces foreach --verbose --interlaced --topological run build && yarn run tsc",
+    "buildApiDoc": "yarn workspace xilinota start apidoc ../../readme/api/references/rest_api.md",
+    "buildCommandIndex": "node packages/tools/gulp/tasks/buildCommandIndexRun.js",
+    "buildPluginDoc": "cd packages/generate-plugin-doc && yarn run buildPluginDoc_",
+    "updateMarkdownDoc": "node ./packages/tools/updateMarkdownDoc",
+    "updateNews": "node ./packages/tools/website/updateNews",
+    "postPreReleasesToForum": "node ./packages/tools/postPreReleasesToForum",
+    "buildSettingJsonSchema": "yarn workspace xilinota start settingschema ../../../xilinota-website/docs/schema/settings.json",
+    "buildTranslations": "node packages/tools/build-translation.js",
+    "buildWebsiteTranslations": "node packages/tools/website/buildTranslations.js",
+    "buildWebsite": "node ./packages/tools/website/build.js && yarn run buildPluginDoc && yarn run buildSettingJsonSchema",
+    "checkLibPaths": "node ./packages/tools/checkLibPaths.js",
+    "checkIgnoredFiles": "node ./packages/tools/checkIgnoredFiles.js",
+    "circularDependencyCheck": "madge --warning --circular --extensions js ./",
+    "clean": "npm run clean --workspaces --if-present && node packages/tools/clean && yarn cache clean",
+    "dependencyTree": "madge",
+    "generateDatabaseTypes": "node packages/tools/generate-database-types",
+    "linkChecker": "linkchecker https://xilinotaapp.org",
+    "linter-ci": "eslint --resolve-plugins-relative-to . --quiet --ext .js --ext .jsx --ext .ts --ext .tsx",
+    "linter-precommit": "eslint --resolve-plugins-relative-to . --fix --ext .js --ext .jsx --ext .ts --ext .tsx",
+    "linter": "eslint --resolve-plugins-relative-to . --fix --quiet --ext .js --ext .jsx --ext .ts --ext .tsx",
+    "linter-interactive": "eslint-interactive --resolve-plugins-relative-to . --fix --quiet --ext .js --ext .jsx --ext .ts --ext .tsx",
+    "packageJsonLint": "node ./packages/tools/packageJsonLint.js",
+    "postinstall": "gulp build",
+    "publishAll": "git pull && yarn run buildParallel && lerna version --yes --no-private --no-git-tag-version && gulp completePublishAll",
+    "releaseAndroid": "PATH=\"/usr/local/opt/openjdk@11/bin:$PATH\" node packages/tools/release-android.js",
+    "releaseAndroidClean": "node packages/tools/release-android.js",
+    "releaseCli": "node packages/tools/release-cli.js",
+    "releaseClipper": "node packages/tools/release-clipper.js",
+    "releaseDesktop": "node packages/tools/release-electron.js",
+    "releaseIOS": "node packages/tools/release-ios.js",
+    "releasePluginGenerator": "node packages/tools/release-plugin-generator.js",
+    "releasePluginRepoCli": "node packages/tools/release-plugin-repo-cli.js",
+    "releaseServer": "node packages/tools/release-server.js",
+    "cspell": "cspell",
+    "spellcheck": "node packages/tools/spellcheck.js",
+    "tagServerLatest": "node packages/tools/tagServerLatest.js",
+    "buildServerDocker": "node packages/tools/buildServerDocker.js",
+    "setupNewRelease": "node ./packages/tools/setupNewRelease",
+    "test-ci": "yarn workspaces foreach --parallel --verbose --interlaced --jobs 2 run test-ci",
+    "test": "yarn workspaces foreach --parallel --verbose --interlaced --jobs 2 run test",
+    "tsc": "yarn workspaces foreach --parallel --verbose --interlaced run tsc",
+    "updateIgnored": "node packages/tools/gulp/tasks/updateIgnoredTypeScriptBuildRun.js",
+    "updatePluginTypes": "./packages/generator-xilinota/updateTypes.sh",
+    "watch": "yarn workspaces foreach --parallel --verbose --interlaced --jobs 999 run watch",
+    "watchWebsite": "nodemon --verbose --watch Assets/WebsiteAssets --watch packages/tools/website --watch packages/tools/website/utils --ext md,ts,js,mustache,css,tsx,gif,png,svg --exec \"node packages/tools/website/build.js && http-server --port 8077 ../xilinota-website/docs -a localhost\""
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "devDependencies": {
+    "@seiyab/eslint-plugin-react-hooks": "4.5.1-beta.0",
+    "@typescript-eslint/eslint-plugin": "6.0.0",
+    "@typescript-eslint/parser": "6.0.0",
+    "@xilinota/utils": "~2.13",
+    "cspell": "5.21.2",
+    "eslint": "8.47.0",
+    "eslint-interactive": "10.8.0",
+    "eslint-plugin-import": "2.28.1",
+    "eslint-plugin-jest": "27.2.3",
+    "eslint-plugin-promise": "6.1.1",
+    "eslint-plugin-react": "7.33.2",
+    "execa": "5.1.1",
+    "glob": "10.3.4",
+    "gulp": "4.0.2",
+    "husky": "3.1.0",
+    "jest": "29.6.4",
+    "lerna": "^3.22.1",
+    "lint-staged": "13.3.0",
+    "madge": "6.1.0",
+    "npm-package-json-lint": "7.0.0",
+    "typescript": "5.1.6"
+  },
+  "dependencies": {
+    "@xilinota/react-native-alarm-notification": "workspace:^",
+    "eslint-plugin-github": "4.9.2",
+    "http-server": "14.1.1",
+    "node-gyp": "9.4.0",
+    "nodemon": "3.0.1"
+  },
+  "packageManager": "yarn@3.6.3",
+  "resolutions": {
+    "react-native-camera@4.2.1": "patch:react-native-camera@npm%3A4.2.1#./.yarn/patches/react-native-camera-npm-4.2.1-24b2600a7e.patch",
+    "react-native-vosk@0.1.12": "patch:react-native-vosk@npm%3A0.1.12#./.yarn/patches/react-native-vosk-npm-0.1.12-76b1caaae8.patch",
+    "eslint": "patch:eslint@8.47.0#./.yarn/patches/eslint-npm-8.39.0-d92bace04d.patch",
+    "app-builder-lib@24.4.0": "patch:app-builder-lib@npm%3A24.4.0#./.yarn/patches/app-builder-lib-npm-24.4.0-05322ff057.patch",
+    "react-native@0.71.10": "patch:react-native@npm%3A0.71.10#./.yarn/patches/react-native-animation-fix/react-native-npm-0.71.10-f9c32562d8.patch"
+  }
+}

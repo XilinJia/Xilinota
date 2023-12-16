@@ -1,0 +1,22 @@
+{
+  "name": "@xilinota/fork-sax",
+  "description": "An evented streaming XML parser in JavaScript",
+  "author": "Isaac Z. Schlueter <i@izs.me> (http://blog.izs.me/)",
+  "version": "1.2.51",
+  "main": "lib/sax.js",
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "ISC",
+  "repository": "git://github.com/isaacs/sax-js.git",
+  "files": [
+    "lib/sax.js",
+    "LICENSE",
+    "README.md"
+  ],
+  "devDependencies": {
+    "standard": "17.1.0",
+    "tap": "16.3.8"
+  },
+  "gitHead": "eb4b0e64eab40a51b0895d3a40a9d8c3cb7b1b14"
+}

@@ -1,0 +1,27 @@
+All code in this repository is licensed under the AGPL-3.0-or-later License
+**unless a directory contains a LICENSE or LICENSE.md file**, in which case that
+file applies to the code in that sub-directory.
+
+For example, packages/server contains a LICENSE.md file, thus all code under the
+packages/server directory is licensed under that license.
+
+For example, packages/app-cli does NOT contain a LICENSE file, thus all code
+under that directory is licensed under the default license, which is
+AGPL-3.0-or-later.
+
+* * *
+
+Logo and Icon License
+
+The Xilinota logos and icons are copyright (c) Xilin Jia, all rights reserved,
+and may not be used without a permission. If you would like to use the logos or
+icons please contact the author in order to get a permission.
+
+* * *
+
+AGPL-3.0-or-later License
+
+Copyright (c) 2016-2022 Laurent Cozic
+Copyright (c) 2023 Xilin Jia
+
+https://spdx.org/licenses/AGPL-3.0-or-later.html
