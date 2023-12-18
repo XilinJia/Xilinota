@@ -132,6 +132,8 @@ export function initSocketIOServer() {
 
 					// handle notes updates
 					const noteidsClient: string[] = data['noteids'];
+					reg.logger().info(`Server: received ${noteidsClient.length} node ids from client ${socket.id} for sync`);
+
 					const [noteids, notes] = await Note.notesUpdatedAfter(offTime);
 					let conflistids: string[] = [];
 					if (noteids.length > 0 && noteidsClient.length > 0) {
@@ -141,8 +143,9 @@ export function initSocketIOServer() {
 							await Note.createConflictNote(note, 111);
 						}
 					}
-					socketIOServer.to(socket.id).emit('conflictNotes', { noteids: conflistids });
+					reg.logger().info(`Server: among the note ids from client, ${conflistids.length} are in conflict`);
 
+					socketIOServer.to(socket.id).emit('conflictNotes', { noteids: conflistids });
 					socket.on('conflictReceived', async (_data) => {
 						reg.logger().info('Server: received conflictReceived from ', socket.id, new Date(offTime));
 						if (noteids.length > 0) {

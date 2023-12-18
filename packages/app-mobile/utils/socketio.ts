@@ -45,7 +45,10 @@ function initSocketIOClient() {
 		const offlineTime = Setting.value('offlineTime');
 		let onlineTime = Setting.value('onlineTime');
 		const quitTime = Setting.value('shutdownTime');
-		const offTime = offlineTime === onlineTime ? quitTime : offlineTime > quitTime ? offlineTime : quitTime;	// TODO: needs review
+		const lastSyncTime = Setting.value('peerSyncTime');
+		// offlineTime === onlineTime means the app was thrown out while online without having time to record offlineTime
+		// const offTime = offlineTime === onlineTime ? quitTime : offlineTime > quitTime ? offlineTime : quitTime;	// TODO: needs review
+		const offTime = lastSyncTime === 0 ? quitTime : lastSyncTime;
 		reg.logger().info('Client: device offline and shutdown times', new Date(offlineTime), new Date(quitTime), new Date(offTime));
 
 		socketIOWorker.emit('updateRequest', { offTime: offTime });
@@ -103,6 +106,7 @@ function initSocketIOClient() {
 		onlineTime = new Date().getTime();
 		Setting.setValue('onlineTime', onlineTime);
 		Setting.setValue('offlineTime', onlineTime);
+		Setting.setValue('peerSyncTime', onlineTime);
 	});
 
 	// socketIOClient.on('message', (message: string) => {
@@ -148,12 +152,22 @@ function initSocketIOClient() {
 }
 
 export function workerEmit(tag: string, data: Record<string, string>) {
-	if (socketIOWorker && socketIOWorker.connected) socketIOWorker.emit(tag, data);
+	if (socketIOWorker && socketIOWorker.connected) {
+		socketIOWorker.emit(tag, data);
+		Setting.setValue('peerSyncTime', new Date().getTime());
+	}
 }
 
 export function workerEmitToPeer(tag: string, data: Record<string, string>, clientName: string = null) {
-	if (clientName) data = { clientName: clientName, ...data };
-	if (socketIOWorker && socketIOWorker.connected) socketIOClient.emit('privateMessage', { tag: tag, recipient: clientName, data: data });
+	if (!clientName) {
+		reg.logger().error('workerEmitToPeer: clientName empty');
+		return;
+	}
+	data = { clientName: clientName, ...data };
+	if (socketIOWorker && socketIOWorker.connected) {
+		socketIOClient.emit('privateMessage', { tag: tag, recipient: clientName, data: data });
+		Setting.setValue('peerSyncTime', new Date().getTime());
+	}
 }
 
 // Stop the socket connection

@@ -776,6 +776,7 @@ class Setting extends BaseModel {
 			// TODO: not used yet
 			localFilesDir: { value: '', type: SettingItemType.String, public: false },
 
+			peerSyncTime: { value: 0, type: SettingItemType.Int, public: false },
 			onlineTime: { value: 0, type: SettingItemType.Int, public: false },
 			offlineTime: { value: 0, type: SettingItemType.Int, public: false },
 			lastTimeAlive: { value: 0, type: SettingItemType.Int, public: false },
