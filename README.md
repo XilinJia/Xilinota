@@ -114,7 +114,7 @@ Rich text editor is currently not supported.
 
 ## Versions
 
-I've tested the apps on Linux and Android.  I don't have executables built for Mac or Windows and welcome anyone willing to build and test them.
+I've tested the apps on Linux and Android.  I don't have Mac or Windows machines and would appreciate anyone testing them.
 
 ## Special note
 
