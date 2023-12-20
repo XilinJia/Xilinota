@@ -1,6 +1,6 @@
 {
   "name": "@xilinota/app-desktop",
-  "version": "2.13.6",
+  "version": "2.13.7",
   "description": "Xilinota for Desktop",
   "main": "main.js",
   "private": true,
@@ -22,7 +22,7 @@
     "type": "git",
     "url": "git+https://github.com/XilinJia/Xilinota.git"
   },
-  "author": "Laurent Cozic",
+  "author": "Laurent Cozic, Xilin Jia",
   "license": "AGPL-3.0-or-later",
   "bugs": {
     "url": "https://github.com/XilinJia/Xilinota/issues"

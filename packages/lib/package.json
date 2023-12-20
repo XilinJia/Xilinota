@@ -2,7 +2,7 @@
   "name": "@xilinota/lib",
   "version": "2.13.1",
   "description": "Xilinota Core library",
-  "author": "Laurent Cozic",
+  "author": "Laurent Cozic, Xilin Jia",
   "homepage": "",
   "license": "AGPL-3.0-or-later",
   "publishConfig": {
