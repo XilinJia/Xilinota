@@ -11,6 +11,7 @@ _vieux/
 !var/SymfonyRequirements.php
 .DS_Store
 .vscode/*
+/.directory/
 *.map
 *.pro.user
 *.sublime-workspace
@@ -48,6 +49,7 @@ TODO.md
 packages/tools/commit_hook.txt
 packages/tools/github_oauth_token.txt
 lerna-debug.log
+archive.bash
 .env
 docs/**/*.mustache
 .idea

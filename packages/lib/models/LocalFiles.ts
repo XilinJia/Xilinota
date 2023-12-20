@@ -387,9 +387,13 @@ export default class LocalFile extends BaseItem {
 		const path_note_map = new Map<string, NoteEntity>();
 		for (const note of dbNotes) {
 			const p = await LocalFile.sysPathFromRoot(note);
-			if (p[0] === '.') continue;
-			notePaths.add(p);
-			path_note_map.set(p, note);
+			// this.logger().info('doDB_FS_Diffs: p', p);
+			let p1 = p;
+			if (p.startsWith(`.${path.sep}`)) {
+				p1 = p.substring(p.indexOf(path.sep) + 1);
+			}
+			notePaths.add(p1);
+			path_note_map.set(p1, note);
 		}
 		this.logger().info('doDB_FS_Diffs: DB note path list:', notePaths);
 
@@ -448,6 +452,17 @@ export default class LocalFile extends BaseItem {
 			// for notes in FS but not in DB
 			const Folder = BaseItem.getClass('Folder');
 
+			const addFolder = async (title: string, parent_id: string): Promise<string> => {
+				const folder = {
+					title: title,
+					parent_id: parent_id,
+					updated_time: time.unixMs(),
+				};
+				this.logger().info('addFolders adding in DB', path.basename(title));
+				const savedFolder: FolderEntity = await Folder.save(folder);
+				return savedFolder.id;
+			};
+
 			const addFolders = async () => {
 				for (const dp of dirSet) {
 					const dList = dp.split(path.sep);
@@ -470,14 +485,7 @@ export default class LocalFile extends BaseItem {
 							}
 						}
 						if (!exist_) {
-							const folder = {
-								title: d,
-								parent_id: parent_id,
-								updated_time: time.unixMs(),
-							};
-							this.logger().info('addFolders adding in DB', path.basename(d));
-							const savedFolder: FolderEntity = await Folder.save(folder);
-							parent_id = savedFolder.id;
+							parent_id = await addFolder(d, parent_id);
 						}
 						parent_path = p_;
 					}
@@ -490,6 +498,7 @@ export default class LocalFile extends BaseItem {
 				// this.logger().info('do_FS_extras: note file stat', stat);
 				if (!stat) continue;
 				if (LocalFile.isMDFile(p)) {
+					// this.logger().info('do_FS_extras: p', p, path.dirname(p));
 					const filename = path.basename(p);
 					const title = filename.slice(0, filename.lastIndexOf('.md'));
 					const tDirFile = `${path.dirname(p)}${path.sep}.dir_props.md`;
