@@ -4,7 +4,7 @@ import BasePluginRunner from '@xilinota/lib/services/plugins/BasePluginRunner';
 import executeSandboxCall from '@xilinota/lib/services/plugins/utils/executeSandboxCall';
 import Global from '@xilinota/lib/services/plugins/api/Global';
 import mapEventHandlersToIds, { EventHandlers } from '@xilinota/lib/services/plugins/utils/mapEventHandlersToIds';
-import uuid from '@xilinota/lib/uuid';
+import uuid from '@xilinota/lib/uuid_';
 const sandboxProxy = require('@xilinota/lib/services/plugins/sandboxProxy');
 
 function createConsoleWrapper(pluginId: string) {

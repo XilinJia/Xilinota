@@ -2,7 +2,7 @@ import BaseModel from '../BaseModel';
 import { MasterKeyEntity } from '../services/e2ee/types';
 import { localSyncInfo, saveLocalSyncInfo } from '../services/synchronizer/syncInfoUtils';
 import BaseItem from './BaseItem';
-import uuid from '../uuid';
+import uuid from '../uuid_';
 
 export default class MasterKey extends BaseItem {
 	public static tableName() {

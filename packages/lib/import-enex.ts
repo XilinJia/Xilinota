@@ -1,4 +1,4 @@
-import uuid from './uuid';
+import uuid from './uuid_';
 import BaseModel from './BaseModel';
 import Note from './models/Note';
 import Tag from './models/Tag';

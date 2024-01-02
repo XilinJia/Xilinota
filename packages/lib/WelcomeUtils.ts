@@ -3,7 +3,7 @@ import Note from './models/Note';
 import Setting from './models/Setting';
 import Folder from './models/Folder';
 import shim from './shim';
-import uuid from './uuid';
+import uuid from './uuid_';
 import { fileExtension, basename } from './path-utils';
 import { _ } from './locale';
 const { pregQuote } = require('./string-utils');

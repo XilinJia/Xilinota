@@ -20,7 +20,7 @@ import PoorManIntervals from '@xilinota/lib/PoorManIntervals';
 import reducer, { NotesParent, parseNotesParent, serializeNotesParent } from '@xilinota/lib/reducer';
 import ShareExtension from './utils/ShareExtension';
 import handleShared from './utils/shareHandler';
-import uuid from '@xilinota/lib/uuid';
+import uuid from '@xilinota/lib/uuid_';
 import { loadKeychainServiceAndSettings } from '@xilinota/lib/services/SettingUtils';
 import KeychainServiceDriverMobile from '@xilinota/lib/services/keychain/KeychainServiceDriver.mobile';
 import { _, setLocale } from '@xilinota/lib/locale';

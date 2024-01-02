@@ -24,7 +24,7 @@
     "@aws-sdk/client-s3": "3.296.0",
     "@fortawesome/fontawesome-free": "5.15.4",
     "@koa/cors": "3.4.3",
-    "@types/uuid": "9.0.4",
+    "@types/uuid_": "9.0.4",
     "@xilinota/lib": "^2.13.1",
     "@xilinota/renderer": "^2.13.1",
     "@xilinota/utils": "^2.13.1",

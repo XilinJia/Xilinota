@@ -1,6 +1,6 @@
 const { id, ids, createNTestFolders, sortedIds, createNTestNotes, TestApp } = require('@xilinota/lib/testing/test-utils.js');
 const BaseModel = require('@xilinota/lib/BaseModel').default;
-const uuid = require('@xilinota/lib/uuid').default;
+const uuid = require('@xilinota/lib/uuid_').default;
 const Note = require('@xilinota/lib/models/Note').default;
 const Folder = require('@xilinota/lib/models/Folder').default;
 

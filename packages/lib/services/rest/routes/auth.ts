@@ -1,6 +1,6 @@
 
 import { AuthTokenStatus, Request, RequestContext } from '../Api';
-import uuid from '../../../uuid';
+import uuid from '../../../uuid_';
 
 let authToken: string = null;
 

@@ -159,7 +159,7 @@ export default function(props: Props) {
 	}, [item]);
 
 	const onRecommendedClick = useCallback(() => {
-		void bridge().openExternal('https://github.com/xilinota/plugins/blob/master/readme/recommended.md#recommended-plugins');
+		void bridge().openExternal('https://github.com/joplin/plugins/blob/master/readme/recommended.md#recommended-plugins');
 	}, []);
 
 	// For plugins in dev mode things like enabling/disabling or

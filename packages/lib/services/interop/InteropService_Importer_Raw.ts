@@ -11,7 +11,7 @@ import Tag from '../../models/Tag';
 const { sprintf } = require('sprintf-js');
 import shim from '../../shim';
 const { fileExtension } = require('../../path-utils');
-import uuid from '../../uuid';
+import uuid from '../../uuid_';
 
 export default class InteropService_Importer_Raw extends InteropService_Importer_Base {
 	public async exec(result: ImportExportResult) {

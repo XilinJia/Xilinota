@@ -890,7 +890,7 @@ packages/lib/utils/joplinCloud.js
 packages/lib/utils/userFetcher.js
 packages/lib/utils/webDAVUtils.test.js
 packages/lib/utils/webDAVUtils.js
-packages/lib/uuid.js
+packages/lib/uuid_.js
 packages/lib/versionInfo.test.js
 packages/lib/versionInfo.js
 packages/pdf-viewer/FullViewer.js

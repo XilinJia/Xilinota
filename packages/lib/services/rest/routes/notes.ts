@@ -1,6 +1,6 @@
 import Setting from '../../../models/Setting';
 import shim from '../../../shim';
-import uuid from '../../../uuid';
+import uuid from '../../../uuid_';
 import readonlyProperties from '../utils/readonlyProperties';
 import defaultSaveOptions from '../utils/defaultSaveOptions';
 import defaultAction from '../utils/defaultAction';

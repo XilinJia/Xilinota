@@ -4,9 +4,12 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import App from './App';
 
-const { Provider } = require('react-redux');
+// const { Provider } = require('react-redux');
+import { Provider } from 'react-redux';
+
 const { bridge } = require('./bridge');
-const { createStore, applyMiddleware } = require('redux');
+// const { createStore, applyMiddleware } = require('redux');
+import { createStore, applyMiddleware } from 'redux';
 
 const defaultState = {
 	warning: '',
@@ -117,7 +120,7 @@ async function main() {
 	console.info('Popup: Creating React app...');
 
 	ReactDOM.render(
-		<div style = {{ maxHeight: screen.height * 0.65, overflowY: 'scroll' }}>
+		<div style={{ maxHeight: screen.height * 0.65, overflowY: 'scroll' }}>
 			<Provider store={store}>
 				<App />
 			</Provider>

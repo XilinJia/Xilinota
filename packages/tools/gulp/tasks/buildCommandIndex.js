@@ -13,6 +13,7 @@ async function processDirectory(dir) {
 
 	for (const tsFile of tsFiles) {
 		const f = utils.getFilename(tsFile);
+		// console.log('processDirectory', dir, f);
 		fileContent.push(`import * as ${f} from './${f}';`);
 	}
 

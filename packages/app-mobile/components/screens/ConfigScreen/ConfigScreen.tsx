@@ -629,7 +629,7 @@ class ConfigScreenComponent extends BaseScreenComponent {
 			<View key="donate_link" style={this.styles().settingContainer}>
 				<TouchableOpacity
 					onPress={() => {
-						void Linking.openURL('https://xilinotaapp.org/donate/');
+						void Linking.openURL('https://www.patreon.com/Xilinota');
 					}}
 				>
 					<Text key="label" style={this.styles().linkText}>
@@ -639,25 +639,25 @@ class ConfigScreenComponent extends BaseScreenComponent {
 			</View>,
 		);
 
-		settingComps.push(
-			<View key="website_link" style={this.styles().settingContainer}>
-				<TouchableOpacity
-					onPress={() => {
-						void Linking.openURL('https://xilinotaapp.org/');
-					}}
-				>
-					<Text key="label" style={this.styles().linkText}>
-						{_('Xilinota website')}
-					</Text>
-				</TouchableOpacity>
-			</View>,
-		);
+		// settingComps.push(
+		// 	<View key="website_link" style={this.styles().settingContainer}>
+		// 		<TouchableOpacity
+		// 			onPress={() => {
+		// 				void Linking.openURL('https://xilinotaapp.org/');
+		// 			}}
+		// 		>
+		// 			<Text key="label" style={this.styles().linkText}>
+		// 				{_('Xilinota website')}
+		// 			</Text>
+		// 		</TouchableOpacity>
+		// 	</View>,
+		// );
 
 		settingComps.push(
 			<View key="privacy_link" style={this.styles().settingContainer}>
 				<TouchableOpacity
 					onPress={() => {
-						void Linking.openURL('https://xilinotaapp.org/privacy/');
+						void Linking.openURL('https://github.com/XilinJia/Xilinota/blob/main/readme/privacy.md');
 					}}
 				>
 					<Text key="label" style={this.styles().linkText}>

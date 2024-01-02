@@ -2,7 +2,7 @@
 
 import KeychainService from './keychain/KeychainService';
 import Setting from '../models/Setting';
-import uuid from '../uuid';
+import uuid from '../uuid_';
 import { migrateLocalSyncInfo } from './synchronizer/syncInfoUtils';
 
 // This function takes care of initialising both the keychain service and settings.

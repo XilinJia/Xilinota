@@ -7,7 +7,7 @@ import { AssetContent, ItemMetadata, WelcomeAssetNote, WelcomeAssetResource, Wel
 const rootDir = dirname(dirname(__dirname));
 const enWelcomeDir = `${rootDir}/readme/welcome`;
 
-const createdDate = new Date('2018-06-22T12:00:00Z');
+const createdDate = new Date('2023-12-15T12:00:00Z');
 
 const itemMetadata_: ItemMetadata = {
 	'1_welcome_to_xilinota.md': {

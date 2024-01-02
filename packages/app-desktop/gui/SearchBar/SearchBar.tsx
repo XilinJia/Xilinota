@@ -4,7 +4,7 @@ import SearchInput from '../lib/SearchInput/SearchInput';
 import Setting from '@xilinota/lib/models/Setting';
 import { stateUtils } from '@xilinota/lib/reducer';
 import BaseModel from '@xilinota/lib/BaseModel';
-import uuid from '@xilinota/lib/uuid';
+import uuid from '@xilinota/lib/uuid_';
 const { connect } = require('react-redux');
 import Note from '@xilinota/lib/models/Note';
 import { AppState } from '../../app.reducer';

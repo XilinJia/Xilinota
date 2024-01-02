@@ -2,7 +2,7 @@ const BaseCommand = require('./base-command').default;
 const { _ } = require('@xilinota/lib/locale');
 const BaseModel = require('@xilinota/lib/BaseModel').default;
 const Folder = require('@xilinota/lib/models/Folder').default;
-const uuid = require('@xilinota/lib/uuid').default;
+const uuid = require('@xilinota/lib/uuid_').default;
 
 class Command extends BaseCommand {
 	usage() {

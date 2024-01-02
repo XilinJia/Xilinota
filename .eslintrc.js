@@ -109,7 +109,7 @@ module.exports = {
 		'curly': ['error', 'multi-line', 'consistent'],
 		'semi': ['error', 'always'],
 		'eol-last': ['error', 'always'],
-		'quotes': ['error', 'single'],
+		// 'quotes': ['error', 'single'],
 
 		// Note that "indent" only applies to JavaScript files. See
 		// https://github.com/XilinJia/Xilinota/issues/8360

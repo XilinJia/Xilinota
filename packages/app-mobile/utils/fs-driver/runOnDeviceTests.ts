@@ -1,6 +1,6 @@
 import Setting from '@xilinota/lib/models/Setting';
 import shim from '@xilinota/lib/shim';
-import uuid from '@xilinota/lib/uuid';
+import uuid from '@xilinota/lib/uuid_';
 import { join } from 'path';
 import FsDriverBase from '@xilinota/lib/fs-driver-base';
 import Logger from '@xilinota/utils/Logger';

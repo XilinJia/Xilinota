@@ -1,7 +1,7 @@
 import iterateItems from './iterateItems';
 import { LayoutItem, LayoutItemDirection, tempContainerPrefix } from './types';
 import produce from 'immer';
-import uuid from '@xilinota/lib/uuid';
+import uuid from '@xilinota/lib/uuid_';
 import validateLayout from './validateLayout';
 
 export enum MoveDirection {

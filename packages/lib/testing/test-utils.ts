@@ -7,7 +7,7 @@ import BaseService from '../services/BaseService';
 import FsDriverNode from '../fs-driver-node';
 import time from '../time';
 import shim from '../shim';
-import uuid from '../uuid';
+import uuid from '../uuid_';
 import ResourceService from '../services/ResourceService';
 import KeymapService from '../services/KeymapService';
 import KvStore from '../services/KvStore';

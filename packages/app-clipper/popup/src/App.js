@@ -4,7 +4,9 @@ import led_red from './led_red.png';
 import led_green from './led_green.png';
 import led_orange from './led_orange.png';
 
-const { connect } = require('react-redux');
+import { connect } from 'react-redux';
+// const { connect } = require('react-redux');
+
 const { bridge } = require('./bridge');
 
 function commandUserString(command) {
@@ -45,7 +47,7 @@ class PreviewComponent extends React.PureComponent {
 		return (
 			<div className="Preview">
 				<h2>Title:</h2>
-				<input className={'Title'} value={this.props.title} onChange={this.props.onTitleChange}/>
+				<input className={'Title'} value={this.props.title} onChange={this.props.onTitleChange} />
 				<p><span>Type:</span> {commandUserString(this.props.command)}</p>
 				<a className={'Confirm Button'} href="#" onClick={this.props.onConfirmClick}>Confirm</a>
 			</div>
@@ -288,7 +290,7 @@ class AppComponent extends Component {
 			return <div style={{ padding: 10, fontSize: 12, maxWidth: 200 }}>{msg}</div>;
 		}
 
-		const warningComponent = !this.props.warning ? null : <div className="Warning">{ this.props.warning }</div>;
+		const warningComponent = !this.props.warning ? null : <div className="Warning">{this.props.warning}</div>;
 
 		const hasContent = !!this.props.clippedContent;
 		const content = this.props.clippedContent;
@@ -312,7 +314,7 @@ class AppComponent extends Component {
 
 			previewComponent = (
 				<div className="Preview">
-					<p className="Info">{ msg }</p>
+					<p className="Info">{msg}</p>
 				</div>
 			);
 		} else if (hasContent) {
@@ -349,7 +351,7 @@ class AppComponent extends Component {
 
 			msg = `Service status: ${msg}`;
 
-			return <div className="StatusBar"><img alt={foundState} className="Led" src={led}/><span className="ServerStatus">{ msg }{ helpLink }</span></div>;
+			return <div className="StatusBar"><img alt={foundState} className="Led" src={led} /><span className="ServerStatus">{msg}{helpLink}</span></div>;
 		};
 
 		const foldersComp = () => {
@@ -374,7 +376,7 @@ class AppComponent extends Component {
 				<div className="Folders">
 					<label>In notebook: </label>
 					<select value={this.props.selectedFolderId || ''} onChange={this.folderSelect_change}>
-						{ optionComps }
+						{optionComps}
 					</select>
 				</div>
 			);
@@ -416,7 +418,7 @@ class AppComponent extends Component {
 						target="_blank"
 						onClick={() => this.setState({ newNoteId: null })}
 					>
-          Open newly created note
+						Open newly created note
 					</a>
 				);
 			}
@@ -428,8 +430,8 @@ class AppComponent extends Component {
 			tagDataListOptions.push(<option key={tag.id}>{tag.title}</option>);
 		}
 
-		let simplifiedPageButtonLabel = 'Clip simplified page';
-		let simplifiedPageButtonTooltip = '';
+		let simplifiedPageButtonLabel = 'Simplified page';
+		let simplifiedPageButtonTooltip = 'For better reading';
 		if (!this.props.isProbablyReaderable) {
 			simplifiedPageButtonLabel += ' ⚠️';
 			simplifiedPageButtonTooltip = 'It might not be possible to create a good simplified version of this page.\nYou may want to clip the complete page instead.';
@@ -438,16 +440,25 @@ class AppComponent extends Component {
 		return (
 			<div className="App">
 				<div className="Controls">
-					<ul>
-						<li><a className="Button" href="#" onClick={this.clipSimplified_click} title={simplifiedPageButtonTooltip}>{simplifiedPageButtonLabel}</a></li>
-						<li><a className="Button" href="#" onClick={this.clipComplete_click}>Clip complete page (Markdown)</a></li>
-						<li><a className="Button" href="#" onClick={this.clipCompleteHtml_click}>Clip complete page (HTML)</a></li>
-						<li><a className="Button" href="#" onClick={this.clipSelection_click}>Clip selection</a></li>
-						<li><a className="Button" href="#" onClick={this.clipScreenshot_click}>Clip screenshot</a></li>
-						<li><a className="Button" href="#" onClick={this.clipUrl_click}>Clip URL</a></li>
-					</ul>
+					<div class="Clip">
+						<label>Clip options:</label>
+					</div>
+					<table class="OptionsTable">
+						<tr>
+							<td><a class="HButton" href="#" onClick={this.clipSimplified_click} title={simplifiedPageButtonTooltip}>{simplifiedPageButtonLabel}</a></td>
+							<td><a class="HButton" href="#" onClick={this.clipUrl_click}>Page URL only</a></td>
+						</tr>
+						<tr>
+							<td><a class="HButton" href="#" onClick={this.clipSelection_click}>Selection</a></td>
+							<td><a class="HButton" href="#" onClick={this.clipScreenshot_click}>Screenshot</a></td>
+						</tr>
+						<tr>
+							<td><a class="HButton" href="#" onClick={this.clipComplete_click}>Full in Markdown</a></td>
+							<td><a class="HButton" href="#" onClick={this.clipCompleteHtml_click}>Full in HTML</a></td>
+						</tr>
+					</table>
 				</div>
-				{ foldersComp() }
+				{foldersComp()}
 				<div className="Tags">
 					<label>Tags:</label>
 					{tagsComp()}
@@ -455,10 +466,10 @@ class AppComponent extends Component {
 						{tagDataListOptions}
 					</datalist>
 				</div>
-				{ warningComponent }
-				{ previewComponent }
-				{ openNewNoteButton() }
-				{ clipperStatusComp() }
+				{warningComponent}
+				{previewComponent}
+				{openNewNoteButton()}
+				{clipperStatusComp()}
 			</div>
 		);
 	}

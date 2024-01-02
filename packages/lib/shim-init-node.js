@@ -261,7 +261,7 @@ function shimInit(options = null) {
 
 		const isUpdate = !!options.destinationResourceId;
 
-		const uuid = require('./uuid').default;
+		const uuid = require('./uuid_').default;
 
 		if (!(await fs.pathExists(filePath))) throw new Error(_('Cannot access %s', filePath));
 

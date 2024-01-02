@@ -1,7 +1,7 @@
 import paginationToSql from './models/utils/paginationToSql';
 
 import Database from './database';
-import uuid from './uuid';
+import uuid from './uuid_';
 import time from './time';
 import XilinotaDatabase, { TableField } from './XilinotaDatabase';
 import { LoadOptions, SaveOptions } from './models/utils/types';

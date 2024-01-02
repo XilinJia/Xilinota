@@ -7,7 +7,7 @@ body {
 
 .App {
 	width: 400px;
-	
+
 	overflow-x: hidden;
 	overflow-y: hidden;
 	display: flex;
@@ -46,14 +46,25 @@ body {
 	flex: 0;
 }
 
-.App .Controls ul {
+.Clip {
+	display: flex;
+	flex-direction: row;
+	align-items: top;
+	padding: 5px 0;
+}
+
+.Clip label {
 	flex: 0;
-	list-style-type: none;
+	white-space: nowrap;
+	margin-right: .5em;
+}
+
+.OptionsTable {
 	padding-left: 0;
 	margin: 0;
-	display: flex;
-	flex-direction: column;
-	align-items: stretch;
+	width: 100%;
+	border-collapse: separate;
+	border-spacing: 10px;
 }
 
 .App a.Button {
@@ -67,6 +78,20 @@ body {
 	cursor: pointer;
 	align-items: center;
 	min-height: 31px;
+	text-decoration: none;
+}
+
+.HButton {
+	background-color: #0269c2;
+	padding: 0 10px;
+	display: flex;
+	/* flex: 1; */
+	color: #eee;
+	font-weight: normal;
+	font-size: .8em;
+	cursor: pointer;
+	align-items: center;
+	/* min-height: 31px; */
 	text-decoration: none;
 }
 

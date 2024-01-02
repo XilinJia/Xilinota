@@ -1,5 +1,5 @@
 import AsyncActionQueue from '@xilinota/lib/AsyncActionQueue';
-import uuid from '@xilinota/lib/uuid';
+import uuid from '@xilinota/lib/uuid_';
 import Setting from '@xilinota/lib/models/Setting';
 import shim from '@xilinota/lib/shim';
 import UndoRedoService from '@xilinota/lib/services/UndoRedoService';

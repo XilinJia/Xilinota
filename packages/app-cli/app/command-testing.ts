@@ -1,7 +1,7 @@
 const BaseCommand = require('./base-command').default;
 import { reg } from '@xilinota/lib/registry';
 import Note from '@xilinota/lib/models/Note';
-import uuid from '@xilinota/lib/uuid';
+import uuid from '@xilinota/lib/uuid_';
 import populateDatabase from '@xilinota/lib/services/debug/populateDatabase';
 import { readCredentialFile } from '@xilinota/lib/utils/credentialFiles';
 import XilinotaServerApi from '@xilinota/lib/XilinotaServerApi';

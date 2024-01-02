@@ -1,7 +1,7 @@
 const fs = require('fs-extra');
 const BaseCommand = require('./base-command').default;
 const { splitCommandString } = require('@xilinota/utils');
-const uuid = require('@xilinota/lib/uuid').default;
+const uuid = require('@xilinota/lib/uuid_').default;
 const { app } = require('./app.js');
 const { _ } = require('@xilinota/lib/locale');
 const Note = require('@xilinota/lib/models/Note').default;

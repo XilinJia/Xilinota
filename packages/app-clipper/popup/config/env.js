@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 'use strict';
 
 const fs = require('fs');
@@ -33,11 +34,17 @@ const dotenvFiles = [
 // eslint-disable-next-line github/array-foreach -- Old code before rule was applied
 dotenvFiles.forEach(dotenvFile => {
 	if (fs.existsSync(dotenvFile)) {
-		require('dotenv-expand')(
+		// require('dotenv-expand')(
+		// 	require('dotenv').config({
+		// 		path: dotenvFile,
+		// 	}),
+		// );
+		require('dotenv-expand');
+		(() => {
 			require('dotenv').config({
 				path: dotenvFile,
-			}),
-		);
+			});
+		})();
 	}
 });
 

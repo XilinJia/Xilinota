@@ -3,7 +3,7 @@ import { PluginStates } from '@xilinota/lib/services/plugins/reducer';
 import { contentScriptsToCodeMirrorPlugin } from '@xilinota/lib/services/plugins/utils/loadContentScripts';
 import { extname } from 'path';
 import shim from '@xilinota/lib/shim';
-import uuid from '@xilinota/lib/uuid';
+import uuid from '@xilinota/lib/uuid_';
 
 import { reg } from '@xilinota/lib/registry';
 

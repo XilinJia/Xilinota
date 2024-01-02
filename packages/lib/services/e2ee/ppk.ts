@@ -1,4 +1,4 @@
-import uuid from '../../uuid';
+import uuid from '../../uuid_';
 import EncryptionService, { EncryptionCustomHandler, EncryptionMethod } from './EncryptionService';
 import { MasterKeyEntity, RSA, RSAKeyPair } from './types';
 

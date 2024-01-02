@@ -90,7 +90,7 @@ const languageModelUrl = (locale: string) => {
 };
 
 export const modelIsDownloaded = async (locale: string) => {
-	const uuidFile = `${getModelDir(locale)}/uuid`;
+	const uuidFile = `${getModelDir(locale)}/uuid_`;
 	return shim.fsDriver().exists(uuidFile);
 };
 
@@ -114,7 +114,7 @@ const downloadModel = async (locale: string) => {
 	const unzipDir = getUnzipDir(locale);
 	const zipFilePath = `${unzipDir}.zip`;
 	const modelDir = getModelDir(locale);
-	const uuidFile = `${modelDir}/uuid`;
+	const uuidFile = `${modelDir}/uuid_`;
 
 	if (await modelIsDownloaded(locale)) {
 		logger.info(`Model for ${locale} already exists at ${modelDir}`);

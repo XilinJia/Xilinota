@@ -1,7 +1,7 @@
 import { resolve, join, dirname } from 'path';
 import { remove, mkdirp } from 'fs-extra';
 import { _electron as electron, Page, ElectronApplication, test as base } from '@playwright/test';
-import uuid from '@xilinota/lib/uuid';
+import uuid from '@xilinota/lib/uuid_';
 
 
 

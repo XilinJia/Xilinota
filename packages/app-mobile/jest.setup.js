@@ -5,7 +5,7 @@ const { shimInit } = require('@xilinota/lib/shim-init-node.js');
 const { mkdir, rm } = require('fs-extra');
 const path = require('path');
 const { tmpdir } = require('os');
-const uuid = require('@xilinota/lib/uuid').default;
+const uuid = require('@xilinota/lib/uuid_').default;
 const sqlite3 = require('sqlite3');
 
 import { setImmediate } from 'timers';
