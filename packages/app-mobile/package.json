@@ -2,7 +2,7 @@
   "name": "@xilinota/app-mobile",
   "description": "Xilinota for Mobile",
   "license": "AGPL-3.0-or-later",
-  "version": "2.13.1",
+  "version": "2.13.2",
   "private": true,
   "scripts": {
     "start": "BROWSERSLIST_IGNORE_OLD_DATA=true react-native start --reset-cache",

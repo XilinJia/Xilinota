@@ -35,7 +35,7 @@ function plugin(markdownIt: any, ruleOptions: RuleOptions) {
 			if (!content.match(imageRegex)) return defaultRender(tokens, idx, options, env, self);
 
 			return content.replace(imageRegex, (_v: any, before: string, src: string, after: string) => {
-				if (!Resource.isResourceUrl(src)) return `<img${before}src="${src}"${after}>`;
+				if (!Resource.isResourceUrl(src) && !Resource.isResourceFileUrl(src)) return `<img${before}src="${src}"${after}>`;
 				return renderImageHtml(before, src, after, ruleOptions);
 			});
 		};

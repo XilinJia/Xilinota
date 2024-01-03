@@ -13,7 +13,7 @@ function plugin(markdownIt: any, ruleOptions: RuleOptions) {
 		const src = utils.getAttr(token.attrs, 'src');
 		const title = utils.getAttr(token.attrs, 'title');
 
-		if (!Resource.isResourceUrl(src) || ruleOptions.plainResourceRendering) return defaultRender(tokens, idx, options, env, self);
+		if ((!Resource.isResourceUrl(src) && !Resource.isResourceFileUrl(src)) || ruleOptions.plainResourceRendering) return defaultRender(tokens, idx, options, env, self);
 
 		const r = utils.imageReplacement(ruleOptions.ResourceModel, src, ruleOptions.resources, ruleOptions.resourceBaseUrl, ruleOptions.itemIdToUrl);
 		if (typeof r === 'string') return r;

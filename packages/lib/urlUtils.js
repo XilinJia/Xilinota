@@ -1,6 +1,8 @@
 const { rtrimSlashes } = require('./path-utils');
 const { urlDecode } = require('./string-utils');
 
+// a sunset of this file is under packages/renderer
+
 const urlUtils = {};
 
 urlUtils.hash = function(url) {
@@ -88,7 +90,9 @@ urlUtils.extractResourceUrls = function(text) {
 
 	const htmlRegexes = [
 		/<img[\s\S]*?src=["']:\/([a-zA-Z0-9]{32})["'][\s\S]*?>/gi,
+		/<img[\s\S]*?src=["']\.resources\/([a-zA-Z0-9]{32})?.?[^\s]+["'][\s\S]*?>/gi,
 		/<a[\s\S]*?href=["']:\/([a-zA-Z0-9]{32})["'][\s\S]*?>/gi,
+		/<a[\s\S]*?href=["']\.resources\/([a-zA-Z0-9]{32})?.?[^\s]+["'][\s\S]*?>/gi,
 	];
 
 	for (const htmlRegex of htmlRegexes) {

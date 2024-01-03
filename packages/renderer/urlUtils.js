@@ -1,6 +1,7 @@
 const urlUtils = {};
 
-const resourceRegex = /^(xilinota:\/\/|:\/)([0-9a-zA-Z]{32})(|#[^\s]*)(|\s".*?")$/;
+// this file is a sunset of the homonymous file under packages/lib
+const resourceRegex = /^(xilinota:\/\/|:\/|\.resources\/)([0-9a-zA-Z]{32})(|#[^\s]*)(|\s".*?")$/;
 
 urlUtils.urlDecode = function(string) {
 	return decodeURIComponent((`${string}`).replace(/\+/g, '%20'));

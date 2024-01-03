@@ -30,9 +30,9 @@ export function clearResourceCache() {
 	resourceCache_ = {};
 }
 
-export async function attachedResources(noteBody: string): Promise<any> {
+export async function attachedResources(noteBody: string, _resourceIds: string[] = []): Promise<any> {
 	if (!noteBody) return {};
-	const resourceIds = await Note.linkedResourceIds(noteBody);
+	const resourceIds = _resourceIds ? _resourceIds : await Note.linkedResourceIds(noteBody);
 
 	const output: any = {};
 	for (let i = 0; i < resourceIds.length; i++) {

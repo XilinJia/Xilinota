@@ -10,8 +10,8 @@ async function createDownloadButtonsHtml(readmeMd: string): Promise<Record<strin
 	output['windows'] = readmeMd.match(/(<a href=.*?Xilinota-Setup-.*?<\/a>)/)[0];
 	output['macOs'] = readmeMd.match(/(<a href=.*?Xilinota-.*\.dmg.*?<\/a>)/)[0];
 	output['linux'] = readmeMd.match(/(<a href=.*?Xilinota-.*\.AppImage.*?<\/a>)/)[0];
-	output['android'] = readmeMd.match(/(<a href='https:\/\/play.google.com\/store\/apps\/details\?id=net\.cozic\.xilinota.*?<\/a>)/)[0];
-	output['ios'] = readmeMd.match(/(<a href='https:\/\/itunes\.apple\.com\/us\/app\/xilinota\/id1315599797.*?<\/a>)/)[0];
+	output['android'] = readmeMd.match(/(<a href='https:\/\/play.google.com\/store\/apps\/details\?id=ac\.mdiq\.xilinota.*?<\/a>)/)[0];
+	// output['ios'] = readmeMd.match(/(<a href='https:\/\/itunes\.apple\.com\/us\/app\/xilinota\/id1315599797.*?<\/a>)/)[0];
 
 	for (const [k, v] of Object.entries(output)) {
 		if (!v) throw new Error(`Could not get download element for: ${k}`);

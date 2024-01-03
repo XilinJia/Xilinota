@@ -1076,16 +1076,15 @@ class AppComponent extends React.Component {
 			Config: { screen: ConfigScreen },
 		};
 
-
 		// const statusBarStyle = theme.appearance === 'light-content';
 		const statusBarStyle = 'light-content';
 
 		const shouldShowMainContent = !biometricsEnabled(this.state.sensorInfo) || this.props.biometricsDone;
 
-		logger.info('root.biometrics: biometricsDone', this.props.biometricsDone);
-		logger.info('root.biometrics: biometricsEnabled', biometricsEnabled(this.state.sensorInfo));
-		logger.info('root.biometrics: shouldShowMainContent', shouldShowMainContent);
-		logger.info('root.biometrics: this.state.sensorInfo', this.state.sensorInfo);
+		// logger.info('root.biometrics: biometricsDone', this.props.biometricsDone);
+		// logger.info('root.biometrics: biometricsEnabled', biometricsEnabled(this.state.sensorInfo));
+		// logger.info('root.biometrics: shouldShowMainContent', shouldShowMainContent);
+		// logger.info('root.biometrics: this.state.sensorInfo', this.state.sensorInfo);
 
 		const mainContent = (
 			<View style={{ flex: 1, backgroundColor: theme.backgroundColor }}>

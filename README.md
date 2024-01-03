@@ -42,7 +42,17 @@ You can create, update, move, delete notes or notebooks in Xilinota and the file
 
 Resources (images or attachments in notes) are now located in the ".resources" sub-directory in the directory of every notebook ("_resources" sub-directory is reserved for future use).  Markdown file shown in external viewer now shows the related resources.  Resource files are copied when the "Xilinotas" directory first gets populated and are saved on note edit when resources are added to the note.  Resources now follow the associated note, i.e., when you move/remove note, the related resource files will be similarly handled.
 
+Supported formats of resources in notes are following (this is only for technical info and not a concern for normal usage of Xilinota application):
+```
+![image](:/f5c27bc3b7fb4116a10fbf0f1cbfefef)
+![image](.resources/f5c27bc3b7fb4116a10fbf0f1cbfefef.xyz)
+<img width="684" height="306" src=":/f5c27bc3b7fb4116a10fbf0f1cbfefef"/>
+<img width="684" height="306" src=".resources/f5c27bc3b7fb4116a10fbf0f1cbfefef.xyz"/>
+```
+
 Resource files are currently copied from Xilinota's config directory, so you have duplicate files on your system.  Going forward, it appears more reasonable to have the resources close to the note files, so I'm looking into the possibilities of removing the resources directory under Xilinota's config directory.  But this will be at a later stage.
+
+#### Sync of files/folders and notes/notebooks
 
 Files and folders in the file system are sync'ed back to Xilinota.  The process takes place at the start of Xilinota.  With Xilinota desktop, similar to the first file population process, there is a popup with an animated bar during the sync process.  In the mobile apps, this sync process runs in the background without blocking any other functions of Xilinota.
 

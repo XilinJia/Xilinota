@@ -232,11 +232,11 @@ export default function useFormNote(dependencies: HookDependencies) {
 
 	const onResourceChange = useCallback(
 		async (event: any = null) => {
-			reg.logger().info('useFormNote: onResourceChange called');
+			reg.logger().debug('useFormNote: onResourceChange called');
 			const resourceIds = await Note.linkedResourceIds(formNote.body);
 			if (!event || resourceIds.indexOf(event.id) >= 0) {
 				clearResourceCache();
-				setResourceInfos(await attachedResources(formNote.body));
+				setResourceInfos(await attachedResources(formNote.body, resourceIds));
 			}
 		},
 		[formNote.body],

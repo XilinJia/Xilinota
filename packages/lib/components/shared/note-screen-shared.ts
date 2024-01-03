@@ -202,6 +202,7 @@ shared.clearResourceCache = function() {
 
 shared.attachedResources = async function(noteBody: string) {
 	if (!noteBody) return {};
+	reg.logger().info('shared.attachedResources called');
 	const resourceIds = await Note.linkedResourceIds(noteBody);
 
 	const output: any = {};

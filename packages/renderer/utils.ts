@@ -127,7 +127,7 @@ export type ItemIdToUrlHandler = (resource: any)=> string;
 utils.imageReplacement = function(ResourceModel: any, src: string, resources: any, resourceBaseUrl: string, itemIdToUrl: ItemIdToUrlHandler = null) {
 	if (!ResourceModel || !resources) return null;
 
-	if (!ResourceModel.isResourceUrl(src)) return null;
+	if (!ResourceModel.isResourceUrl(src) && !ResourceModel.isResourceFileUrl(src)) return null;
 
 	const resourceId = ResourceModel.urlToId(src);
 	const result = resources[resourceId];

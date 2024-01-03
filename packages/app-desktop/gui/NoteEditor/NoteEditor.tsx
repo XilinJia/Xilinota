@@ -46,9 +46,7 @@ import BaseItem, { unwantedCharacters } from '@xilinota/lib/models/BaseItem';
 import { ErrorCode } from '@xilinota/lib/errors';
 import ItemChange from '@xilinota/lib/models/ItemChange';
 import CodeMirror6 from './NoteBody/CodeMirror/v6/CodeMirror';
-import CodeMirror5 from './NoteBody/CodeMirror/v5/CodeMirror';
 import { PeersNote } from '@xilinota/lib/models/Peers';
-// import path = require('path');
 
 const commands = [
 	require('./commands/showRevisions'),
@@ -498,8 +496,8 @@ function NoteEditor(props: NoteEditorProps) {
 
 	if (props.bodyEditor === 'TinyMCE') {
 		editor = <TinyMCE {...editorProps} />;
-	} else if (props.bodyEditor === 'CodeMirror') {
-		editor = <CodeMirror5 {...editorProps} />;
+	// } else if (props.bodyEditor === 'CodeMirror') {
+	// 	editor = <CodeMirror5 {...editorProps} />;
 	} else if (props.bodyEditor === 'CodeMirror6') {
 		editor = <CodeMirror6 {...editorProps} />;
 	} else {

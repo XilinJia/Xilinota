@@ -20,7 +20,7 @@ export const runtime = (): CommandRuntime => {
 			let newNote = {
 				...defaultValues, parent_id: folderId,
 				is_todo: isTodo ? 1 : 0,
-				body: body
+				body: body,
 			};
 
 			newNote = await Note.save(newNote, { provisional: true });

@@ -1499,17 +1499,17 @@ class Setting extends BaseModel {
 
 			// 2023-09-07: This setting is now used to track the desktop beta editor. It
 			// was used to track the mobile beta editor previously.
-			'editor.beta': {
-				value: false,
-				type: SettingItemType.Bool,
-				section: 'general',
-				public: true,
-				appTypes: [AppType.Desktop],
-				label: () => 'Opt-in to the editor beta',
-				description: () => 'This beta adds improved accessibility and plugin API compatibility with the mobile editor. If you find bugs, please report them in the Discourse forum.',
-				storage: SettingStorage.File,
-				isGlobal: true,
-			},
+			// 'editor.beta': {
+			// 	value: true,
+			// 	type: SettingItemType.Bool,
+			// 	section: 'general',
+			// 	public: true,
+			// 	appTypes: [AppType.Desktop],
+			// 	label: () => 'Opt-in to the editor beta',
+			// 	description: () => 'This beta adds improved accessibility and plugin API compatibility with the mobile editor. If you find bugs, please report them in the Discourse forum.',
+			// 	storage: SettingStorage.File,
+			// 	isGlobal: true,
+			// },
 
 			'net.customCertificates': {
 				value: '',

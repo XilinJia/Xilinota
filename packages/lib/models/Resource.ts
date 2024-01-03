@@ -263,9 +263,21 @@ export default class Resource extends BaseItem {
 		return url && url.length === 34 && url[0] === ':' && url[1] === '/';
 	}
 
+	// XJ added
+	public static isResourceFileUrl(url: string) {
+		const pattern = /\.resources\/[a-f0-9]{32}(\.[A-Za-z]+)?$/;
+		return url && pattern.test(url);
+	}
+
+	// XJ edited
 	public static urlToId(url: string) {
-		if (!this.isResourceUrl(url)) throw new Error(`Not a valid resource URL: ${url}`);
-		return url.substr(2);
+		if (this.isResourceUrl(url)) return url.substr(2);
+		if (this.isResourceFileUrl(url)) {
+			const pattern = /\.resources\/([a-f0-9]{32})(\.[A-Za-z]+)?$/;
+			const match = url.match(pattern);
+			return match ? match[1] : null;
+		}
+		throw new Error(`Not a valid resource URL: ${url}`);
 	}
 
 	public static async localState(resourceOrId: any) {
