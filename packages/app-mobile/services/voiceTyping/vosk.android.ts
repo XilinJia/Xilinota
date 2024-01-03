@@ -173,7 +173,8 @@ export const startRecording = (vosk: Vosk, options: StartOptions): Recorder => {
 			eventHandler.remove();
 		}
 
-		vosk.cleanup(),
+		// TODO: transition error from 0.1.12 to 0.1.16
+		// vosk.cleanup(),
 
 		state_ = State.Idle;
 
@@ -218,7 +219,8 @@ export const startRecording = (vosk: Vosk, options: StartOptions): Recorder => {
 		stop: (): Promise<string> => {
 			logger.info('Stopping recording...');
 
-			vosk.stopOnly();
+			// TODO: transition error from 0.1.12 to 0.1.16
+			// vosk.stopOnly();
 
 			logger.info('Waiting for final result...');
 
@@ -238,7 +240,8 @@ export const startRecording = (vosk: Vosk, options: StartOptions): Recorder => {
 			if (state_ === State.Recording) {
 				logger.info('Cancelling...');
 				state_ = State.Completing;
-				vosk.stopOnly();
+				// TODO: transition error from 0.1.12 to 0.1.16
+				// vosk.stopOnly();
 				completeRecording('', null);
 			}
 		},
