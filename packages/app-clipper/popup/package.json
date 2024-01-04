@@ -24,7 +24,6 @@
     "jest-resolve": "29.7.0",
     "jest-watch-typeahead": "2.2.2",
     "mini-css-extract-plugin": "2.7.6",
-    "optimize-css-assets-webpack-plugin": "^6.0.1",
     "pnp-webpack-plugin": "1.7.0",
     "postcss-flexbugs-fixes": "^5.0.2",
     "postcss-loader": "^7.3.3",
