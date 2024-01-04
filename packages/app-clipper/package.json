@@ -7,6 +7,6 @@
   "version": "1.0.9",
   "description": "Xilinota Web Clipper",
   "main": "main.js",
-  "author": "Laurent Cozic",
+  "author": "Laurent Cozic, Xilin Jia",
   "license": "AGPL-3.0-or-later"
 }
