@@ -21,10 +21,10 @@ export const getProfilesConfigPath = () => {
 	return `${getProfilesRootDir()}/profiles.json`;
 };
 
-export const getResourceDir = (profile: Profile, isSubProfile: boolean) => {
-	if (!isSubProfile) return getProfilesRootDir();
-	return `${getProfilesRootDir()}/resources-${profile.id}`;
-};
+// export const getResourceDir = (profile: Profile, isSubProfile: boolean) => {
+// 	if (!isSubProfile) return getProfilesRootDir();
+// 	return `${getProfilesRootDir()}/resources-${profile.id}`;
+// };
 
 // The suffix is for debugging only
 export const getDatabaseName = (profile: Profile, isSubProfile: boolean, suffix = '') => {

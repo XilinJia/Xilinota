@@ -226,6 +226,29 @@ export default class FsDriverRN extends FsDriverBase {
 		return RNFS.moveFile(source, dest);
 	}
 
+	public async moveAllFiles(sourcePath: string, destinationPath: string, mediaExtensions: string[] = []) {
+		try {
+			const files = await RNFS.readDir(sourcePath);
+			for (const file of files) {
+				if (file.isFile()) {
+					if (mediaExtensions) {
+						const fileName = file.name.toLowerCase();
+						const fileExtension = fileName.split('.').pop();
+						if (!mediaExtensions.includes(fileExtension)) continue;
+					}
+					const sourceFile = `${sourcePath}/${file.name}`;
+					const destinationFile = `${destinationPath}/${file.name}`;
+
+					// eslint-disable-next-line no-console
+					console.log('File moving:', file.name);
+					await RNFS.moveFile(sourceFile, destinationFile);
+				}
+			}
+		} catch (error) {
+			console.error('Error moving files:', error);
+		}
+	}
+
 	public async exists(path: string) {
 		if (isScopedUri(path)) {
 			return RNSAF.exists(path);
@@ -324,6 +347,10 @@ export default class FsDriverRN extends FsDriverBase {
 				await RNFS.copyFile(source, dest);
 			}
 		}
+	}
+
+	public async link(source: string, dest: string) {
+		await this.copy(source, dest);
 	}
 
 	public async unlink(path: string) {

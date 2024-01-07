@@ -1,6 +1,7 @@
 import { Dispatch } from 'redux';
 
-const { NativeEventEmitter, NativeModules, Platform } = require('react-native');
+const { LogBox, NativeEventEmitter, NativeModules, Platform } = require('react-native');
+LogBox.ignoreLogs(['new NativeEventEmitter']); // Ignore log notification by message
 
 interface NotificationData {
 	xilinotaNotificationId: string;

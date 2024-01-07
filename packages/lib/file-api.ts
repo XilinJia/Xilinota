@@ -367,6 +367,12 @@ class FileApi {
 		return tryAndRepeat(() => this.driver_.move(this.fullPath(oldPath), this.fullPath(newPath)), this.requestRepeatCount());
 	}
 
+	public link(oldPath: string, newPath: string) {
+		// both paths are assumed as full paths
+		// logger.debug(`move ${this.fullPath(oldPath)} => ${this.fullPath(newPath)}`);
+		return tryAndRepeat(() => this.driver_.link(oldPath, newPath), this.requestRepeatCount());
+	}
+
 	// Deprectated
 	public format() {
 		return tryAndRepeat(() => this.driver_.format(), this.requestRepeatCount());

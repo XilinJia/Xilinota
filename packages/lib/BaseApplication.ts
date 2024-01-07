@@ -762,6 +762,19 @@ export default class BaseApplication {
 		await LocalFile.syncFromSystem();
 	}
 
+	protected async prepResourcesDir() {
+		const resourceDir = Setting.value('resourceDir');
+
+		const profileDir = Setting.value('profileDir');
+		const resourceDirOld = `${profileDir}/resources`;
+		const resOldStat = await fs.pathExists(resourceDirOld);
+		if (resOldStat) {
+			await fs.move(resourceDirOld, resourceDir);
+		} else {
+			await fs.mkdirp(resourceDir, 0o755);
+		}
+	}
+
 	protected async backupDB(profileDir: string) {
 		let backupDB = false;
 		const dbStat = await shim.fsDriver().stat(`${profileDir}/database.sqlite.bak`);
@@ -802,14 +815,14 @@ export default class BaseApplication {
 		const { profileDir, profileConfig, isSubProfile } = await initProfile(rootProfileDir);
 		this.profileConfig_ = profileConfig;
 
-		const resourceDirName = 'resources';
-		const resourceDir = `${profileDir}/${resourceDirName}`;
+		// const resourceDirName = 'resources';
+		// const resourceDir = `${profileDir}/${resourceDirName}`;
 		const tempDir = `${profileDir}/tmp`;
 		const cacheDir = `${profileDir}/cache`;
 
 		Setting.setConstant('env', initArgs.env);
-		Setting.setConstant('resourceDirName', resourceDirName);
-		Setting.setConstant('resourceDir', resourceDir);
+		// Setting.setConstant('resourceDirName', resourceDirName);
+		// Setting.setConstant('resourceDir', resourceDir);
 		Setting.setConstant('tempDir', tempDir);
 		Setting.setConstant('pluginDataDir', `${profileDir}/plugin-data`);
 		Setting.setConstant('cacheDir', cacheDir);
@@ -834,7 +847,7 @@ export default class BaseApplication {
 		}
 
 		await fs.mkdirp(profileDir, 0o755);
-		await fs.mkdirp(resourceDir, 0o755);
+		// await fs.mkdirp(resourceDir, 0o755);
 		await fs.mkdirp(tempDir, 0o755);
 		await fs.mkdirp(cacheDir, 0o755);
 
@@ -954,7 +967,19 @@ export default class BaseApplication {
 
 		BaseItem.revisionService_ = RevisionService.instance();
 
-		await LocalFile.init(profileConfig.currentProfileId, this.populateFolder, this.syncFromSystem);
+		LocalFile.prepResourcesDirFunc = this.prepResourcesDir;
+		LocalFile.populateFolderFunc = this.populateFolder;
+		LocalFile.syncFromSystemFunc = this.syncFromSystem;
+		await LocalFile.init(profileConfig.currentProfileId, true);
+
+		// const resourceDir = Setting.value('resourceDir');
+		// const resourceDirOld = `${profileDir}/resources`;
+		// const resOldStat = await fs.pathExists(resourceDirOld);
+		// if (resOldStat) {
+		// 	await fs.move(resourceDirOld, resourceDir);
+		// } else {
+		// 	await fs.mkdirp(resourceDir, 0o755);
+		// }
 
 		KvStore.instance().setDb(reg.db());
 

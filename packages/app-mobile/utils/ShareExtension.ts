@@ -1,6 +1,8 @@
-import { NativeEventEmitter } from 'react-native';
+import { LogBox, NativeEventEmitter } from 'react-native';
 
 const { NativeModules, Platform } = require('react-native');
+
+LogBox.ignoreLogs(['new NativeEventEmitter']); // Ignore log notification by message
 
 export interface SharedData {
 	title?: string;

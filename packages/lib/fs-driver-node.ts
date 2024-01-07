@@ -231,6 +231,14 @@ export default class FsDriverNode extends FsDriverBase {
 		}
 	}
 
+	public async link(source: string, dest: string) {
+		try {
+			return await fs.link(source, dest);
+		} catch (error) {
+			throw this.fsErrorToJsError_(error, source);
+		}
+	}
+
 	public async chmod(source: string, mode: string | number) {
 		return fs.chmod(source, mode);
 	}

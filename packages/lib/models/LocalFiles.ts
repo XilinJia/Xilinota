@@ -18,13 +18,17 @@ export default class LocalFile extends BaseItem {
 
 	protected static fileApi: FileApi;
 
+	public static populateFolderFunc: ()=> Promise<void> = this.populateFolder;
+	public static syncFromSystemFunc: ()=> Promise<void> = this.syncFromSystem;
+	public static prepResourcesDirFunc: ()=> Promise<void> = null;
+
 	private static setupFileApi(baseDir: string, driver: any) {
 		this.fileApi = new FileApi(baseDir, driver);
 		this.fileApi.setLogger(this.logger());
 		this.fileApi.setSyncTargetId(111);	// TODO: how to set it?
 	}
 
-	public static async init(_profileName: string, populateFolder: ()=> Promise<void> = null, syncFromSystem: ()=> Promise<void> = null) {
+	public static async init(_profileName: string, doWait = false) {
 		const driver = new FileApiDriverLocal();
 		const homeDir = await driver.homeDir();
 		const dName = Setting.value('env') === 'dev' ? 'XilinotasDev' : 'Xilinotas';
@@ -41,24 +45,31 @@ export default class LocalFile extends BaseItem {
 		if (!stat) await driver.mkdir(baseFilePath);
 
 		const filePath = `${baseFilePath}${path.sep}${_profileName}`;
-		this.logger().info('LocalFiles init: filePath', filePath);
-
 		this.setupFileApi(filePath, driver);
-
+		this.logger().info('LocalFiles init: filePath', filePath);
+		Setting.setConstant('localFilesDir', filePath);
 		stat = await driver.stat(filePath);
-		if (!stat) {
-			await driver.mkdir(filePath);
-			if (populateFolder) {
-				await populateFolder();
+		const doPopulate = !stat;
+
+		const resourceDirName = '.resources';
+		Setting.setConstant('resourceDirName', resourceDirName);
+		const resourceDir = `${filePath}/${resourceDirName}`;
+		Setting.setConstant('resourceDir', resourceDir);
+		if (this.prepResourcesDirFunc) await this.prepResourcesDirFunc();
+
+		if (doPopulate) {
+			// await driver.mkdir(filePath);	// relying on prepResourcesDir() to create the directory
+			if (doWait) {
+				await this.populateFolderFunc();
 			} else {
-				void this.populateFolder();
+				void this.populateFolderFunc();
 			}
 		} else {
 			await this.build_id_folder_map();
-			if (syncFromSystem) {
-				await syncFromSystem();
+			if (doWait) {
+				await this.syncFromSystemFunc();
 			} else {
-				void this.syncFromSystem();
+				void this.syncFromSystemFunc();
 			}
 		}
 	}
@@ -184,6 +195,7 @@ export default class LocalFile extends BaseItem {
 		const resPath = `${path.dirname(path_)}${path.sep}.resources`;
 		let rStat = await this.fileApi.stat(resPath);
 		if (!rStat) await this.fileApi.mkdir(resPath);
+
 		const resPathLink = `${path.dirname(path_)}${path.sep}_resources`;
 		rStat = await this.fileApi.stat(resPathLink);
 		if (!rStat) await this.fileApi.mkdir(resPathLink);
@@ -195,7 +207,7 @@ export default class LocalFile extends BaseItem {
 
 			for (let i = 0; i < resourceIds.length; i++) {
 				const id = resourceIds[i];
-				if (content.indexOf(`:/${id}`) === -1) continue;
+				if (content.indexOf(`:/${id}`) === -1 && content.indexOf(`.resources/${id}`) === -1) continue;
 
 				const resource = await Resource.load(id);
 				if (!resource) continue;
@@ -203,7 +215,7 @@ export default class LocalFile extends BaseItem {
 				const resConfigPath = Resource.fullPath(resource); // path in xilinota config
 				let stat = await this.fileApi.stat(resConfigPath, true);
 				if (!stat) {
-					this.logger().info('Resource file not exist:', resConfigPath);
+					// this.logger().info('Resource file not exist:', resConfigPath);
 					continue;
 				}
 				const resourcefilename = Resource.filename(resource);
@@ -211,17 +223,19 @@ export default class LocalFile extends BaseItem {
 				let resFullpPathFS = `${resPath}${path.sep}${resourcefilename}`;
 				// eslint-disable-next-line prefer-const
 				let resRelPathFS = `.resources${path.sep}${resourcefilename}`;
+				// this.logger().info('resConfigPath resRelPathFS', resConfigPath, resFullpPathFS);
 				stat = await this.fileApi.stat(resFullpPathFS);
-				// TODO: needs more thoughts
+				// TODO: needs more thoughts regarding the _resources folder
 				// if (stat) {
 				// 	resFullpPathFS = `${resPathLink}${path.sep}${resourcefilename}`;
 				// 	resRelPathFS = `_resources${path.sep}${resourcefilename}`;
 				// 	stat = await this.fileApi.stat(resFullpPathFS);
 				// }
 				if (!stat) {
-					await this.fileApi.put(resFullpPathFS, resource, { source: 'file', path: resConfigPath });
+					// await this.fileApi.put(resFullpPathFS, resource, { source: 'file', path: resConfigPath });
+					await this.fileApi.link(resConfigPath, this.fileApi.fullPath(resFullpPathFS));
 				}
-				content = content.replace(new RegExp(`:/${id}`, 'gi'), resRelPathFS);
+				if (content.indexOf(`:/${id}`) > -1) content = content.replace(new RegExp(`:/${id}`, 'gi'), resRelPathFS);
 
 				// this.logger().info('loadNote', i, id, isImage, resourcefilename);
 			}
@@ -259,7 +273,7 @@ export default class LocalFile extends BaseItem {
 				const oldResFile = `${oResPath}${path.sep}${resourcefilename}`;
 				stat = await this.fileApi.stat(oldResFile);
 				if (!stat) {
-					this.logger().info('Resource file not exist:', oldResFile);
+					// this.logger().info('Resource file not exist:', oldResFile);
 					continue;
 				}
 				const resFullpPathFS = `${nResPath}${path.sep}${resourcefilename}`;
@@ -291,7 +305,7 @@ export default class LocalFile extends BaseItem {
 
 	public static async deleteFolder(folder: FolderEntity) {
 		const path_ = await this.sysPathFromRoot(folder);
-		this.logger().info('deleting note:', path_);
+		this.logger().info('deleting folder:', path_);
 		const stat = await this.fileApi.stat(path_);
 		if (stat) await this.fileApi.remove(path_);
 	}
@@ -328,7 +342,7 @@ export default class LocalFile extends BaseItem {
 				const oldResFile = `${oResPath}${path.sep}${resourcefilename}`;
 				stat = await this.fileApi.stat(oldResFile);
 				if (!stat) {
-					this.logger().info('Resource file not exist:', oldResFile);
+					// this.logger().info('Resource file not exist:', oldResFile);
 					continue;
 				}
 				await this.fileApi.delete(oldResFile);
@@ -378,9 +392,9 @@ export default class LocalFile extends BaseItem {
 			return false;
 		};
 		const dirSet = Array.from(dirSet_).filter(path => !isParentDirectory(path, dirSet_));
-		this.logger().info('doDB_FS_Diffs: FS folders:', dirSet);
+		this.logger().debug('doDB_FS_Diffs: FS folders:', dirSet);
 
-		this.logger().info('doDB_FS_Diffs: FS files:', fileSet);
+		this.logger().debug('doDB_FS_Diffs: FS files:', fileSet);
 
 		const dbNotes: NoteEntity[] = await Note.notesWOBody();
 		const notePaths: Set<string> = new Set();
@@ -395,7 +409,7 @@ export default class LocalFile extends BaseItem {
 			notePaths.add(p1);
 			path_note_map.set(p1, note);
 		}
-		this.logger().info('doDB_FS_Diffs: DB note path list:', notePaths);
+		this.logger().debug('doDB_FS_Diffs: DB note path list:', notePaths);
 
 		if (fileSet.size === 0 && notePaths.size > 0) {
 			await this.populateFolder();
@@ -406,19 +420,19 @@ export default class LocalFile extends BaseItem {
 		for (const it of fileSet) {
 			diffDF.delete(it);
 		}
-		this.logger().info('doDB_FS_Diffs: DB notes not in FS:', diffDF);
+		this.logger().debug('doDB_FS_Diffs: DB notes not in FS:', diffDF);
 
 		const diffFD = new Set(fileSet);	// notes in FS but not in DB
 		for (const it of notePaths) {
 			diffFD.delete(it);
 		}
-		this.logger().info('doDB_FS_Diffs: FS notes not in DB:', diffFD);
+		this.logger().debug('doDB_FS_Diffs: FS notes not in DB:', diffFD);
 
 		const commonLP = new Set<string>();
 		for (const it of notePaths) {
 			if (fileSet.has(it)) commonLP.add(it);
 		}
-		this.logger().info('doDB_FS_Diffs: notes in both DB and FS:', commonLP);
+		this.logger().debug('doDB_FS_Diffs: notes in both DB and FS:', commonLP);
 
 		const save_to_DB_as_note = async (content: any, options: SaveOptions = null) => {
 			let note: NoteEntity = await BaseItem.unserialize(content, { type_: BaseModel.TYPE_NOTE });
@@ -441,7 +455,7 @@ export default class LocalFile extends BaseItem {
 				const statFS = await this.fileApi.stat(p);
 				if (noteDB.updated_time < quitTime && statFS.updated_time < quitTime) continue;
 
-				this.logger().info('do_commons:', p, 'DB:', noteDB.updated_time - quitTime, 'FS:', statFS.updated_time - quitTime, 'FS-DB:', statFS.updated_time - noteDB.updated_time);
+				this.logger().debug('do_commons:', p, 'DB:', noteDB.updated_time - quitTime, 'FS:', statFS.updated_time - quitTime, 'FS-DB:', statFS.updated_time - noteDB.updated_time);
 				const content = await this.fileApi.get(p);
 				await save_to_DB_as_note(content, { isNew: false, autoTimestamp: false });
 			}
@@ -526,7 +540,7 @@ export default class LocalFile extends BaseItem {
 							user_created_time: stat.updated_time,
 							markup_language: 1,
 						};
-						this.logger().info('do_FS_extras: saving note', title);
+						this.logger().debug('do_FS_extras: saving note', title);
 						await Note.save(note);
 					}
 				}

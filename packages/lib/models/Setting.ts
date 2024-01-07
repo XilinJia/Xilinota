@@ -150,6 +150,7 @@ export interface Constants {
 	syncVersion: number;
 	startupDevPlugins: string[];
 	isSubProfile: boolean;
+	localFilesDir: string;
 }
 
 interface SettingSections {
@@ -300,6 +301,7 @@ class Setting extends BaseModel {
 		syncVersion: 3,
 		startupDevPlugins: [],
 		isSubProfile: false,
+		localFilesDir: '',
 	};
 
 	public static autoSaveEnabled = true;

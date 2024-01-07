@@ -178,6 +178,14 @@ class FileApiDriverLocal {
 		}
 	}
 
+	async link(oldPath, newPath) {
+		try {
+			await this.fsDriver().link(oldPath, newPath);
+		} catch (error) {
+			throw this.fsErrorToJsError_(error, oldPath);
+		}
+	}
+
 	format() {
 		throw new Error('Not supported');
 	}

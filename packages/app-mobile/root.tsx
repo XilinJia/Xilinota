@@ -118,7 +118,7 @@ import ProfileSwitcher from './components/ProfileSwitcher/ProfileSwitcher';
 import ProfileEditor from './components/ProfileSwitcher/ProfileEditor';
 import sensorInfo, { SensorInfo } from './components/biometrics/sensorInfo';
 import { getCurrentProfile } from '@xilinota/lib/services/profileConfig';
-import { getDatabaseName, getProfilesRootDir, getResourceDir, setDispatch } from './services/profiles';
+import { getDatabaseName, getProfilesRootDir, setDispatch } from './services/profiles';
 import userFetcher, { initializeUserFetcher } from '@xilinota/lib/utils/userFetcher';
 import { ReactNode } from 'react';
 import { parseShareCache } from '@xilinota/lib/services/share/reducer';
@@ -479,10 +479,9 @@ async function initialize(dispatch: Function) {
 	Setting.setConstant('appId', 'ac.mdiq.xilinota-mobile');
 	Setting.setConstant('appType', 'mobile');
 	Setting.setConstant('tempDir', await initializeTempDir());
-	const resourceDir = getResourceDir(currentProfile, isSubProfile);
-	Setting.setConstant('resourceDir', resourceDir);
-
-	await shim.fsDriver().mkdir(resourceDir);
+	// const resourceDir = getResourceDir(currentProfile, isSubProfile);
+	// Setting.setConstant('resourceDir', resourceDir);
+	// await shim.fsDriver().mkdir(resourceDir);
 
 	const logDatabase = new Database(new DatabaseDriverReactNative());
 	await logDatabase.open({ name: 'log.sqlite' });
@@ -549,155 +548,174 @@ async function initialize(dispatch: Function) {
 
 	setRSA(RSA);
 
-	try {
-		let dbName = '';
-		if (Setting.value('env') === 'prod') {
-			dbName = getDatabaseName(currentProfile, isSubProfile);
-		} else {
-			dbName = getDatabaseName(currentProfile, isSubProfile, '-3');
+	// try {
+	let dbName = '';
+	if (Setting.value('env') === 'prod') {
+		dbName = getDatabaseName(currentProfile, isSubProfile);
+	} else {
+		dbName = getDatabaseName(currentProfile, isSubProfile, '-3');
 		// await db.clearForTesting();
-		}
-		await db.open({ name: dbName });
+	}
+	await db.open({ name: dbName });
 
-		reg.logger().info('Database is ready.');
-		reg.logger().info('Loading settings......');
+	reg.logger().info('Database is ready.');
+	reg.logger().info('Loading settings......');
 
-		await loadKeychainServiceAndSettings(KeychainServiceDriverMobile);
-		await migrateMasterPassword();
+	await loadKeychainServiceAndSettings(KeychainServiceDriverMobile);
+	await migrateMasterPassword();
 
-		const lastTimeAlive: number = Setting.value('lastTimeAlive');
-		Setting.setValue('shutdownTime', lastTimeAlive);
+	const lastTimeAlive: number = Setting.value('lastTimeAlive');
+	Setting.setValue('shutdownTime', lastTimeAlive);
 
-		if (!Setting.value('clientId')) Setting.setValue('clientId', uuid.create());
-		reg.logger().info(`Client ID: ${Setting.value('clientId')}`);
+	if (!Setting.value('clientId')) Setting.setValue('clientId', uuid.create());
+	reg.logger().info(`Client ID: ${Setting.value('clientId')}`);
 
-		BaseItem.syncShareCache = parseShareCache(Setting.value('sync.shareCache'));
+	BaseItem.syncShareCache = parseShareCache(Setting.value('sync.shareCache'));
 
-		if (Setting.value('firstStart')) {
-			const detectedLocale = shim.detectAndSetLocale(Setting);
-			reg.logger().info(`First start: detected locale as ${detectedLocale}`);
+	if (Setting.value('firstStart')) {
+		const detectedLocale = shim.detectAndSetLocale(Setting);
+		reg.logger().info(`First start: detected locale as ${detectedLocale}`);
 
-			Setting.skipDefaultMigrations();
-			Setting.setValue('firstStart', 0);
-		} else {
-			Setting.applyDefaultMigrations();
-		}
+		Setting.skipDefaultMigrations();
+		Setting.setValue('firstStart', 0);
+	} else {
+		Setting.applyDefaultMigrations();
+	}
 
-		if (Setting.value('env') === Env.Dev) {
+	if (Setting.value('env') === Env.Dev) {
 		// Setting.setValue('sync.10.path', 'https://api.joplincloud.com');
 		// Setting.setValue('sync.10.userContentPath', 'https://xilinotausercontent.com');
-			Setting.setValue('sync.10.path', 'http://api.joplincloud.local:22300');
-			Setting.setValue('sync.10.userContentPath', 'http://joplinusercontent.local:22300');
-			Setting.setValue('privateCode', 'MyXilinotaD');
-			reg.logger().info('privateCode set to', Setting.value('privateCode'));
-		}
-
-		if (Setting.value('db.ftsEnabled') === -1) {
-			const ftsEnabled = await db.ftsEnabled();
-			Setting.setValue('db.ftsEnabled', ftsEnabled ? 1 : 0);
-			reg.logger().info('db.ftsEnabled = ', Setting.value('db.ftsEnabled'));
-		}
-
-		if (Setting.value('env') === 'dev') {
-			Setting.setValue('welcome.enabled', false);
-		}
-
-		PluginAssetsLoader.instance().setLogger(mainLogger);
-		await PluginAssetsLoader.instance().importAssets();
-
-		// eslint-disable-next-line require-atomic-updates
-		BaseItem.revisionService_ = RevisionService.instance();
-
-		initUDPClient();
-
-		reg.logger().info('Going to initialize local files');
-		await LocalFile.init(profileConfig.currentProfileId);
-
-		// Note: for now we hard-code the folder sort order as we need to
-		// create a UI to allow customisation (started in branch mobile_add_sidebar_buttons)
-		Setting.setValue('folders.sortOrder.field', 'title');
-		Setting.setValue('folders.sortOrder.reverse', false);
-
-		reg.logger().info(`Sync target: ${Setting.value('sync.target')}`);
-
-		setLocale(Setting.value('locale'));
-
-		if (Platform.OS === 'android') {
-			const ignoreTlsErrors = Setting.value('net.ignoreTlsErrors');
-			if (ignoreTlsErrors) {
-				await setIgnoreTlsErrors(ignoreTlsErrors);
-			}
-		}
-
-		// ----------------------------------------------------------------
-		// E2EE SETUP
-		// ----------------------------------------------------------------
-
-		EncryptionService.fsDriver_ = fsDriver;
-		// eslint-disable-next-line require-atomic-updates
-		BaseItem.encryptionService_ = EncryptionService.instance();
-		BaseItem.shareService_ = ShareService.instance();
-		Resource.shareService_ = ShareService.instance();
-		DecryptionWorker.instance().dispatch = dispatch;
-		DecryptionWorker.instance().setLogger(mainLogger);
-		DecryptionWorker.instance().setKvStore(KvStore.instance());
-		DecryptionWorker.instance().setEncryptionService(EncryptionService.instance());
-		await loadMasterKeysFromSettings(EncryptionService.instance());
-		DecryptionWorker.instance().on('resourceMetadataButNotBlobDecrypted', decryptionWorker_resourceMetadataButNotBlobDecrypted);
-
-		// ----------------------------------------------------------------
-		// / E2EE SETUP
-		// ----------------------------------------------------------------
-
-		await ShareService.instance().initialize(store, EncryptionService.instance());
-
-		reg.logger().info('Loading folders...');
-
-		await FoldersScreenUtils.refreshFolders();
-
-		const tags = await Tag.allWithNotes();
-
-		dispatch({
-			type: 'TAG_UPDATE_ALL',
-			items: tags,
-		});
-
-		// const masterKeys = await MasterKey.all();
-
-		// dispatch({
-		// 	type: 'MASTERKEY_UPDATE_ALL',
-		// 	items: masterKeys,
-		// });
-
-		const folderId = Setting.value('activeFolderId');
-		let folder = await Folder.load(folderId);
-
-		if (!folder) folder = await Folder.defaultFolder();
-
-		dispatch({
-			type: 'FOLDER_SET_COLLAPSED_ALL',
-			ids: Setting.value('collapsedFolderIds'),
-		});
-
-		const notesParent = parseNotesParent(Setting.value('notesParent'), Setting.value('activeFolderId'));
-
-		if (notesParent && notesParent.type === 'SmartFilter') {
-			dispatch(DEFAULT_ROUTE);
-		} else if (!folder) {
-			dispatch(DEFAULT_ROUTE);
-		} else {
-			dispatch({
-				type: 'NAV_GO',
-				routeName: 'Notes',
-				folderId: folder.id,
-			});
-		}
-
-		await clearSharedFilesCache();
-	} catch (error) {
-		alert(`Initialization error: ${error.message}`);
-		reg.logger().error('Initialization error:', error);
+		Setting.setValue('sync.10.path', 'http://api.joplincloud.local:22300');
+		Setting.setValue('sync.10.userContentPath', 'http://joplinusercontent.local:22300');
+		Setting.setValue('privateCode', 'MyXilinotaD');
+		reg.logger().info('privateCode set to', Setting.value('privateCode'));
 	}
+
+	if (Setting.value('db.ftsEnabled') === -1) {
+		const ftsEnabled = await db.ftsEnabled();
+		Setting.setValue('db.ftsEnabled', ftsEnabled ? 1 : 0);
+		reg.logger().info('db.ftsEnabled = ', Setting.value('db.ftsEnabled'));
+	}
+
+	if (Setting.value('env') === 'dev') {
+		Setting.setValue('welcome.enabled', false);
+	}
+
+	reg.logger().info('Going to initialize UDP client');
+	initUDPClient();
+
+	const prepResourcesDir = async () => {
+		const resourceDir = Setting.value('resourceDir');
+		const resStat = await shim.fsDriver().exists(resourceDir);
+
+		const isSubProfile = Setting.value('isSubProfile');
+		const resourceDirOld = !isSubProfile ? getProfilesRootDir() : `${getProfilesRootDir()}/resources-${currentProfile.id}`;
+		const resOldStat = await shim.fsDriver().exists(resourceDirOld);
+		// reg.logger().info('prepResourcesDir resourceDir resourceDirOld', resourceDir, resourceDirOld);
+
+		if (resOldStat) {
+			await shim.fsDriver().moveAllFiles(resourceDirOld, resourceDir, ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'mp4', 'mov']);
+		} else {
+			if (!resStat) await shim.fsDriver().mkdir(resourceDir);
+		}
+	};
+
+	reg.logger().info('Going to initialize local files');
+	LocalFile.prepResourcesDirFunc = prepResourcesDir;
+	await LocalFile.init(profileConfig.currentProfileId);
+
+	reg.logger().info('Going to import assets');
+	PluginAssetsLoader.instance().setLogger(mainLogger);
+	await PluginAssetsLoader.instance().importAssets();
+
+	// eslint-disable-next-line require-atomic-updates
+	BaseItem.revisionService_ = RevisionService.instance();
+
+	// Note: for now we hard-code the folder sort order as we need to
+	// create a UI to allow customisation (started in branch mobile_add_sidebar_buttons)
+	Setting.setValue('folders.sortOrder.field', 'title');
+	Setting.setValue('folders.sortOrder.reverse', false);
+
+	reg.logger().info(`Sync target: ${Setting.value('sync.target')}`);
+
+	setLocale(Setting.value('locale'));
+
+	if (Platform.OS === 'android') {
+		const ignoreTlsErrors = Setting.value('net.ignoreTlsErrors');
+		if (ignoreTlsErrors) {
+			await setIgnoreTlsErrors(ignoreTlsErrors);
+		}
+	}
+
+	// ----------------------------------------------------------------
+	// E2EE SETUP
+	// ----------------------------------------------------------------
+
+	EncryptionService.fsDriver_ = fsDriver;
+	// eslint-disable-next-line require-atomic-updates
+	BaseItem.encryptionService_ = EncryptionService.instance();
+	BaseItem.shareService_ = ShareService.instance();
+	Resource.shareService_ = ShareService.instance();
+	DecryptionWorker.instance().dispatch = dispatch;
+	DecryptionWorker.instance().setLogger(mainLogger);
+	DecryptionWorker.instance().setKvStore(KvStore.instance());
+	DecryptionWorker.instance().setEncryptionService(EncryptionService.instance());
+	await loadMasterKeysFromSettings(EncryptionService.instance());
+	DecryptionWorker.instance().on('resourceMetadataButNotBlobDecrypted', decryptionWorker_resourceMetadataButNotBlobDecrypted);
+
+	// ----------------------------------------------------------------
+	// / E2EE SETUP
+	// ----------------------------------------------------------------
+
+	await ShareService.instance().initialize(store, EncryptionService.instance());
+
+	reg.logger().info('Loading folders...');
+
+	await FoldersScreenUtils.refreshFolders();
+
+	const tags = await Tag.allWithNotes();
+
+	dispatch({
+		type: 'TAG_UPDATE_ALL',
+		items: tags,
+	});
+
+	// const masterKeys = await MasterKey.all();
+
+	// dispatch({
+	// 	type: 'MASTERKEY_UPDATE_ALL',
+	// 	items: masterKeys,
+	// });
+
+	const folderId = Setting.value('activeFolderId');
+	let folder = await Folder.load(folderId);
+
+	if (!folder) folder = await Folder.defaultFolder();
+
+	dispatch({
+		type: 'FOLDER_SET_COLLAPSED_ALL',
+		ids: Setting.value('collapsedFolderIds'),
+	});
+
+	const notesParent = parseNotesParent(Setting.value('notesParent'), Setting.value('activeFolderId'));
+
+	if (notesParent && notesParent.type === 'SmartFilter') {
+		dispatch(DEFAULT_ROUTE);
+	} else if (!folder) {
+		dispatch(DEFAULT_ROUTE);
+	} else {
+		dispatch({
+			type: 'NAV_GO',
+			routeName: 'Notes',
+			folderId: folder.id,
+		});
+	}
+
+	await clearSharedFilesCache();
+	// } catch (error) {
+	// 	alert(`Initialization error: ${error.message}`);
+	// 	reg.logger().error('Initialization error:', error);
+	// }
 
 	reg.setupRecurrentSync();
 
