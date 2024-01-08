@@ -6,7 +6,7 @@ In addition, Xilinota propose a new way for you to sync your notes: instant sync
 
 ## Instant sync across devices
 
-Certainly Xilinota runs on multiple platforms you choose, however, all those are to serve one person: you, the user.  So the capability of doing instant sync removes the process of going a long way through complicated handling.  Here is how it works.
+Syncing notes through cloud, external servers, or with the assistance of third-party application like Syncthing can still be used if you like. Xilinota propose a new way for you to sync your notes: an instant way, which surely is more convenient. Certainly Xilinota runs on multiple platforms you choose, however, all those are to serve one person: you, the user.  So the capability of doing instant sync removes the process of going a long way through complicated setups and handling.  Here is how it works.
 
 Currently, it assumes that you use your computer doing the heavy work of note-taking and your phones being assistants or doing the casual parts.  You can choose to keep only part or all the notebooks from your computer onto any phone (I like the phones being lighter and not keep all the complex professional notes that I work on my computer, but you can have your own choice).
 

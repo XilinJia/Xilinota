@@ -8,7 +8,7 @@ On the desktop application, the default home directory where the notebooks and n
 
 #### Android app
 
-The default home directory on Android is different. On Android 9 or older, the directory is "/Android/data/ac.mdiq.xilinota/files/Xilinotas". On Android 10 or newer, the directory is chosen by you upon first start of Xilinota. These directories can not be changed at the moment. (With dev version, on Android 9 or older, the directory is "/Android/data/ac.mdiq.xilinota/files/XilinotasDev".
+The default home directory on Android is different. On Android 9 or older, the directory is "/Android/data/ac.mdiq.xilinota/files/Xilinotas". On Android 10 or newer, the directory is chosen by you upon first start of Xilinota. These directories can not be changed at the moment. (With dev version, on Android 9 or older, the directory is "/Android/data/ac.mdiq.xilinota.D/files/XilinotasDev".
 
 #### Mechanisms
 
@@ -20,16 +20,31 @@ You can create, update, move, delete notes or notebooks in Xilinota and the file
 
 #### Resources
 
-Resources (images or attachments in notes) are now located in the ".resources" sub-directory in the directory of every notebook ("_resources" sub-directory is reserved for future use).  Markdown file shown in external viewer now shows the related resources.  Resource files are copied when the "Xilinotas" directory first gets populated and are saved on note edit when resources are added to the note.  Resources now follow the associated note, i.e., when you move/remove note, the related resource files will be similarly handled.
+Since version 2.14.0, the full resources folder is now relocated from the original config directory to the profile's home directory (e.g. "/home/loginname/Documents/Xilinotas/default/.resources"). The relocation of the directory is handled automatically when directory "resources" exists in the original config directory. Same as usual, this directory contains all resource files of notes associated with the profile.
 
-Resource files are currently copied from Xilinota's config directory, so you have duplicate files on your system.  Going forward, it appears more reasonable to have the resources close to the note files, so I'm looking into the possibilities of removing the resources directory under Xilinota's config directory.  But this will be at a later stage.
+In the directory of every notebook, there is a sub-directory ".resources" that contains all resources related to notes in the notebook. The resources files in this sub-directory are <mark>hard-links</mark> (on desktop) or <mark>copies</mark> (on mobile for now) to the ones in the full resources folder.  Markdown file shown in external viewer now shows the related resources.  Resource files are automatically populated when the "Xilinotas" directory first gets populated and are saved on note updates when resources are added to a note.  Resources now follow the associated note, i.e., when you move/remove note (within Xilinota), the related resource files will be similarly handled.
+
+Supported formats of resources in notes are following (this is only for technical info and not a concern for normal usage of Xilinota application):
+```
+![image](:/f5c27bc3b7fb4116a10fbf0f1cbfefef)
+![image](.resources/f5c27bc3b7fb4116a10fbf0f1cbfefef.xyz)
+<img width="684" height="306" src=":/f5c27bc3b7fb4116a10fbf0f1cbfefef"/>
+<img width="684" height="306" src=".resources/f5c27bc3b7fb4116a10fbf0f1cbfefef.xyz"/>
+```
+"_resources" sub-directory in the directory of every notebook is reserved for future use.
+
+#### Sync of files/folders and notes/notebooks
 
 Files and folders in the file system are sync'ed back to Xilinota.  The process takes place at the start of Xilinota.  With Xilinota desktop, similar to the first file population process, there is a popup with an animated bar during the sync process.  In the mobile apps, this sync process runs in the background without blocking any other functions of Xilinota.
 
 Any added or deleted note files or folders will be synced into Xilinota (an empty folder added is ignored). A markdown file if edited after the previous exit of Xilinota is also synced.  Adding an external folder with markdown files will get all files synced in.  Removing a folder also results in getting all notes in the folder removed from Xilinota after sync (though the notebook corresponding to the folder stays).
 
-A positive note: if you remove the home directory, or the profile directory (e.g. default) under the home directory, or all the folders and files under the profile directory, Xilinota will not delete all of your notes and notebooks in the DB, rather it will re-populate the entire home directory.
+A positive note: if you remove the home directory, or the profile directory (e.g. default) under the home directory, or all the folders and files under the profile directory, Xilinota will not delete all of your notes and notebooks in the DB, rather it will re-populate the entire home directory.  Also note that since the full resources folder is under the profile directory, if you delete that, it will not be re-generated.
 
 #### Special notice and limitations
 
+Since version 2.14.0, resources are hard-linked to each notebook folders on desktop (rather than copied as in prior versions).  While the originally copied resource files are still valid for use, it would be better to use the new link mechanism to save some disk space.  If you have used prior versions and would like to use the link mechanism, you can simply remove all folders under the profile folder of the home directory (for safety, do a backup before action).  For your default profile on Linux, this would be "/home/loginname/Documents/Xilinotas/default/".  Then when you start Xilinota, these folders will be re-populated.
+
 Currently, moving folders in the file system is not synced into Xilinota.  Also, moving a note to another folder is not supported for syncing and this is not encouraged because manually moving a note file can result in mismatched resources linked.  So these operations are better conducted within Xilinota.
+
+Due to the relocation of the resources folder (since version 2.14.0, if you migrated from Joplin by feeding Xilinota with renaming Joplin's config directories, and if you want to move back to using Joplin by renaming the resulting config directories back for Joplin, you will also need to manually move the resources folder back (this can only be done on the desktop).

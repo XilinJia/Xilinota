@@ -1,5 +1,9 @@
 # Importing and exporting notes
 
+## Importing from Joplin
+
+Started from a fork of Koplin, Xilinota maintains to be compatible with Joplin in most aspects.  The simplest way to import from Joplin on the desktop is to copy or rename the two config directories of Joplin.  The two directories generally are Joplin and Joplin-desktop under "${HOME}/.config".  Consult Joplin related materials for details.  Otherwise, you can import the JEX file exported from Joplin.
+
 ## Importing from Evernote
 
 Xilinota can import complete Evernote notebooks, as well as notes, tags, images, attached files and note metadata (such as author, geo-location, etc.) via ENEX files.
