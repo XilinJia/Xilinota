@@ -5,7 +5,7 @@ import { getIndentUnit, syntaxTree } from '@codemirror/language';
 import { SyntaxNodeRef } from '@lezer/common';
 
 // pregQuote escapes text for usage in regular expressions
-const { pregQuote } = require('@xilinota/lib/string-utils-common');
+import { pregQuote } from '@xilinota/lib/string-utils';
 
 // Length of the symbol that starts a block quote
 const blockQuoteStartLen = '> '.length;
@@ -309,7 +309,7 @@ export const toggleInlineSelectionFormat = (
 	}
 
 	// Grow the selection to encompass the entire node.
-	const newRange = growSelectionToNode(state, sel, spec.nodeName);
+	const newRange = growSelectionToNode(state, sel, spec.nodeName??'');
 	return toggleInlineRegionSurrounded(state.doc, newRange, spec);
 };
 
@@ -336,7 +336,7 @@ export const toggleRegionFormatGlobally = (
 	const getMatchEndPoints = (
 		match: RegExpMatchArray, line: Line, inBlockQuote: boolean,
 	): [startIdx: number, stopIdx: number] => {
-		const startIdx = line.from + match.index;
+		const startIdx = line.from + (match.index ?? 0);
 		let stopIdx;
 
 		// Don't treat '> ' as part of the line's content if we're in a blockquote.
@@ -418,7 +418,7 @@ export const toggleRegionFormatGlobally = (
 		}
 
 		// If we're in the block version, grow the selection to cover the entire region.
-		sel = growSelectionToNode(state, sel, blockSpec.nodeName);
+		sel = growSelectionToNode(state, sel, blockSpec.nodeName ?? '');
 
 		const fromLine = doc.lineAt(sel.from);
 		const toLine = doc.lineAt(sel.to);
@@ -643,7 +643,7 @@ export const renumberList = (state: EditorState, sel: SelectionRange): Selection
 			prevLineNumber = line.number;
 
 			const filteredText = stripBlockquote(line);
-			const match = filteredText.match(listItemRegex);
+			const match = filteredText.match(listItemRegex) ?? [''];
 			const indentation = match[1];
 
 			const indentationLen = tabsToSpaces(state, indentation).length;
@@ -679,7 +679,7 @@ export const renumberList = (state: EditorState, sel: SelectionRange): Selection
 		from: sel.from,
 		to: sel.to,
 		enter: (nodeRef: SyntaxNodeRef) => {
-			if (nodeRef.name === 'ListItem') {
+			if (nodeRef.node.parent && nodeRef.name === 'ListItem') {
 				for (const node of nodeRef.node.parent.getChildren('ListItem')) {
 					const line = doc.lineAt(node.from);
 					const filteredText = stripBlockquote(line);

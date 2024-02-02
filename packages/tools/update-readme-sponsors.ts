@@ -1,7 +1,7 @@
 import { insertContentIntoFile, rootDir } from './tool-utils';
 import markdownUtils, { MarkdownTableHeader, MarkdownTableJustify, MarkdownTableRow } from '@xilinota/lib/markdownUtils';
 import { GithubSponsor, loadSponsors, OrgSponsor } from './utils/loadSponsors';
-const { escapeHtml } = require('@xilinota/lib/string-utils');
+import { escapeHtml } from '@xilinota/lib/string-utils';
 
 const readmePath = `${rootDir}/README.md`;
 
@@ -29,7 +29,7 @@ async function createGitHubSponsorTable(sponsors: GithubSponsor[]): Promise<stri
 
 	let sponsorIndex = 0;
 	for (let rowIndex = 0; rowIndex < 9999; rowIndex++) {
-		let sponsor: GithubSponsor = null;
+		let sponsor: GithubSponsor|null = null;
 		const row: MarkdownTableRow = {};
 		for (let colIndex = 0; colIndex < sponsorsPerRow; colIndex++) {
 			sponsor = sponsors[sponsorIndex];

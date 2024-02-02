@@ -27,13 +27,12 @@ const IFrame = styled.iframe`
 
 interface Props {
 	themeId: number;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	dispatch: Function;
 	resource: any;
 	pageNo: number;
 }
 
-export default function PdfViewer(props: Props) {
+export default function PdfViewer(props: Props): React.JSX.Element {
 
 	const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -53,11 +52,11 @@ export default function PdfViewer(props: Props) {
 		const itemType = ContextMenuItemType.Text;
 		const menu = await contextMenu({
 			itemType,
-			resourceId: null,
-			filename: null,
+			resourceId: '',
+			filename: '',
 			mime: 'text/plain',
 			textToCopy: text,
-			linkToCopy: null,
+			linkToCopy: '',
 			htmlToCopy: '',
 			insertContent: () => { console.warn('insertContent() not implemented'); },
 			fireEditorEvent: () => { console.warn('fireEditorEvent() not implemented'); },
@@ -84,12 +83,15 @@ export default function PdfViewer(props: Props) {
 
 	useEffect(() => {
 		const iframe = iframeRef.current;
-		iframe.contentWindow.addEventListener('message', onMessage_);
-		return () => {
-			// iframe.contentWindow is not always defined
-			// https://github.com/XilinJia/Xilinota/issues/7528
-			if (iframe.contentWindow) iframe.contentWindow.removeEventListener('message', onMessage_);
-		};
+		if (iframe) {
+			iframe.contentWindow?.addEventListener('message', onMessage_);
+			return () => {
+				// iframe.contentWindow is not always defined
+				// https://github.com/XilinJia/Xilinota/issues/7528
+				if (iframe.contentWindow) iframe.contentWindow.removeEventListener('message', onMessage_);
+			};
+		}
+		return () => { }
 	}, [onMessage_]);
 
 	const theme = themeStyle(props.themeId);

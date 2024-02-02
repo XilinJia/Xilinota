@@ -33,7 +33,7 @@ export const config: ApiConfig = {
 	newsCategoryId: 9,
 };
 
-export const execApi = async (method: HttpMethod, path: string, body: Record<string, string | number> = null) => {
+export const execApi = async (method: HttpMethod, path: string, body: Record<string, string | number> = {}) => {
 	interface Request {
 		method: HttpMethod;
 		headers: Record<string, string>;
@@ -52,7 +52,7 @@ export const execApi = async (method: HttpMethod, path: string, body: Record<str
 		headers,
 	};
 
-	if (body) request.body = JSON.stringify(body);
+	if (Object.keys(body).length) request.body = JSON.stringify(body);
 
 	const response = await fetch(`${config.baseUrl}/${path}`, request);
 
@@ -73,7 +73,7 @@ export const execApi = async (method: HttpMethod, path: string, body: Record<str
 	return response.json() as any;
 };
 
-export const getForumTopPostByExternalId = async (externalId: string): Promise<ForumTopPost> => {
+export const getForumTopPostByExternalId = async (externalId: string): Promise<ForumTopPost|null> => {
 	try {
 		const existingForumTopic = await execApi(HttpMethod.GET, `t/external_id/${externalId}.json`);
 		const existingForumPost = await execApi(HttpMethod.GET, `posts/${existingForumTopic.post_stream.posts[0].id}.json`);
@@ -83,19 +83,19 @@ export const getForumTopPostByExternalId = async (externalId: string): Promise<F
 			raw: existingForumPost.raw,
 		};
 	} catch (error) {
-		if (error.status === 404) return null;
-		if (error.apiObject && error.apiObject.error_type === 'not_found') return null;
+		if ((error as any).status === 404) return null;
+		if ((error as any).apiObject && (error as any).apiObject.error_type === 'not_found') return null;
 		throw error;
 	}
 };
 
-export const getTopicByExternalId = async (externalId: string): Promise<ForumTopic> => {
+export const getTopicByExternalId = async (externalId: string): Promise<ForumTopic|null> => {
 	try {
 		const existingForumTopic = await execApi(HttpMethod.GET, `t/external_id/${externalId}.json`);
 		return existingForumTopic;
 	} catch (error) {
-		if (error.status === 404) return null;
-		if (error.apiObject && error.apiObject.error_type === 'not_found') return null;
+		if ((error as any).status === 404) return null;
+		if ((error as any).apiObject && (error as any).apiObject.error_type === 'not_found') return null;
 		throw error;
 	}
 };

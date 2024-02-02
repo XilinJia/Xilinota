@@ -16,7 +16,7 @@ import { ReactNode, useCallback, useState, useEffect } from 'react';
 import { View, ViewStyle } from 'react-native';
 import CustomButton from '../../CustomButton';
 
-const AntIcon = require('react-native-vector-icons/AntDesign').default;
+import AntIcon from 'react-native-vector-icons/AntDesign';
 
 interface Props {
 	children: ReactNode;
@@ -75,7 +75,7 @@ const ToggleSpaceButton = (props: Props) => {
 			>
 				<AntIcon name='down' style={{
 					color: theme.color,
-				}}/>
+				}} />
 			</CustomButton>
 		</>
 	);
@@ -88,7 +88,7 @@ const ToggleSpaceButton = (props: Props) => {
 	return (
 		<View style={style}>
 			{props.children}
-			{ decreaseSpaceBtnVisible && props.spaceApplicable ? decreaseSpaceButton : null }
+			{decreaseSpaceBtnVisible && props.spaceApplicable ? decreaseSpaceButton : null}
 		</View>
 	);
 };

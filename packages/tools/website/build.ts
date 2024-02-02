@@ -5,7 +5,7 @@ import { getMarkdownIt, loadMustachePartials, markdownToPageHtml, renderMustache
 import { AssetUrls, Env, Locale, Partials, PlanPageParams, TemplateParams } from './utils/types';
 import { createFeatureTableMd, getPlans, loadStripeConfig } from '@xilinota/lib/utils/joplinCloud';
 import { stripOffFrontMatter } from './utils/frontMatter';
-import { dirname, basename } from 'path';
+import path, { dirname, basename } from 'path';
 import { readmeFileTitle, replaceGitHubByWebsiteLinks } from './utils/parser';
 import { extractOpenGraphTags, OpenGraphTags } from './utils/openGraph';
 import { readCredentialFileJson } from '@xilinota/lib/utils/credentialFiles';
@@ -31,9 +31,8 @@ const enGbLocale: Locale = {
 	pathPrefix: '',
 };
 
-const glob = require('glob');
-const path = require('path');
-const md5File = require('md5-file');
+import glob from 'glob';
+import md5File from 'md5-file';
 const docDir = `${dirname(dirname(dirname(dirname(__dirname))))}/github.com/xilinjia/xilinota-website/docs`;
 
 if (!pathExistsSync(docDir)) throw new Error(`"docs" directory does not exist: ${docDir}`);
@@ -134,7 +133,7 @@ async function getAssetUrls(): Promise<AssetUrls> {
 	};
 }
 
-function defaultTemplateParams(assetUrls: AssetUrls, locale: Locale = null): TemplateParams {
+function defaultTemplateParams(assetUrls: AssetUrls, locale: Locale|null = null): TemplateParams {
 	if (!locale) locale = enGbLocale;
 
 	return {
@@ -154,7 +153,6 @@ function defaultTemplateParams(assetUrls: AssetUrls, locale: Locale = null): Tem
 			isFrontPage: false,
 		},
 		assetUrls,
-		openGraph: null,
 		locale,
 	};
 }
@@ -182,7 +180,7 @@ function renderPageToHtml(md: string, targetPath: string, templateParams: Templa
 	}
 
 	md = replaceGitHubByWebsiteLinks(md);
-	md = convertLinksToLocale(md, templateParams.locale);
+	if (templateParams.locale) md = convertLinksToLocale(md, templateParams.locale);
 
 	if (templateParams.donateLinksMd) {
 		md = `${templateParams.donateLinksMd}\n\n${md}`;
@@ -206,7 +204,7 @@ function renderFileToHtml(sourcePath: string, targetPath: string, templateParams
 		md = stripOffFrontMatter(md).doc;
 		return renderPageToHtml(md, targetPath, templateParams);
 	} catch (error) {
-		error.message = `Could not render file: ${sourcePath}: ${error.message}`;
+		if (error instanceof Error) error.message = `Could not render file: ${sourcePath}: ${error.message}`;
 		throw error;
 	}
 }
@@ -403,7 +401,7 @@ async function main() {
 			title: 'Joplin Cloud Plans',
 		};
 
-		templateParams.templateHtml = updatePageLanguage(templateParams.templateHtml, locale.lang);
+		if (templateParams.templateHtml) templateParams.templateHtml = updatePageLanguage(templateParams.templateHtml, locale.lang);
 
 		renderPageToHtml('', `${docDir}${pathPrefix}/plans/index.html`, templateParams);
 
@@ -440,7 +438,7 @@ async function main() {
 				title: 'Xilinota Brand Guidelines',
 			};
 
-			templateParams.templateHtml = updatePageLanguage(templateParams.templateHtml, locale.lang);
+			if (templateParams.templateHtml) templateParams.templateHtml = updatePageLanguage(templateParams.templateHtml, locale.lang);
 
 			renderPageToHtml('', `${docDir}${pathPrefix}/brand/index.html`, templateParams);
 		}
@@ -477,7 +475,7 @@ async function main() {
 		locale: Locale;
 	}
 
-	const mdFiles: string[] = glob.sync(`${readmeDir}/**/*.md`).map((f: string) => f.substr(rootDir.length + 1));
+	const mdFiles: string[] = glob.sync(`${readmeDir}/**/*.md`).map((f: string) => f.substring(rootDir.length + 1));
 	const sources: [string, string, SourceInfo][] = [];
 
 	const makeTargetBasename = (input: string, pathPrefix: string): string => {

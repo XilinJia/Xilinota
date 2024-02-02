@@ -5,12 +5,16 @@
 
 import { mkdirp, pathExists, readFile, writeFile } from 'fs-extra';
 import { dirname, extname, basename } from 'path';
-const md5File = require('md5-file');
+import md5File from 'md5-file';
+// can't upgrade execa to version 8.0.1
 const execa = require('execa');
+// import {execa} from 'execa';
 
 // We need this to be transpiled to `const webpack = require('webpack')`.
 // As such, do a namespace import. See https://www.typescriptlang.org/tsconfig#esModuleInterop
-import * as webpack from 'webpack';
+// import * as webpack from 'webpack';
+import webpack from 'webpack';
+// const webpack = require('webpack');
 
 const rootDir = dirname(dirname(dirname(__dirname)));
 const mobileDir = `${rootDir}/packages/app-mobile`;
@@ -98,12 +102,17 @@ class BundledFile {
 
 		console.info(`Minifying bundle: ${this.bundleName}...`);
 
-		await execa('yarn', [
-			'run', 'uglifyjs',
-			'--compress',
-			'-o', this.bundleMinifiedPath,
-			this.bundleOutputPath,
-		]);
+		// try {
+		// const { execa } = await import('execa');
+			await execa('yarn', [
+				'run', 'uglifyjs',
+				'--compress',
+				'-o', this.bundleMinifiedPath,
+				this.bundleOutputPath,
+			]);
+		// } catch (error) {
+		// 	console.error('Error importing "execa":', error);
+		// }
 
 		await writeFile(md5Path, newMd5, 'utf8');
 	}
@@ -112,7 +121,7 @@ class BundledFile {
 		let failed = false;
 
 		if (error) {
-			console.error(`Error: ${error.name}`, error.message, error.stack);
+			console.error(`Error: ${error.name}`, error.message, error.stack, stats);
 			failed = true;
 		} else if (stats?.hasErrors() || stats?.hasWarnings()) {
 			const data = stats.toJson();
@@ -153,11 +162,11 @@ class BundledFile {
 		return new Promise<void>((resolve, reject) => {
 			console.info(`Building bundle: ${this.bundleName}...`);
 
-			compiler.run((error, stats) => {
+			compiler.run((error: Error | null | undefined, stats: any): void => {
 				let failed = this.handleErrors(error, stats);
 
 				// Clean up.
-				compiler.close(async (error) => {
+				compiler.close(async (error: any) => {
 					if (error) {
 						console.error('Error cleaning up:', error);
 						failed = true;
@@ -180,7 +189,7 @@ class BundledFile {
 		};
 
 		console.info('Watching bundle: ', this.bundleName);
-		compiler.watch(watchOptions, async (error, stats) => {
+		compiler.watch(watchOptions, async (error: Error | null | undefined, stats: any): Promise<void> => {
 			const failed = this.handleErrors(error, stats);
 			if (!failed) {
 				await this.uglify();
@@ -210,7 +219,6 @@ const bundledFiles: BundledFile[] = [
 
 export async function buildInjectedJS() {
 	await mkdirp(outputDir);
-
 
 	// Build all in parallel
 	await Promise.all(bundledFiles.map(async file => {

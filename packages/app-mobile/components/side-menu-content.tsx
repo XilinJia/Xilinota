@@ -1,18 +1,21 @@
 /* eslint-disable no-console */
-const React = require('react');
-import { useMemo, useEffect, useCallback, useState } from 'react';
-const { Easing, Animated, TouchableOpacity, Text, StyleSheet, ScrollView, View, Alert, Image } = require('react-native');
-const DialogBox = require('react-native-dialogbox').default;
+import React from 'react';
+import { useMemo, useEffect, useCallback, useState, JSX } from 'react';
+import { Easing, Animated, TouchableOpacity, Text, StyleSheet, ScrollView, View, Alert, Image, GestureResponderEvent } from 'react-native';
 // import { Menu, MenuProvider, MenuOptions, MenuOption, MenuTrigger } from 'react-native-popup-menu';
-const { connect } = require('react-redux');
-const Icon = require('react-native-vector-icons/Ionicons').default;
+import { connect } from 'react-redux';
+
+// can't do: import DialogBox from 'react-native-dialogbox';
+const DialogBox = require('react-native-dialogbox').default;
+// can't do import for react-native-vector-icons/Ionicons
+import Icon from 'react-native-vector-icons/Ionicons';
+
 import Folder from '@xilinota/lib/models/Folder';
 import Synchronizer from '@xilinota/lib/Synchronizer';
 import NavService from '@xilinota/lib/services/NavService';
 import { _ } from '@xilinota/lib/locale';
-const { themeStyle } = require('./global-style.js');
-const shared = require('@xilinota/lib/components/shared/side-menu-shared.js');
-import { FolderEntity, FolderIcon, TagEntity } from '@xilinota/lib/services/database/types';
+import { shared } from '@xilinota/lib/components/shared/side-menu-shared';
+import { FolderEntity, FolderIcon, NoteEntity, TagEntity } from '@xilinota/lib/services/database/types';
 import { AppState } from '../utils/types';
 import Setting from '@xilinota/lib/models/Setting';
 import { reg } from '@xilinota/lib/registry';
@@ -22,18 +25,19 @@ import Note from '@xilinota/lib/models/Note';
 import SearchEngineUtils from '@xilinota/lib/services/searchengine/SearchEngineUtils';
 import Tag from '@xilinota/lib/models/Tag';
 // import SearchEngineUtils from '@xilinota/lib/services/searchengine/SearchEngineUtils';
-const NoteTagsDialog = require('./screens/NoteTagsDialog.js');
+
+import { themeStyle } from './global-style';
+import NoteTagsDialog from './screens/NoteTagsDialog';
 
 // We need this to suppress the useless warning
 // https://github.com/oblador/react-native-vector-icons/issues/1465
-// eslint-disable-next-line no-console
-Icon.loadFont().catch((error: any) => { console.info(error); });
+
+Icon.loadFont().catch((error: Error) => { console.info(error); });
 
 interface Props {
 	syncStarted: boolean;
 	themeId: number;
 	sideMenuVisible: boolean;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	dispatch: Function;
 	collapsedFolderIds: string[];
 	syncReport: any;
@@ -43,9 +47,9 @@ interface Props {
 	isOnMobileData: boolean;
 	notesParentType: string;
 	folders: FolderEntity[];
-	tags: any[];
+	tags: TagEntity[];
 	opacity: number;
-	profileConfig: ProfileConfig;
+	profileConfig: ProfileConfig | null;
 	inboxJopId: string;
 	ftsEnabled: boolean;
 	selectedNoteIds: string[];
@@ -60,13 +64,13 @@ const syncIconRotation = syncIconRotationValue.interpolate({
 
 const folderIconRightMargin = 10;
 
-let syncIconAnimation: any;
+let syncIconAnimation: Animated.CompositeAnimation | null = null;
 
-const SideMenuContentComponent = (props: Props) => {
+const SideMenuContentComponent = (props: Props): JSX.Element => {
 	const alwaysShowFolderIcons = useMemo(() => Folder.shouldShowFolderIcons(props.folders), [props.folders]);
 
 	const styles_ = useMemo(() => {
-		const theme = themeStyle(props.themeId);
+		const theme = themeStyle(props.themeId.toString());
 
 		const styles: any = {
 			menu: {
@@ -118,7 +122,7 @@ const SideMenuContentComponent = (props: Props) => {
 		return StyleSheet.create(styles);
 	}, [props.themeId]);
 
-	const allNotesButton_press = () => {
+	const allNotesButton_press = (): void => {
 		props.dispatch({ type: 'SIDE_MENU_CLOSE' });
 
 		props.dispatch({
@@ -128,7 +132,7 @@ const SideMenuContentComponent = (props: Props) => {
 		});
 	};
 
-	const renderFolderIcon = (theme: any, folderIcon: FolderIcon) => {
+	const renderFolderIcon = (theme: any, folderIcon: FolderIcon): JSX.Element | null => {
 		if (!folderIcon) {
 			if (alwaysShowFolderIcons) {
 				return <Icon name="folder-outline" style={styles_.emptyFolderIcon} />;
@@ -140,7 +144,7 @@ const SideMenuContentComponent = (props: Props) => {
 		if (folderIcon.type === 1) { // FolderIconType.Emoji
 			return <Text style={{ fontSize: theme.fontSize, marginRight: folderIconRightMargin, width: 20 }}>{folderIcon.emoji}</Text>;
 		} else if (folderIcon.type === 2) { // FolderIconType.DataUrl
-			return <Image style={{ width: 20, height: 20, marginRight: folderIconRightMargin, resizeMode: 'contain' }} source={{ uri: folderIcon.dataUrl }}/>;
+			return <Image style={{ width: 20, height: 20, marginRight: folderIconRightMargin, resizeMode: 'contain' }} source={{ uri: folderIcon.dataUrl }} />;
 		} else {
 			throw new Error(`Unsupported folder icon type: ${folderIcon.type}`);
 		}
@@ -150,19 +154,20 @@ const SideMenuContentComponent = (props: Props) => {
 	// 	return count ? <StyledNoteCount className="note-count-label">{count}</StyledNoteCount> : null;
 	// };
 
-	const makeDivider = (key: string) => {
-		const theme = themeStyle(props.themeId);
+	const makeDivider = (key: string): JSX.Element => {
+		const theme = themeStyle(props.themeId.toString());
 		return <View style={{ marginTop: 15, marginBottom: 15, flex: -1, borderBottomWidth: 1, borderBottomColor: theme.dividerColor }} key={key}></View>;
 	};
 
 	const [folderExpanded, setFolderExpanded] = useState(true);
-	const folderButton_press = () => {
+	const folderButton_press = (): void => {
 		setFolderExpanded(!folderExpanded);
-		// console.log('tagButton_press folderButton_press', folderExpanded);
+		console.log('folderButton_press folderButton_press', folderExpanded);
 	};
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	const renderSidebarButton = (key: string, title: string, iconName: string, onPressHandler: Function = null, selected = false) => {
+	const renderSidebarButton = (key: string, title: string, iconName: string,
+		onPressHandler: ((event: GestureResponderEvent) => void) | null = null, selected = false): JSX.Element => {
+
 		let icon = <Icon name={iconName} style={styles_.sidebarIcon} />;
 
 		if (key === 'synchronize_button') {
@@ -185,9 +190,9 @@ const SideMenuContentComponent = (props: Props) => {
 		);
 	};
 
-	const theme = themeStyle(props.themeId);
+	const theme = themeStyle(props.themeId.toString());
 
-	const folder_press = (folder: FolderEntity) => {
+	const folder_press = (folder: FolderEntity): void => {
 		props.dispatch({ type: 'SIDE_MENU_CLOSE' });
 
 		props.dispatch({
@@ -197,19 +202,21 @@ const SideMenuContentComponent = (props: Props) => {
 		});
 	};
 
-	const folder_longPress = async (folderOrAll: FolderEntity | string): Promise<any> => {
-		if (folderOrAll === 'all') return null;
+	const folder_longPress = async (folderOrAll: FolderEntity | string): Promise<void> => {
+		if (folderOrAll === 'all') return;
 
 		const folder = folderOrAll as FolderEntity;
 
-		const generateFolderDeletion = () => {
+		const generateFolderDeletion = (): void => {
 			const folderDeletion = (message: string) => {
 				Alert.alert('', message, [
 					{
 						text: _('OK'),
 						onPress: () => {
-							void PeersFolder.deleteOnPeers(folder.id);
-							void Folder.delete(folder.id);
+							if (folder.id) {
+								void PeersFolder.deleteOnPeers(folder.id);
+								void Folder.delete(folder.id);
+							}
 						},
 					},
 					{
@@ -228,13 +235,13 @@ const SideMenuContentComponent = (props: Props) => {
 			return folderDeletion(_('Delete notebook "%s"?\n\nAll notes and sub-notebooks within this notebook will also be deleted.', folder.title));
 		};
 
-		const generateFolderSend = () => {
+		const generateFolderSend = (): void => {
 			const folderSend = (message: string) => {
 				Alert.alert('', message, [
 					{
 						text: _('OK'),
 						onPress: async () => {
-							await PeersFolder.sendToPeers(folder.id);
+							if (folder.id) await PeersFolder.sendToPeers(folder.id);
 						},
 					},
 					{
@@ -253,7 +260,7 @@ const SideMenuContentComponent = (props: Props) => {
 			return folderSend(_('Send notebook "%s"?\n\nAll notes and sub-notebooks within this notebook will also be sent.', folder.title));
 		};
 
-		const handleEdit = () => {
+		const handleEdit = (): void => {
 			props.dispatch({ type: 'SIDE_MENU_CLOSE' });
 
 			props.dispatch({
@@ -285,15 +292,19 @@ const SideMenuContentComponent = (props: Props) => {
 		// );
 		// // };
 
-		const buttonConfig = [
-			{
-				text: _('Edit'),
-				onPress: () => {
-					handleEdit();
+		const buttonConfig: {
+			text: string;
+			onPress: () => void;
+			style: 'default' | 'cancel' | 'destructive' | undefined;
+		}[] = [
+				{
+					text: _('Edit'),
+					onPress: () => {
+						handleEdit();
+					},
+					style: 'default',
 				},
-				style: 'default',
-			},
-		];
+			];
 		if (!folder.parent_id && PeerSocket.broadcaster) {
 			buttonConfig.push({
 				text: _('Send'),
@@ -308,7 +319,7 @@ const SideMenuContentComponent = (props: Props) => {
 		});
 		buttonConfig.push({
 			text: _('Cancel'),
-			onPress: () => {},
+			onPress: () => { },
 			style: 'cancel',
 		});
 		Alert.alert(
@@ -321,16 +332,17 @@ const SideMenuContentComponent = (props: Props) => {
 		);
 	};
 
-	const folder_togglePress = (folder: FolderEntity) => {
+	const folder_togglePress = (folder: FolderEntity): void => {
 		props.dispatch({
 			type: 'FOLDER_TOGGLE',
 			id: folder.id,
 		});
 	};
 
-	const renderFolderItem = (folder: FolderEntity, selected: boolean, hasChildren: boolean, depth: number) => {
-		const theme = themeStyle(props.themeId);
-		const folderButtonStyle: any = {
+	const renderFolderItem = (folder: FolderEntity, selected: boolean, hasChildren: boolean, depth: number): JSX.Element => {
+
+		const theme = themeStyle(props.themeId.toString());
+		const folderButtonStyle: Record<string, any> = {
 			flex: 1,
 			flexDirection: 'row',
 			height: 36,
@@ -343,19 +355,19 @@ const SideMenuContentComponent = (props: Props) => {
 		folderButtonStyle.paddingRight = theme.marginRight;
 		folderButtonStyle.paddingLeft = depth * 10 + theme.marginLeft;
 
-		const iconWrapperStyle: any = { paddingLeft: 10, paddingRight: 10 };
+		const iconWrapperStyle: Record<string, any> = { paddingLeft: 10, paddingRight: 10 };
 		if (selected) iconWrapperStyle.backgroundColor = theme.selectedColor;
 
-		let iconWrapper = null;
+		// let iconWrapper = null;
 
-		const collapsed = props.collapsedFolderIds.indexOf(folder.id) >= 0;
+		const collapsed = folder.id ? props.collapsedFolderIds.indexOf(folder.id) >= 0 : false;
 		const iconName = collapsed ? 'chevron-down' : 'chevron-up';
 		const iconComp = <Icon name={iconName} style={styles_.folderIcon} />;
 
-		iconWrapper = !hasChildren ? null : (
+		const iconWrapper: JSX.Element = (
 			<TouchableOpacity
 				style={iconWrapperStyle}
-				folderid={folder.id}
+				// folderid={folder.id}
 				onPress={() => {
 					if (hasChildren) folder_togglePress(folder);
 				}}
@@ -367,7 +379,7 @@ const SideMenuContentComponent = (props: Props) => {
 			</TouchableOpacity>
 		);
 
-		const folderIcon = Folder.unserializeIcon(folder.icon);
+		const folderIcon = Folder.unserializeIcon(folder.icon ?? '');
 
 		return (
 			<View key={folder.id} style={{ flex: 1, flexDirection: 'row' }}>
@@ -381,7 +393,7 @@ const SideMenuContentComponent = (props: Props) => {
 					}}
 				>
 					<View style={folderButtonStyle}>
-						{renderFolderIcon(theme, folderIcon)}
+						{folderIcon ? renderFolderIcon(theme, folderIcon) : ''}
 						<Text numberOfLines={1} style={styles_.folderButtonText}>
 							{Folder.displayTitle(folder)}
 						</Text>
@@ -393,12 +405,12 @@ const SideMenuContentComponent = (props: Props) => {
 	};
 
 	const [tagExpanded, setTagExpanded] = useState(true);
-	const tagButton_press = () => {
+	const tagButton_press = (): void => {
 		setTagExpanded(!tagExpanded);
 		// console.log('tagButton_press tagExpanded', tagExpanded);
 	};
 
-	const tagItem_press = (tag: TagEntity) => {
+	const tagItem_press = (tag: TagEntity): void => {
 		props.dispatch({ type: 'SIDE_MENU_CLOSE' });
 
 		props.dispatch({
@@ -408,11 +420,11 @@ const SideMenuContentComponent = (props: Props) => {
 		});
 	};
 
-	const refreshSearch = async (query: string = null) => {
-		let notes = [];
+	const refreshSearch = async (query: string = ''): Promise<NoteEntity[]> => {
+		let notes: NoteEntity[] = [];
 		if (query) {
 			if (props.ftsEnabled) {
-				// eslint-disable-next-line no-console
+
 				// console.log('refreshSearch ftsEnabled');
 				notes = await SearchEngineUtils.notesForQuery(query, true);
 			} else {
@@ -423,7 +435,7 @@ const SideMenuContentComponent = (props: Props) => {
 					if (!t) continue;
 					temp.push(t);
 				}
-				notes = await Note.previews(null, {
+				notes = await Note.previews('', {
 					anywherePattern: `*${temp.join('*')}*`,
 				});
 			}
@@ -432,15 +444,15 @@ const SideMenuContentComponent = (props: Props) => {
 		return notes;
 	};
 
-	const tagItem_longPress = async (tag: TagEntity) => {
+	const tagItem_longPress = async (tag: TagEntity): Promise<void> => {
 
-		const generateTagDeletion = async () => {
+		const generateTagDeletion = async (): Promise<void> => {
 			const tagDeletion = (message: string) => {
 				Alert.alert('', message, [
 					{
 						text: _('OK'),
 						onPress: () => {
-							void Tag.delete(tag.id);
+							if (tag.id) void Tag.delete(tag.id);
 						},
 					},
 					{
@@ -454,7 +466,7 @@ const SideMenuContentComponent = (props: Props) => {
 			return tagDeletion(_('Delete tag "%s"?', tag.title));
 		};
 
-		const goVirtual = async () => {
+		const goVirtual = async (): Promise<void> => {
 			const notes = await refreshSearch(tag.title);
 
 			props.dispatch({
@@ -464,15 +476,19 @@ const SideMenuContentComponent = (props: Props) => {
 			});
 		};
 
-		const buttonConfig = [
-			{
-				text: _('Virtual'),
-				onPress: async () => {
-					await goVirtual();
+		const buttonConfig: {
+			text: string;
+			onPress: () => void;
+			style: 'default' | 'cancel' | 'destructive' | undefined;
+		}[] = [
+				{
+					text: _('Virtual'),
+					onPress: async () => {
+						await goVirtual();
+					},
+					style: 'default',
 				},
-				style: 'default',
-			},
-		];
+			];
 		buttonConfig.push({
 			text: _('Delete'),
 			onPress: generateTagDeletion,
@@ -480,7 +496,7 @@ const SideMenuContentComponent = (props: Props) => {
 		});
 		buttonConfig.push({
 			text: _('Cancel'),
-			onPress: async () => {},
+			onPress: async () => { },
 			style: 'cancel',
 		});
 		Alert.alert(
@@ -493,15 +509,15 @@ const SideMenuContentComponent = (props: Props) => {
 		);
 	};
 
-	const renderTag = (tag: any) => {
-		const tagButtonStyle: any = {
+	const renderTag = (tag: TagEntity): JSX.Element => {
+		const tagButtonStyle: Record<string, any> = {
 			flexDirection: 'row',
 			height: 20,
 			alignItems: 'center',
 			paddingRight: theme.marginRight,
 			paddingLeft: 5,
 		};
-		const buttonTextStyle: any = {
+		const buttonTextStyle: Record<string, any> = {
 			color: theme.color,
 			fontSize: theme.fontSize,
 		};
@@ -512,7 +528,7 @@ const SideMenuContentComponent = (props: Props) => {
 					onPress={() => {
 						tagItem_press(tag);
 					}}
-					onLongPress={ async () => await tagItem_longPress(tag) }
+					onLongPress={async () => await tagItem_longPress(tag)}
 				>
 					<View style={tagButtonStyle}>
 						<Text style={buttonTextStyle}>
@@ -525,8 +541,9 @@ const SideMenuContentComponent = (props: Props) => {
 		);
 	};
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	const folderTagHeader = (key: string, title: string, iconName: string, onPressHandler: Function = null) => {
+	const folderTagHeader = (key: string, title: string, iconName: string,
+		onPressHandler: ((event: GestureResponderEvent) => void) | null = null): JSX.Element => {
+
 		const buttonText = {
 			color: theme.color,
 			paddingLeft: 10,
@@ -551,7 +568,7 @@ const SideMenuContentComponent = (props: Props) => {
 	};
 
 	const folderHeader = folderTagHeader('folder_header', 'Notebooks', 'folder', folderButton_press);
-	const newFolderButton_press = () => {
+	const newFolderButton_press = (): void => {
 		props.dispatch({ type: 'SIDE_MENU_CLOSE' });
 
 		props.dispatch({
@@ -561,7 +578,7 @@ const SideMenuContentComponent = (props: Props) => {
 		});
 	};
 
-	const folderHeaderComb = () => {
+	const folderHeaderComb = (): JSX.Element => {
 		return (
 			<View style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between' }}>
 				{folderHeader}
@@ -570,24 +587,24 @@ const SideMenuContentComponent = (props: Props) => {
 		);
 	};
 
-	let folderItems = [];
+	let folderItems: JSX.Element[] = [];
 	if (props.folders.length) {
-		const result = shared.renderFolders(props, renderFolderItem, false);
+		const result = shared.renderFolders(props, renderFolderItem);
 		folderItems = result.items;
 	}
 
 	const [noteTagDialogShown, setNoteTagDialogShown] = useState(false);
-	const noteTagDialog_closeRequested = () => {
+	const noteTagDialog_closeRequested = (): void => {
 		setNoteTagDialogShown(false);
 	};
 	const noteTagDialog = !noteTagDialogShown ? null : <NoteTagsDialog onCloseRequested={noteTagDialog_closeRequested} />;
 
-	const newTagButton_press = () => {
+	const newTagButton_press = (): void => {
 		props.selectedNoteIds = [];
 		setNoteTagDialogShown(true);
 	};
 	const tagHeader = folderTagHeader('tag_button', _('Tags'), 'pricetag', tagButton_press);
-	const tagHeaderComb = () => {
+	const tagHeaderComb = (): JSX.Element => {
 		return (
 			<View style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between' }}>
 				{tagHeader}
@@ -596,14 +613,14 @@ const SideMenuContentComponent = (props: Props) => {
 		);
 	};
 
-	let tagItems: any[] = [];
-	reg.logger().info('SideMenuContentComponent tagExpanded', tagExpanded);
+	let tagItems: JSX.Element[] = [];
+	// reg.logger().info('SideMenuContentComponent tagExpanded', tagExpanded);
 	if (props.tags.length) {
 		const result = shared.renderTags(props, renderTag);
 		tagItems = result.items;
 	}
 
-	const tagItemsView = () => {
+	const tagItemsView = (): JSX.Element => {
 		return (
 			<ScrollView contentContainerStyle={{ flexDirection: 'row', flexWrap: 'wrap' }}>
 				{tagItems.map((item, index) => (
@@ -622,6 +639,7 @@ const SideMenuContentComponent = (props: Props) => {
 					toValue: 1,
 					duration: 3000,
 					easing: Easing.linear,
+					useNativeDriver: false,
 				}),
 			);
 
@@ -632,7 +650,7 @@ const SideMenuContentComponent = (props: Props) => {
 		}
 	}, [props.syncStarted]);
 
-	const performSync = useCallback(async () => {
+	const performSync = useCallback(async (): Promise<"cancel" | "sync" | "init" | "auth" | "error"> => {
 		const action = props.syncStarted ? 'cancel' : 'start';
 
 		if (!Setting.value('sync.target')) {
@@ -668,10 +686,11 @@ const SideMenuContentComponent = (props: Props) => {
 		} catch (error) {
 			reg.logger().error('Could not initialise synchroniser: ');
 			reg.logger().error(error);
-			error.message = `Could not initialise synchroniser: ${error.message}`;
+			const err = error as Error;
+			err.message = `Could not initialise synchroniser: ${err.message}`;
 			props.dispatch({
 				type: 'SYNC_REPORT_UPDATE',
-				report: { errors: [error] },
+				report: { errors: [err] },
 			});
 			return 'error';
 		}
@@ -685,12 +704,12 @@ const SideMenuContentComponent = (props: Props) => {
 		}
 	}, [props.syncStarted, props.dispatch]);
 
-	const synchronize_press = useCallback(async () => {
+	const synchronize_press = useCallback(async (): Promise<void> => {
 		const actionDone = await performSync();
 		if (actionDone === 'auth') props.dispatch({ type: 'SIDE_MENU_CLOSE' });
 	}, [performSync, props.dispatch]);
 
-	const renderSyncButton = (items: any[]) => {
+	const renderSyncButton = (items: JSX.Element[]): void => {
 		const lines = Synchronizer.reportToLines(props.syncReport);
 		const syncReportText = lines.join('\n');
 
@@ -722,13 +741,13 @@ const SideMenuContentComponent = (props: Props) => {
 		if (props.syncOnlyOverWifi && props.isOnMobileData) {
 			items.push(
 				<Text key="net_info" style={styles_.syncStatus}>
-					{ _('Mobile data - auto-sync disabled') }
+					{_('Mobile data - auto-sync disabled')}
 				</Text>,
 			);
 		}
 	};
 
-	const switchProfileButton_press = () => {
+	const switchProfileButton_press = (): void => {
 		props.dispatch({ type: 'SIDE_MENU_CLOSE' });
 
 		props.dispatch({
@@ -737,13 +756,13 @@ const SideMenuContentComponent = (props: Props) => {
 		});
 	};
 
-	const configButton_press = () => {
+	const configButton_press = (): void => {
 		props.dispatch({ type: 'SIDE_MENU_CLOSE' });
 		void NavService.go('Config');
 	};
 
-	const renderBottomPanel = () => {
-		const theme = themeStyle(props.themeId);
+	const renderBottomPanel = (): JSX.Element => {
+		const theme = themeStyle(props.themeId.toString());
 
 		const items = [];
 
@@ -807,7 +826,7 @@ const SideMenuContentComponent = (props: Props) => {
 			</View>
 			<DialogBox
 				ref={(_dialogbox: any) => {
-					// dialogbox = dialogbox;
+					// dialogbox = _dialogbox;
 				}}
 			/>
 			{noteTagDialog}

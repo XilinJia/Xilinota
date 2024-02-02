@@ -1,12 +1,12 @@
 import shim from '@xilinota/lib/shim';
-const { dirname } = require('@xilinota/lib/path-utils');
+import { dirname } from '@xilinota/lib/path-utils';
 import Setting from '@xilinota/lib/models/Setting';
 const pluginAssets = require('./pluginAssets/index');
 import KvStore from '@xilinota/lib/services/KvStore';
 
 export default class PluginAssetsLoader {
 
-	private static instance_: PluginAssetsLoader = null;
+	private static instance_: PluginAssetsLoader;
 	private logger_: any = null;
 
 	public static instance() {
@@ -39,10 +39,10 @@ export default class PluginAssetsLoader {
 			for (const name in pluginAssets.files) {
 				const dataBase64 = pluginAssets.files[name].data;
 				const destPath = `${destDir}/${name}`;
+				this.logger().info(`PluginAssetsLoader: Copying: ${name} => ${destPath}`);
 				await shim.fsDriver().mkdir(dirname(destPath));
 				await shim.fsDriver().unlink(destPath);
 
-				this.logger().info(`PluginAssetsLoader: Copying: ${name} => ${destPath}`);
 				await shim.fsDriver().writeFile(destPath, dataBase64);
 			}
 		} catch (error) {

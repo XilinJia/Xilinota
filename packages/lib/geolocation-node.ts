@@ -58,9 +58,8 @@ const geoipServices: Record<string, GeoipService> = {
 };
 
 export default class {
-	public static async currentPosition(options: CurrentPositionOptions = null) {
-		if (!options) options = {};
-
+	public static async currentPosition(_options: CurrentPositionOptions = {}) : Promise<CurrentPositionResponse>{
+		// TODO: _options not used?
 		for (const [serviceName, handler] of Object.entries(geoipServices)) {
 			try {
 				const response = await handler();

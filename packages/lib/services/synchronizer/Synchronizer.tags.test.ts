@@ -29,35 +29,35 @@ describe('Synchronizer.tags', () => {
 		await switchClient(2);
 
 		await synchronizerStart();
-		if (withEncryption) {
-			const masterKey_2 = await MasterKey.load(masterKey.id);
-			await encryptionService().loadMasterKey(masterKey_2, '123456', true);
-			const t = await Tag.load(tag.id);
+		if (masterKey && withEncryption) {
+			const masterKey_2 = await MasterKey.load(masterKey.id??'');
+			if (masterKey_2) await encryptionService().loadMasterKey(masterKey_2, '123456', true);
+			const t = await Tag.load(tag.id??'');
 			await Tag.decrypt(t);
 		}
-		const remoteTag = await Tag.loadByTitle(tag.title);
+		const remoteTag = (await Tag.loadByTitle(tag.title!))!;
 		expect(!!remoteTag).toBe(true);
 		expect(remoteTag.id).toBe(tag.id);
-		await Tag.addNote(remoteTag.id, n1.id);
-		await Tag.addNote(remoteTag.id, n2.id);
-		let noteIds = await Tag.noteIds(tag.id);
+		await Tag.addNote(remoteTag.id!, n1.id??'');
+		await Tag.addNote(remoteTag.id!, n2.id??'');
+		let noteIds = await Tag.noteIds(tag.id??'');
 		expect(noteIds.length).toBe(2);
 		await synchronizerStart();
 
 		await switchClient(1);
 
 		await synchronizerStart();
-		let remoteNoteIds = await Tag.noteIds(tag.id);
+		let remoteNoteIds = await Tag.noteIds(tag.id??'');
 		expect(remoteNoteIds.length).toBe(2);
-		await Tag.removeNote(tag.id, n1.id);
-		remoteNoteIds = await Tag.noteIds(tag.id);
+		await Tag.removeNote(tag.id??'', n1.id??'');
+		remoteNoteIds = await Tag.noteIds(tag.id??'');
 		expect(remoteNoteIds.length).toBe(1);
 		await synchronizerStart();
 
 		await switchClient(2);
 
 		await synchronizerStart();
-		noteIds = await Tag.noteIds(tag.id);
+		noteIds = await Tag.noteIds(tag.id??'');
 		expect(noteIds.length).toBe(1);
 		expect(remoteNoteIds[0]).toBe(noteIds[0]);
 	}

@@ -1,5 +1,8 @@
 import * as fs from 'fs-extra';
-const Entities = require('html-entities').AllHtmlEntities;
+// const Entities = require('html-entities').AllHtmlEntities;
+// const encode = require('html-entities').encode;
+const encode = require('html-entities').encode;
+
 const htmlparser2 = require('@xilinota/fork-htmlparser2');
 const Datauri = require('datauri/sync');
 const cssParse = require('css/lib/parse');
@@ -28,7 +31,7 @@ const selfClosingElements = [
 ];
 
 const htmlentities = (s: string): string => {
-	const output = (new Entities()).encode(s);
+	const output = encode(s);
 	return output.replace(/&Tab;/ig, '\t');
 };
 
@@ -91,7 +94,7 @@ const processCssContent = (cssBaseDir: string, content: string): string => {
 
 const processLinkTag = (baseDir: string, _name: string, attrs: any): string => {
 	const href = attrValue(attrs, 'href');
-	if (!href) return null;
+	if (!href) return '';
 
 	const filePath = `${baseDir}/${href}`;
 
@@ -101,7 +104,7 @@ const processLinkTag = (baseDir: string, _name: string, attrs: any): string => {
 
 const processScriptTag = (baseDir: string, _name: string, attrs: any): string => {
 	const src = attrValue(attrs, 'src');
-	if (!src) return null;
+	if (!src) return '';
 
 	const scriptFilePath = `${baseDir}/${src}`;
 	let content = fs.readFileSync(scriptFilePath, 'utf8');
@@ -127,10 +130,10 @@ const processScriptTag = (baseDir: string, _name: string, attrs: any): string =>
 
 const processImgTag = (baseDir: string, _name: string, attrs: any): string => {
 	const src = attrValue(attrs, 'src');
-	if (!src) return null;
+	if (!src) return '';
 
 	const filePath = `${baseDir}/${src}`;
-	if (!fs.existsSync(filePath)) return null;
+	if (!fs.existsSync(filePath)) return '';
 
 	const modAttrs = { ...attrs };
 	delete modAttrs.src;
@@ -139,10 +142,10 @@ const processImgTag = (baseDir: string, _name: string, attrs: any): string => {
 
 const processAnchorTag = (baseDir: string, _name: string, attrs: any): string => {
 	const href = attrValue(attrs, 'href');
-	if (!href) return null;
+	if (!href) return '';
 
 	const filePath = `${baseDir}/${href}`;
-	if (!fs.existsSync(filePath)) return null;
+	if (!fs.existsSync(filePath)) return '';
 
 	const modAttrs = { ...attrs };
 	modAttrs.href = dataUriEncode(filePath);

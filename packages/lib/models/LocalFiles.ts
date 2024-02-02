@@ -1,4 +1,4 @@
-import path = require('path');
+import path from 'path';
 import BaseModel from '../BaseModel';
 import { FolderEntity, NoteEntity, ResourceEntity } from '../services/database/types';
 import BaseItem, { unwantedCharacters } from './BaseItem';
@@ -7,7 +7,7 @@ import Setting from './Setting';
 import { SaveOptions } from './utils/types';
 import time from '../time';
 import { FileApi } from '../file-api';
-const { FileApiDriverLocal } = require('../file-api-driver-local');
+import FileApiDriverLocal from '../file-api-driver-local';
 
 export const id_folder_map = new Map<string, FolderEntity>();
 setInterval(() => {
@@ -18,17 +18,17 @@ export default class LocalFile extends BaseItem {
 
 	protected static fileApi: FileApi;
 
-	public static populateFolderFunc: ()=> Promise<void> = this.populateFolder;
-	public static syncFromSystemFunc: ()=> Promise<void> = this.syncFromSystem;
-	public static prepResourcesDirFunc: ()=> Promise<void> = null;
+	public static populateFolderFunc: () => Promise<void> = this.populateFolder;
+	public static syncFromSystemFunc: () => Promise<void> = this.syncFromSystem;
+	public static prepResourcesDirFunc: () => Promise<void>;
 
-	private static setupFileApi(baseDir: string, driver: any) {
+	private static setupFileApi(baseDir: string, driver: any): void {
 		this.fileApi = new FileApi(baseDir, driver);
 		this.fileApi.setLogger(this.logger());
 		this.fileApi.setSyncTargetId(111);	// TODO: how to set it?
 	}
 
-	public static async init(_profileName: string, doWait = false) {
+	public static async init(_profileName: string, doWait = false): Promise<void> {
 		const driver = new FileApiDriverLocal();
 		const homeDir = await driver.homeDir();
 		const dName = Setting.value('env') === 'dev' ? 'XilinotasDev' : 'Xilinotas';
@@ -51,10 +51,6 @@ export default class LocalFile extends BaseItem {
 		stat = await driver.stat(filePath);
 		const doPopulate = !stat;
 
-		const resourceDirName = '.resources';
-		Setting.setConstant('resourceDirName', resourceDirName);
-		const resourceDir = `${filePath}/${resourceDirName}`;
-		Setting.setConstant('resourceDir', resourceDir);
 		if (this.prepResourcesDirFunc) await this.prepResourcesDirFunc();
 
 		if (doPopulate) {
@@ -82,7 +78,6 @@ export default class LocalFile extends BaseItem {
 		}
 	}
 
-	// eslint-disable-next-line @typescript-eslint/type-annotation-spacing
 	public static async sysPathFromRoot(local: any, createDir: ((path_: string) => Promise<void>) | null = null): Promise<string> {
 		if (!local) return '';
 
@@ -121,7 +116,7 @@ export default class LocalFile extends BaseItem {
 	}
 
 	// XJ added
-	public static fileNameFS(itemOrId: any, extension: string = null): string {
+	public static fileNameFS(itemOrId: any, extension: string | null = null): string {
 		if (extension === null) extension = 'md';
 
 		if (typeof itemOrId === 'string') {
@@ -143,7 +138,7 @@ export default class LocalFile extends BaseItem {
 		}
 	}
 
-	public static async populateFolder() {
+	public static async populateFolder(): Promise<void> {
 		const folders = await BaseItem.loadItemsByType(BaseModel.TYPE_FOLDER);
 		this.logger().info('number of folders to create', folders.length);
 		for (const f of folders) {
@@ -159,7 +154,7 @@ export default class LocalFile extends BaseItem {
 		await this.build_id_folder_map();
 	}
 
-	public static async saveFolder(f: FolderEntity) {
+	public static async saveFolder(f: FolderEntity): Promise<void> {
 		// XJ added
 		const createDir = async (path_: string) => {
 			const pStat = await this.fileApi.stat(path_);
@@ -186,7 +181,7 @@ export default class LocalFile extends BaseItem {
 		await this.build_id_folder_map();
 	}
 
-	public static async saveNote(note: NoteEntity) {
+	public static async saveNote(note: NoteEntity): Promise<void> {
 		const createDir = async (path_: string) => {
 			const pStat = await this.fileApi.stat(path_);
 			if (!pStat) await this.fileApi.mkdir(path_);
@@ -219,9 +214,7 @@ export default class LocalFile extends BaseItem {
 					continue;
 				}
 				const resourcefilename = Resource.filename(resource);
-				// eslint-disable-next-line prefer-const
 				let resFullpPathFS = `${resPath}${path.sep}${resourcefilename}`;
-				// eslint-disable-next-line prefer-const
 				let resRelPathFS = `.resources${path.sep}${resourcefilename}`;
 				// this.logger().info('resConfigPath resRelPathFS', resConfigPath, resFullpPathFS);
 				stat = await this.fileApi.stat(resFullpPathFS);
@@ -246,7 +239,7 @@ export default class LocalFile extends BaseItem {
 		await this.fileApi.put(path_, content);
 	}
 
-	public static async moveNote(noteId: string, folderId: string) {
+	public static async moveNote(noteId: string, folderId: string): Promise<void> {
 		const note = await this.loadItemById(noteId);
 		const nPath = await this.sysPathFromRoot(note);
 		const f = id_folder_map.get(folderId);
@@ -285,7 +278,7 @@ export default class LocalFile extends BaseItem {
 		await this.fileApi.move(nPath, fPath);
 	}
 
-	public static async moveFolder(folderId: string, targetFolderId: string) {
+	public static async moveFolder(folderId: string, targetFolderId: string): Promise<void> {
 		const f = id_folder_map.get(folderId);
 		const fPath = await this.sysPathFromRoot(f);
 		const f1 = id_folder_map.get(targetFolderId);
@@ -294,28 +287,28 @@ export default class LocalFile extends BaseItem {
 		await this.build_id_folder_map();
 	}
 
-	public static async renameFolder(folderId: string, newName: string) {
+	public static async renameFolder(folderId: string, newName: string): Promise<void> {
 		const f = id_folder_map.get(folderId);
-		if (!f) return;
+		if (!f || !f.title) return;
 		const fPath = await this.sysPathFromRoot(f);
 		const f1Path = fPath.replace(f.title, newName);
 		await this.fileApi.move(fPath, f1Path);
 		await this.build_id_folder_map();
 	}
 
-	public static async deleteFolder(folder: FolderEntity) {
+	public static async deleteFolder(folder: FolderEntity): Promise<void> {
 		const path_ = await this.sysPathFromRoot(folder);
 		this.logger().info('deleting folder:', path_);
 		const stat = await this.fileApi.stat(path_);
 		if (stat) await this.fileApi.remove(path_);
 	}
 
-	public static async deleteNoteFile(note: NoteEntity) {
+	public static async deleteNoteFile(note: NoteEntity): Promise<void> {
 		const path_ = await this.sysPathFromRoot(note);
 		await this.fileApi.delete(path_);
 	}
 
-	public static async deleteNote(note: NoteEntity) {
+	public static async deleteNote(note: NoteEntity): Promise<void> {
 		const path_ = await this.sysPathFromRoot(note);
 
 		const deleteResourcesInNote = async () => {
@@ -358,7 +351,7 @@ export default class LocalFile extends BaseItem {
 		}
 	}
 
-	private static async doDB_FS_Diffs() {
+	private static async doDB_FS_Diffs(): Promise<void> {
 		const quitTime = Setting.value('shutdownTime');
 		this.logger().info('doDB_FS_Diffs: quitTime', quitTime);
 
@@ -392,9 +385,9 @@ export default class LocalFile extends BaseItem {
 			return false;
 		};
 		const dirSet = Array.from(dirSet_).filter(path => !isParentDirectory(path, dirSet_));
-		this.logger().debug('doDB_FS_Diffs: FS folders:', dirSet);
+		this.logger().info('doDB_FS_Diffs: FS folders:', dirSet);
 
-		this.logger().debug('doDB_FS_Diffs: FS files:', fileSet);
+		this.logger().info('doDB_FS_Diffs: FS files:', fileSet);
 
 		const dbNotes: NoteEntity[] = await Note.notesWOBody();
 		const notePaths: Set<string> = new Set();
@@ -409,7 +402,7 @@ export default class LocalFile extends BaseItem {
 			notePaths.add(p1);
 			path_note_map.set(p1, note);
 		}
-		this.logger().debug('doDB_FS_Diffs: DB note path list:', notePaths);
+		this.logger().info('doDB_FS_Diffs: DB note path list:', notePaths);
 
 		if (fileSet.size === 0 && notePaths.size > 0) {
 			await this.populateFolder();
@@ -420,21 +413,21 @@ export default class LocalFile extends BaseItem {
 		for (const it of fileSet) {
 			diffDF.delete(it);
 		}
-		this.logger().debug('doDB_FS_Diffs: DB notes not in FS:', diffDF);
+		this.logger().info('doDB_FS_Diffs: DB notes not in FS:', diffDF);
 
 		const diffFD = new Set(fileSet);	// notes in FS but not in DB
 		for (const it of notePaths) {
 			diffFD.delete(it);
 		}
-		this.logger().debug('doDB_FS_Diffs: FS notes not in DB:', diffFD);
+		this.logger().info('doDB_FS_Diffs: FS notes not in DB:', diffFD);
 
 		const commonLP = new Set<string>();
 		for (const it of notePaths) {
 			if (fileSet.has(it)) commonLP.add(it);
 		}
-		this.logger().debug('doDB_FS_Diffs: notes in both DB and FS:', commonLP);
+		this.logger().info('doDB_FS_Diffs: notes in both DB and FS:', commonLP);
 
-		const save_to_DB_as_note = async (content: any, options: SaveOptions = null) => {
+		const save_to_DB_as_note = async (content: any, options: SaveOptions | undefined = undefined) => {
 			let note: NoteEntity = await BaseItem.unserialize(content, { type_: BaseModel.TYPE_NOTE });
 			note = Note.filter(note);
 			if (!note.user_updated_time) note.user_updated_time = note.updated_time;
@@ -455,7 +448,7 @@ export default class LocalFile extends BaseItem {
 				const statFS = await this.fileApi.stat(p);
 				if (noteDB.updated_time < quitTime && statFS.updated_time < quitTime) continue;
 
-				this.logger().debug('do_commons:', p, 'DB:', noteDB.updated_time - quitTime, 'FS:', statFS.updated_time - quitTime, 'FS-DB:', statFS.updated_time - noteDB.updated_time);
+				this.logger().info('do_commons:', p, 'DB:', noteDB.updated_time - quitTime, 'FS:', statFS.updated_time - quitTime, 'FS-DB:', statFS.updated_time - noteDB.updated_time);
 				const content = await this.fileApi.get(p);
 				await save_to_DB_as_note(content, { isNew: false, autoTimestamp: false });
 			}
@@ -474,7 +467,7 @@ export default class LocalFile extends BaseItem {
 				};
 				this.logger().info('addFolders adding in DB', path.basename(title));
 				const savedFolder: FolderEntity = await Folder.save(folder);
-				return savedFolder.id;
+				return savedFolder.id ?? '';
 			};
 
 			const addFolders = async () => {
@@ -482,7 +475,7 @@ export default class LocalFile extends BaseItem {
 					const dList = dp.split(path.sep);
 					const len = dList.length;
 					let parent_id = '';
-					let parent_path: string = null;
+					let parent_path: string = '';
 					for (let i = 0; i < len; i++) {
 						const d = dList[i];
 						const p_ = !parent_path ? d : `${parent_path}${path.sep}${d}`;
@@ -525,7 +518,7 @@ export default class LocalFile extends BaseItem {
 						if (frontMatter && frontMatter.id) {
 							const note: NoteEntity = await Note.load(frontMatter.id);
 							if (note) {
-								idsExist.push(note.id);
+								if (note.id) idsExist.push(note.id);
 								this.logger().error('do_FS_extras: note already exists', p);
 								continue;
 							}
@@ -540,7 +533,7 @@ export default class LocalFile extends BaseItem {
 							user_created_time: stat.updated_time,
 							markup_language: 1,
 						};
-						this.logger().debug('do_FS_extras: saving note', title);
+						this.logger().info('do_FS_extras: saving note', title);
 						await Note.save(note);
 					}
 				}
@@ -551,8 +544,9 @@ export default class LocalFile extends BaseItem {
 			// for notes in DB but not in FS
 			for (const p of diffDF) {
 				const note = path_note_map.get(p);
+				if (!note || !note.id) continue;
 				if (idsExist.includes(note.id)) {
-					this.logger().error('do_DB_extras: note exists in other folder', p);
+					this.logger().warn('do_DB_extras: note exists in other folder, ignored', p);
 					continue;
 				}
 				this.logger().info('do_DB_extras: deleting note', note.title);
@@ -569,7 +563,7 @@ export default class LocalFile extends BaseItem {
 		await this.build_id_folder_map();
 	}
 
-	public static async syncFromSystem() {
+	public static async syncFromSystem(): Promise<void> {
 		// return new Promise<void>((resolve, _reject) => {
 		// 	setTimeout(async () => {
 		// 		// defer the task

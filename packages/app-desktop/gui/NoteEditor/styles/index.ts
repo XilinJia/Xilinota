@@ -1,6 +1,6 @@
 import { NoteEditorProps } from '../utils/types';
 
-const { buildStyle } = require('@xilinota/lib/theme');
+import { buildStyle } from '@xilinota/lib/theme';
 
 export default function styles(props: NoteEditorProps) {
 	return buildStyle(['NoteEditor'], props.themeId, (theme: any) => {

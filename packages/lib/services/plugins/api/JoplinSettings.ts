@@ -80,7 +80,7 @@ export type ChangeHandler = (event: ChangeEvent)=> void;
  * [View the demo plugin](https://github.com/laurent22/Joplin/tree/dev/packages/app-cli/tests/support/plugins/settings)
  */
 export default class JoplinSettings {
-	private plugin_: Plugin = null;
+	private plugin_: Plugin;
 
 	public constructor(plugin: Plugin) {
 		this.plugin_ = plugin;
@@ -116,7 +116,7 @@ export default class JoplinSettings {
 
 			if ('subType' in setting) internalSettingItem.subType = setting.subType;
 			if ('isEnum' in setting) internalSettingItem.isEnum = setting.isEnum;
-			if ('section' in setting) internalSettingItem.section = this.namespacedKey(setting.section);
+			if ('section' in setting) internalSettingItem.section = this.namespacedKey(setting.section??'');
 			if ('options' in setting) internalSettingItem.options = () => setting.options;
 			if ('appTypes' in setting) internalSettingItem.appTypes = setting.appTypes;
 			if ('secure' in setting) internalSettingItem.secure = setting.secure;
@@ -188,7 +188,7 @@ export default class JoplinSettings {
 		eventManager.on('settingsChange', (event: ChangeEvent) => {
 			const keys = event.keys
 				.filter(k => k.indexOf(this.keyPrefix) === 0)
-				.map(k => k.substr(this.keyPrefix.length));
+				.map(k => k.substring(this.keyPrefix.length));
 			if (!keys.length) return;
 			handler({ keys });
 		});

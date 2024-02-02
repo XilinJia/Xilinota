@@ -7,7 +7,7 @@ import { AppState } from '../../app.reducer';
 import libStateToWhenClauseContext, { WhenClauseContextOptions } from '@xilinota/lib/services/commands/stateToWhenClauseContext';
 import layoutItemProp from '../../gui/ResizableLayout/utils/layoutItemProp';
 
-export default function stateToWhenClauseContext(state: AppState, options: WhenClauseContextOptions = null) {
+export default function stateToWhenClauseContext(state: AppState, options: WhenClauseContextOptions = {}) {
 	return {
 		...libStateToWhenClauseContext(state, options),
 

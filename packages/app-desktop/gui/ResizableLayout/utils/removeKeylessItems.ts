@@ -1,4 +1,4 @@
-import produce from 'immer';
+import { produce } from 'immer';
 import iterateItems from './iterateItems';
 import { LayoutItem } from './types';
 import validateLayout from './validateLayout';
@@ -12,8 +12,8 @@ export default function(layout: LayoutItem): LayoutItem {
 	const itemsToRemove: ItemToRemove[] = [];
 
 	const output = produce(layout, (layoutDraft: LayoutItem) => {
-		iterateItems(layoutDraft, (itemIndex: number, item: LayoutItem, parent: LayoutItem) => {
-			if (!item.key) itemsToRemove.push({ parent, index: itemIndex });
+		iterateItems(layoutDraft, (itemIndex: number, item: LayoutItem, parent: LayoutItem|null) => {
+			if (parent && !item.key) itemsToRemove.push({ parent, index: itemIndex });
 			return true;
 		});
 
@@ -22,7 +22,7 @@ export default function(layout: LayoutItem): LayoutItem {
 		});
 
 		for (const item of itemsToRemove) {
-			item.parent.children.splice(item.index, 1);
+			if (item.parent.children) item.parent.children.splice(item.index, 1);
 		}
 	});
 

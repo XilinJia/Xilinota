@@ -2,8 +2,8 @@ import * as React from 'react';
 import Button from '../../gui/Button/Button';
 import { _ } from '@xilinota/lib/locale';
 import { ButtonSpec } from '@xilinota/lib/services/plugins/api/types';
-const styled = require('styled-components').default;
-const { space } = require('styled-system');
+import styled from 'styled-components';
+import { space } from 'styled-system';
 
 interface Props {
 	buttons: ButtonSpec[];
@@ -38,8 +38,10 @@ export default function UserWebviewDialogButtonBar(props: Props) {
 		const output = [];
 		for (let i = 0; i < props.buttons.length; i++) {
 			const b = props.buttons[i];
-			const marginRight = i !== props.buttons.length - 1 ? '6px' : '0px';
-			output.push(<StyledButton key={b.id} onClick={b.onClick} title={buttonTitle(b)} mr={marginRight}/>);
+			// const marginRight = i !== props.buttons.length - 1 ? '6px' : '0px';
+			// mr not exist
+			// output.push(<StyledButton key={b.id} onClick={b.onClick} title={buttonTitle(b)} mr={marginRight}/>);
+			output.push(<StyledButton key={b.id} onClick={b.onClick} title={buttonTitle(b)} />);
 		}
 		return output;
 	}

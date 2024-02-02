@@ -1,5 +1,5 @@
 import { LayoutItem, Size } from './types';
-import produce from 'immer';
+import { produce } from 'immer';
 import iterateItems from './iterateItems';
 import validateLayout from './validateLayout';
 
@@ -16,7 +16,7 @@ export function saveLayout(layout: LayoutItem): any {
 	return produce(layout, (draft: any) => {
 		delete draft.width;
 		delete draft.height;
-		iterateItems(draft, (_itemIndex: number, item: LayoutItem, _parent: LayoutItem) => {
+		iterateItems(draft, (_itemIndex: number, item: LayoutItem, _parent: LayoutItem|null) => {
 			for (const k of Object.keys(item)) {
 				if (!propertyWhiteList.includes(k)) delete (item as any)[k];
 			}
@@ -25,8 +25,17 @@ export function saveLayout(layout: LayoutItem): any {
 	});
 }
 
-export function loadLayout(layout: any, defaultLayout: LayoutItem, rootSize: Size): LayoutItem {
-	let output: LayoutItem = null;
+const defaultLayout_: LayoutItem = {
+	key: 'root',
+	children: [
+		{ key: 'sideBar', width: 250 },
+		{ key: 'noteList', width: 250 },
+		{ key: 'editor' },
+	],
+};
+
+export function loadLayout(layout: any, rootSize: Size, defaultLayout: LayoutItem = defaultLayout_): LayoutItem {
+	let output: LayoutItem;
 
 	if (layout) {
 		output = { ...layout };

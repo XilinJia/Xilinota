@@ -1,6 +1,6 @@
 import { Dispatch } from 'redux';
 
-const { LogBox, NativeEventEmitter, NativeModules, Platform } = require('react-native');
+import { LogBox, NativeEventEmitter, NativeModules, Platform } from 'react-native';
 LogBox.ignoreLogs(['new NativeEventEmitter']); // Ignore log notification by message
 
 interface NotificationData {

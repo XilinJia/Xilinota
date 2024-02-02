@@ -115,17 +115,17 @@ function ShareFolderDialog(props: Props) {
 		'can_read_and_write': _('Can view and edit'),
 	};
 
-	const [folder, setFolder] = useState<FolderEntity>(null);
+	const [folder, setFolder] = useState<FolderEntity>();
 	const [recipientEmail, setRecipientEmail] = useState<string>('');
 	const [recipientPermissions, setRecipientPermissions] = useState<string>('can_read_and_write');
-	const [latestError, setLatestError] = useState<Error>(null);
-	const [share, setShare] = useState<StateShare>(null);
+	const [latestError, setLatestError] = useState<Error>();
+	const [share, setShare] = useState<StateShare>();
 	const [shareUsers, setShareUsers] = useState<StateShareUser[]>([]);
 	const [shareState, setShareState] = useState<ShareState>(ShareState.Idle);
 	const [customButtons, setCustomButtons] = useState<ButtonSpec[]>([]);
 	const [recipientsBeingUpdated, setRecipientsBeingUpdated] = useState<Record<string, boolean>>({});
 
-	async function synchronize(event: AsyncEffectEvent = null) {
+	async function synchronize(event: AsyncEffectEvent|null = null) {
 		setShareState(ShareState.Synchronizing);
 		await reg.waitForSyncFinishedThenSync();
 		if (event && event.cancelled) return;
@@ -134,7 +134,7 @@ function ShareFolderDialog(props: Props) {
 
 	useAsyncEffect(async (event: AsyncEffectEvent) => {
 		const f = await Folder.load(props.folderId);
-		if (event.cancelled) return;
+		if (!f || event.cancelled) return;
 		setFolder(f);
 	}, [props.folderId]);
 
@@ -183,7 +183,7 @@ function ShareFolderDialog(props: Props) {
 
 	const shareRecipient_click = useCallback(async () => {
 		setShareState(ShareState.Creating);
-		setLatestError(null);
+		setLatestError(undefined);
 
 		let errorSet = false;
 
@@ -198,7 +198,7 @@ function ShareFolderDialog(props: Props) {
 			setShareState(ShareState.Idle);
 		};
 
-		let share: ApiShare = null;
+		let share: ApiShare;
 
 		try {
 			share = await ShareService.instance().shareFolder(props.folderId);
@@ -240,10 +240,10 @@ function ShareFolderDialog(props: Props) {
 			await ShareService.instance().deleteShareRecipient(event.shareUserId);
 		} catch (error) {
 			logger.error(error);
-			alert(_('The recipient could not be removed from the list. Please try again.\n\nThe error was: "%s"', error.message));
+			alert(_('The recipient could not be removed from the list. Please try again.\n\nThe error was: "%s"', (error as Error).message));
 		}
 
-		await ShareService.instance().refreshShareUsers(share.id);
+		if (share) await ShareService.instance().refreshShareUsers(share.id);
 	}
 
 	function renderFolder() {
@@ -280,9 +280,9 @@ function ShareFolderDialog(props: Props) {
 			setRecipientsBeingUpdated(prev => {
 				return { ...prev, [shareUserId]: true };
 			});
-			await ShareService.instance().setPermissions(share.id, shareUserId, permissionsFromString(value));
+			if (share) await ShareService.instance().setPermissions(share.id, shareUserId, permissionsFromString(value));
 		} catch (error) {
-			alert(`Could not set permissions: ${error.message}`);
+			alert(`Could not set permissions: ${(error as Error).message}`);
 			logger.error(error);
 		} finally {
 			setRecipientsBeingUpdated(prev => {

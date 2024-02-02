@@ -7,7 +7,7 @@ export default class KeychainServiceDriver extends KeychainServiceDriverBase {
 	}
 
 	public async password(/* name:string*/): Promise<string> {
-		return null;
+		return '';
 	}
 
 	public async deletePassword(/* name:string*/): Promise<void> {

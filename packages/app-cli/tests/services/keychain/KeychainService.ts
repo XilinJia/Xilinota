@@ -60,7 +60,7 @@ describeIfCompatible('services_KeychainService', () => {
 
 		{
 			// Check that it is in the database
-			const row = await db().selectOne('SELECT * FROM settings WHERE key = "sync.5.password"');
+			const row = (await db().selectOne('SELECT * FROM settings WHERE key = "sync.5.password"'))!;
 			expect(row.value).toBe('password');
 		}
 

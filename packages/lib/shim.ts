@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { NoteEntity, ResourceEntity } from './services/database/types';
+import FsDriverBase from './fs-driver-base';
 
 let isTestingEnv_ = false;
 
@@ -20,18 +21,19 @@ let isTestingEnv_ = false;
 // using `typeof React`. This is just to get types in hooks.
 //
 // https://stackoverflow.com/a/42816077/561309
-let react_: typeof React = null;
+let react_: typeof React | null = null;
 let nodeSqlite_: any = null;
 
 const shim = {
 	Geolocation: null as any,
+	electronBridge_: null as any,
+	fsDriver_: null as FsDriverBase | null,
 
 	electronBridge: (): any => {
 		throw new Error('Not implemented');
 	},
 
 	msleep_: (ms: number) => {
-		// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 		return new Promise((resolve: Function) => {
 			shim.setTimeout(() => {
 				resolve(null);
@@ -164,7 +166,6 @@ const shim = {
 		return previous;
 	},
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	fetchWithRetry: async function(fetchFn: Function, options: any = null) {
 		if (!options) options = {};
 		if (!options.timeout) options.timeout = 1000 * 120; // ms
@@ -203,32 +204,37 @@ const shim = {
 
 	FormData: typeof FormData !== 'undefined' ? FormData : null,
 
-	fsDriver: (): any => {
+	fsDriver: (): FsDriverBase => {
 		throw new Error('Not implemented');
 	},
 
 	FileApiDriverLocal: null as any,
 
-	readLocalFileBase64: (_path: string) => {
-		throw new Error('Not implemented');
-	},
+	// readLocalFileBase64: (_path: string) : string => {
+	// 	throw new Error('Not implemented');
+	// },
 
-	uploadBlob: (_url: string, _options: any) => {
+	uploadBlob: (_url: string, _options: any): Promise<any> => {
 		throw new Error('Not implemented');
 	},
 
 	sjclModule: null as any,
 
-	randomBytes: async (_count: number) => {
+	randomBytes: async (_count: number): Promise<any[]> => {
 		throw new Error('Not implemented');
 	},
 
-	stringByteLength: (_s: string) => {
+	// debugFetch: async (_url: string, _options: any = null) => {
+	// 	throw new Error('Not implemented');
+	// },
+
+	stringByteLength: (_s: string): number => {
 		throw new Error('Not implemented');
 	},
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	detectAndSetLocale: null as Function,
+	detectAndSetLocale: (): any => {
+		throw new Error('Not implemented');
+	},
 
 	attachFileToNote: async (_note: any, _filePath: string): Promise<NoteEntity> => {
 		throw new Error('Not implemented');
@@ -242,33 +248,39 @@ const shim = {
 		throw new Error('Not implemented');
 	},
 
-	imageFromDataUrl: async (_imageDataUrl: string, _filePath: string, _options: any = null) => {
+	imageFromDataUrl: async (_imageDataUrl: string, _filePath: string, _options: any = null): Promise<void> => {
 		throw new Error('Not implemented');
 	},
 
-	fetchBlob: function(_url: string, _options: any = null): any {
+	fetchBlob: function(_url: string | URL, _options: any = null): any {
 		throw new Error('Not implemented');
 	},
 
 	Buffer: null as any,
 
-	openUrl: () => {
+	httpAgent_: null as any,
+
+	openUrl: (_url: string): any => {
 		throw new Error('Not implemented');
 	},
 
-	httpAgent: () => {
+	httpAgent: (_url: string): any => {
 		throw new Error('Not implemented');
 	},
 
-	openOrCreateFile: (_path: string, _defaultContents: any) => {
+	proxyAgent: (_serverUrl: string, _proxyUrl: string): any => {
 		throw new Error('Not implemented');
 	},
 
-	waitForFrame: () => {
+	openOrCreateFile: (_path: string, _defaultContents: any): any => {
 		throw new Error('Not implemented');
 	},
 
-	appVersion: () => {
+	waitForFrame: (): void => {
+		throw new Error('Not implemented');
+	},
+
+	appVersion: (): string => {
 		throw new Error('Not implemented');
 	},
 
@@ -282,15 +294,15 @@ const shim = {
 		isTestingEnv_ = v;
 	},
 
-	pathRelativeToCwd: (_path: string) => {
+	pathRelativeToCwd: (_path: string): any => {
 		throw new Error('Not implemented');
 	},
 
-	showMessageBox: (_message: string, _options: any = null) => {
+	showMessageBox: (_message: string, _options: any = null): any => {
 		throw new Error('Not implemented');
 	},
 
-	writeImageToFile: (_image: any, _format: any, _filePath: string) => {
+	writeImageToFile: (_image: any, _format: any, _filePath: string): Promise<void> => {
 		throw new Error('Not implemented');
 	},
 
@@ -313,21 +325,19 @@ const shim = {
 	//
 	// Having the timers wrapped in that way would also make it easier to debug timing issue and
 	// find out what timers have been fired or not.
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	setTimeout: (_fn: Function, _interval: number) => {
+	setTimeout: (_fn: Function, _interval: number): any => {
 		throw new Error('Not implemented');
 	},
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	setInterval: (_fn: Function, _interval: number) => {
+	setInterval: (_fn: Function, _interval: number): any => {
 		throw new Error('Not implemented');
 	},
 
-	clearTimeout: (_id: any) => {
+	clearTimeout: (_id: string | number): void => {
 		throw new Error('Not implemented');
 	},
 
-	clearInterval: (_id: any) => {
+	clearInterval: (_id: string | number): void => {
 		throw new Error('Not implemented');
 	},
 
@@ -349,7 +359,7 @@ const shim = {
 		return react_;
 	},
 
-	dgram: () => {
+	dgram: (): any => {
 		throw new Error('Not implemented');
 	},
 

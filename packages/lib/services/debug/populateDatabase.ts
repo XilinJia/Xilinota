@@ -42,7 +42,7 @@ function randomElement(array: any[]): any {
 
 // Use the constants below to define how many folders, notes and tags
 // should be created.
-export default async function populateDatabase(db: any, options: Options = null) {
+export default async function populateDatabase(db: any, options: Options = {}) {
 	options = {
 		folderCount: 0,
 		noteCount: 0,
@@ -63,86 +63,90 @@ export default async function populateDatabase(db: any, options: Options = null)
 	const folderDepthToId: Record<number, string[]> = {};
 	let rootFolderCount = 0;
 
-	for (let i = 0; i < options.folderCount; i++) {
-		const folder: any = {
-			title: `folder${i}`,
-		};
+	if (options.folderCount) {
+		for (let i = 0; i < options.folderCount; i++) {
+			const folder: any = {
+				title: `folder${i}`,
+			};
 
-		let isRoot = Math.random() <= 0.1 || i === 0;
+			let isRoot = Math.random() <= 0.1 || i === 0;
 
-		if (options.rootFolderCount && rootFolderCount >= options.rootFolderCount) isRoot = false;
+			if (options.rootFolderCount && rootFolderCount >= options.rootFolderCount) isRoot = false;
 
-		let depth = 0;
+			let depth = 0;
 
-		if (!isRoot) {
-			let possibleFolderIds: string[] = [];
-			if (options.subFolderDepth) {
-				for (let i = 0; i < options.subFolderDepth; i++) {
-					if (folderDepthToId[i]) possibleFolderIds = possibleFolderIds.concat(folderDepthToId[i]);
+			if (!isRoot) {
+				let possibleFolderIds: string[] = [];
+				if (options.subFolderDepth) {
+					for (let i = 0; i < options.subFolderDepth; i++) {
+						if (folderDepthToId[i]) possibleFolderIds = possibleFolderIds.concat(folderDepthToId[i]);
+					}
+				} else {
+					possibleFolderIds = createdFolderIds;
 				}
+
+				const parentIndex = randomIndex(possibleFolderIds);
+				const parentId = possibleFolderIds[parentIndex];
+				folder.parent_id = parentId;
+				depth = createdFolderDepths[parentId] + 1;
 			} else {
-				possibleFolderIds = createdFolderIds;
+				rootFolderCount++;
 			}
 
-			const parentIndex = randomIndex(possibleFolderIds);
-			const parentId = possibleFolderIds[parentIndex];
-			folder.parent_id = parentId;
-			depth = createdFolderDepths[parentId] + 1;
-		} else {
-			rootFolderCount++;
+			const savedFolder = await Folder.save(folder);
+			if (savedFolder.id) {
+				createdFolderIds.push(savedFolder.id);
+				createdFolderDepths[savedFolder.id] = depth;
+			}
+			if (!folderDepthToId[depth]) folderDepthToId[depth] = [];
+			if (savedFolder.id) folderDepthToId[depth].push(savedFolder.id);
+
+
+			if (!options.silent) console.info(`Folders: ${i} / ${options.folderCount}`);
 		}
-
-		const savedFolder = await Folder.save(folder);
-		createdFolderIds.push(savedFolder.id);
-		createdFolderDepths[savedFolder.id] = depth;
-
-		if (!folderDepthToId[depth]) folderDepthToId[depth] = [];
-		folderDepthToId[depth].push(savedFolder.id);
-
-		// eslint-disable-next-line no-console
-		if (!options.silent) console.info(`Folders: ${i} / ${options.folderCount}`);
 	}
-
 	let tagBatch = [];
-	for (let i = 0; i < options.tagCount; i++) {
-		const tagTitle = randomElement(wordList); // `tag${i}`
-		// eslint-disable-next-line promise/prefer-await-to-then -- Old code before rule was applied
-		tagBatch.push(Tag.save({ title: tagTitle }, { dispatchUpdateAction: false }).then((savedTag: any) => {
-			createdTagIds.push(savedTag.id);
-			// eslint-disable-next-line no-console
-			if (!options.silent) console.info(`Tags: ${i} / ${options.tagCount}`);
-		}));
+	if (options.tagCount) {
+		for (let i = 0; i < options.tagCount; i++) {
+			const tagTitle = randomElement(wordList); // `tag${i}`
 
-		if (tagBatch.length > 1000) {
-			await Promise.all(tagBatch);
-			tagBatch = [];
+			tagBatch.push(Tag.save({ title: tagTitle }, { dispatchUpdateAction: false }).then((savedTag: any) => {
+				createdTagIds.push(savedTag.id);
+
+				if (!options.silent) console.info(`Tags: ${i} / ${options.tagCount}`);
+			}));
+
+			if (tagBatch.length > 1000) {
+				await Promise.all(tagBatch);
+				tagBatch = [];
+			}
 		}
 	}
-
 	if (tagBatch.length) {
 		await Promise.all(tagBatch);
 		tagBatch = [];
 	}
 
 	let noteBatch = [];
-	for (let i = 0; i < options.noteCount; i++) {
-		const note: any = { title: `note${i}`, body: `This is note num. ${i}` };
-		const parentIndex = randomIndex(createdFolderIds);
-		note.parent_id = createdFolderIds[parentIndex];
+	if (options.noteCount) {
+		for (let i = 0; i < options.noteCount; i++) {
+			const note: any = { title: `note${i}`, body: `This is note num. ${i}` };
+			const parentIndex = randomIndex(createdFolderIds);
+			note.parent_id = createdFolderIds[parentIndex];
 
-		// eslint-disable-next-line promise/prefer-await-to-then -- Old code before rule was applied
-		noteBatch.push(Note.save(note, { dispatchUpdateAction: false }).then((savedNote: any) => {
-			createdNoteIds.push(savedNote.id);
-			// eslint-disable-next-line no-console
-			console.info(`Notes: ${i} / ${options.noteCount}`);
-		}));
 
-		if (noteBatch.length > 1000) {
-			await Promise.all(noteBatch);
-			noteBatch = [];
+			noteBatch.push(Note.save(note, { dispatchUpdateAction: false }).then((savedNote: any) => {
+				createdNoteIds.push(savedNote.id);
+
+				console.info(`Notes: ${i} / ${options.noteCount}`);
+			}));
+
+			if (noteBatch.length > 1000) {
+				await Promise.all(noteBatch);
+				noteBatch = [];
+			}
 		}
 	}
-
 	if (noteBatch.length) {
 		await Promise.all(noteBatch);
 		noteBatch = [];

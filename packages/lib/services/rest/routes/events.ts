@@ -4,7 +4,7 @@ import { ErrorBadRequest, ErrorNotFound } from '../utils/errors';
 import ItemChange, { ChangeSinceIdOptions } from '../../../models/ItemChange';
 import requestFields from '../utils/requestFields';
 
-export default async function(request: Request, id: string = null, _link: string = null) {
+export default async function(request: Request, id: string = '', _link: string = '') {
 	if (request.method === RequestMethod.GET) {
 		const options: ChangeSinceIdOptions = {
 			limit: 100,
@@ -26,8 +26,8 @@ export default async function(request: Request, id: string = null, _link: string
 
 				return {
 					items: changes,
-					has_more: changes.length >= options.limit,
-					cursor: (changes.length ? changes[changes.length - 1].id : cursor).toString(),
+					has_more: changes.length >= (options.limit??0),
+					cursor: (changes.length ? changes[changes.length - 1].id??0 : cursor).toString(),
 				};
 			}
 		} else {
@@ -36,4 +36,5 @@ export default async function(request: Request, id: string = null, _link: string
 			return change;
 		}
 	}
+	return undefined;
 }

@@ -1,13 +1,13 @@
-const React = require('react');
+import React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-const { View, StyleSheet } = require('react-native');
+import { View, StyleSheet } from 'react-native';
 import createRootStyle from '../../utils/createRootStyle';
 import ScreenHeader from '../ScreenHeader';
 import { _ } from '@xilinota/lib/locale';
 import { loadProfileConfig, saveProfileConfig } from '../../services/profiles';
 import { createNewProfile } from '@xilinota/lib/services/profileConfig';
 import useProfileConfig from './useProfileConfig';
-const { TextInput } = require('react-native-paper');
+import { TextInput } from 'react-native-paper';
 
 interface NavigationState {
 	profileId: string;
@@ -19,7 +19,6 @@ interface Navigation {
 
 interface Props {
 	themeId: number;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	dispatch: Function;
 	navigation: Navigation;
 }
@@ -53,8 +52,9 @@ export default (props: Props) => {
 			const result = createNewProfile(profileConfig, name);
 			await saveProfileConfig(result.newConfig);
 		} else {
+			if (!profileConfig) return;
 			const newProfiles = profileConfig.profiles.map(p => {
-				if (p.id === profile.id) {
+				if (profile && p.id === profile.id) {
 					return {
 						...profile,
 						name,

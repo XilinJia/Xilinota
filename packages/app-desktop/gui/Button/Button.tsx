@@ -1,6 +1,7 @@
 import * as React from 'react';
-const styled = require('styled-components').default;
-const { space } = require('styled-system');
+// upgrade styled-components causes lots of trouble
+import styled from 'styled-components';
+import { space } from 'styled-system';
 
 export enum ButtonLevel {
 	Primary = 'primary',
@@ -20,7 +21,6 @@ interface Props {
 	iconName?: string;
 	level?: ButtonLevel;
 	className?: string;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	onClick?: Function;
 	color?: string;
 	iconAnimation?: string;
@@ -31,6 +31,8 @@ interface Props {
 	isSquare?: boolean;
 	iconOnly?: boolean;
 	fontSize?: number;
+	// animation?: any;
+	// mr?: any;
 }
 
 const StyledTitle = styled.span`
@@ -209,13 +211,15 @@ function buttonClass(level: ButtonLevel) {
 }
 
 const Button = React.forwardRef((props: Props, ref: any) => {
-	const iconOnly = props.iconName && !props.title;
+	// const icononly = !!props.iconName && !!!props.title;
 
-	const StyledButton = buttonClass(props.level);
+	const StyledButton = buttonClass(props.level ?? ButtonLevel.Primary);
 
 	function renderIcon() {
 		if (!props.iconName) return null;
-		return <StyledIcon animation={props.iconAnimation} mr={iconOnly ? '0' : '6px'} color={props.color} className={props.iconName}/>;
+		// animation and mr not exist
+		// return <StyledIcon animation={props.iconAnimation} mr={iconOnly ? '0' : '6px'} color={props.color} className={props.iconName}/>;
+		return <StyledIcon color={props.color} className={props.iconName} />;
 	}
 
 	function renderTitle() {
@@ -224,12 +228,14 @@ const Button = React.forwardRef((props: Props, ref: any) => {
 	}
 
 	function onClick() {
-		if (props.disabled) return;
+		if (!props.onClick || props.disabled) return;
 		props.onClick();
 	}
 
 	return (
-		<StyledButton ref={ref} fontSize={props.fontSize} isSquare={props.isSquare} size={props.size} style={props.style} disabled={props.disabled} title={props.tooltip} className={props.className} iconOnly={iconOnly} onClick={onClick}>
+		// some of these not exist
+		// <StyledButton ref={ref} fontSize={props.fontSize} isSquare={props.isSquare} size={props.size} style={props.style} disabled={props.disabled} title={props.tooltip} className={props.className} iconOnly={icononly} onClick={onClick}>
+		<StyledButton ref={ref} style={props.style} disabled={props.disabled} title={props.tooltip} className={props.className} onClick={onClick}>
 			{renderIcon()}
 			{renderTitle()}
 		</StyledButton>

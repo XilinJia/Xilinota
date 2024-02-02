@@ -1,37 +1,59 @@
-const React = require('react');
+import React from 'react';
 
 import { StyleSheet, View, TextInput, FlatList, TouchableHighlight } from 'react-native';
-const { connect } = require('react-redux');
+import { connect } from 'react-redux';
 import ScreenHeader from '../ScreenHeader';
-const Icon = require('react-native-vector-icons/Ionicons').default;
+
+import Icon from 'react-native-vector-icons/Ionicons';
+const DialogBox = require('react-native-dialogbox').default;
+
 import { _ } from '@xilinota/lib/locale';
 import Note from '@xilinota/lib/models/Note';
-const { NoteItem } = require('../note-item.js');
-const { BaseScreenComponent } = require('../base-screen.js');
-const { themeStyle } = require('../global-style.js');
-const DialogBox = require('react-native-dialogbox').default;
+import BaseScreenComponent from '../base-screen';
+
+import NoteItem from '../note-item';
+import { themeStyle } from '../global-style';
+
 import SearchEngineUtils from '@xilinota/lib/services/searchengine/SearchEngineUtils';
 import SearchEngine from '@xilinota/lib/services/searchengine/SearchEngine';
 import { AppState } from '../../utils/types';
+import { NoteEntity } from '@xilinota/lib/services/database/types';
+import { Dispatch } from 'redux';
 
 // We need this to suppress the useless warning
 // https://github.com/oblador/react-native-vector-icons/issues/1465
-// eslint-disable-next-line no-console
+
 Icon.loadFont().catch((error: any) => { console.info(error); });
 
-class SearchScreenComponent extends BaseScreenComponent {
+interface Props {
+	themeId: number;
+	query: any;
+	visible: boolean;
+	settings: any;
+	noteSelectionEnabled: boolean;
+	navigation: any;
 
-	private state: any = null;
+	dispatch: Dispatch;
+}
+
+interface State {
+	query: any;
+	notes: NoteEntity[];
+}
+class SearchScreenComponent extends BaseScreenComponent<Props, State> {
+
+	// private state: any = null;
 	private isMounted_ = false;
 	private styles_: any = {};
 	private scheduleSearchTimer_: any = null;
+	dialogbox: any;
 
 	public static navigationOptions() {
 		return { header: null } as any;
 	}
 
-	public constructor() {
-		super();
+	public constructor(props: Props) {
+		super(props);
 		this.state = {
 			query: '',
 			notes: [],
@@ -39,7 +61,7 @@ class SearchScreenComponent extends BaseScreenComponent {
 	}
 
 	public styles() {
-		const theme = themeStyle(this.props.themeId);
+		const theme = themeStyle(this.props.themeId.toString());
 
 		if (this.styles_[this.props.themeId]) return this.styles_[this.props.themeId];
 		this.styles_ = {};
@@ -91,10 +113,10 @@ class SearchScreenComponent extends BaseScreenComponent {
 		void this.refreshSearch('');
 	}
 
-	public async refreshSearch(query: string = null) {
+	public async refreshSearch(query: string = '') {
 		if (!this.props.visible) return;
 
-		let notes = [];
+		let notes: NoteEntity[] = [];
 
 		if (query) {
 			if (this.props.settings['db.ftsEnabled']) {
@@ -108,7 +130,7 @@ class SearchScreenComponent extends BaseScreenComponent {
 					temp.push(t);
 				}
 
-				notes = await Note.previews(null, {
+				notes = await Note.previews('', {
 					anywherePattern: `*${temp.join('*')}*`,
 				});
 			}
@@ -150,7 +172,7 @@ class SearchScreenComponent extends BaseScreenComponent {
 	public render() {
 		if (!this.isMounted_) return null;
 
-		const theme = themeStyle(this.props.themeId);
+		const theme = themeStyle(this.props.themeId.toString());
 
 		const rootStyle = {
 			flex: 1,
@@ -194,7 +216,7 @@ class SearchScreenComponent extends BaseScreenComponent {
 						</TouchableHighlight>
 					</View>
 
-					<FlatList data={this.state.notes} keyExtractor={(item) => item.id} renderItem={event => <NoteItem note={event.item} />} />
+					<FlatList data={this.state.notes} keyExtractor={(item) => item.id ?? ''} renderItem={event => <NoteItem note={event.item} />} />
 				</View>
 				<DialogBox
 					ref={(dialogbox: any) => {
@@ -211,8 +233,10 @@ const SearchScreen = connect((state: AppState) => {
 		query: state.searchQuery,
 		themeId: state.settings.theme,
 		settings: state.settings,
-		noteSelectionEnabled: state.noteSelectionEnabled,
+		noteSelectionEnabled: state.noteSelectionEnabled ?? false,
 	};
 })(SearchScreenComponent);
 
-module.exports = { SearchScreen };
+export default SearchScreen;
+
+// module.exports = { SearchScreen };

@@ -8,9 +8,10 @@ import markdownUtils from '../markdownUtils';
 import shim from '../shim';
 import * as fs from 'fs-extra';
 import { setEncryptionEnabled } from '../services/synchronizer/syncInfoUtils';
-const { shimInit } = require('../shim-init-node');
+import { shimInit } from '../shim-init-node';
+import { verbose as nodeSqlite } from 'sqlite3';
+
 const sharp = require('sharp');
-const nodeSqlite = require('sqlite3');
 
 const snapshotBaseDir = `${supportDir}/syncTargetSnapshots`;
 
@@ -45,7 +46,7 @@ export async function createTestData(data: any) {
 		for (const n in s) {
 			if (n.toLowerCase().includes('folder')) {
 				const folder = await Folder.save({ title: n, parent_id: parentId });
-				await recurseStruct(s[n], folder.id);
+				await recurseStruct(s[n], folder.id ?? '');
 			} else {
 				const note = await Note.save({ title: n, parent_id: parentId });
 				if (s[n].resource) {
@@ -54,7 +55,7 @@ export async function createTestData(data: any) {
 
 				if (s[n].tags) {
 					for (const tagTitle of s[n].tags) {
-						await Tag.addNoteTagByTitle(note.id, tagTitle);
+						await Tag.addNoteTagByTitle(note.id ?? '', tagTitle);
 					}
 				}
 			}
@@ -82,7 +83,7 @@ export async function checkTestData(data: any) {
 
 				if (obj.resource) {
 					const urls = markdownUtils.extractImageUrls(note.body);
-					const resourceId = urls[0].substr(2);
+					const resourceId = urls[0].substring(2);
 					const resource = await Resource.load(resourceId);
 					if (!resource) throw new Error(`Cannot load note resource: ${n}`);
 				}
@@ -91,7 +92,7 @@ export async function checkTestData(data: any) {
 					for (const tagTitle of obj.tags) {
 						const tag = await Tag.loadByTitle(tagTitle);
 						if (!tag) throw new Error(`Cannot load note tag: ${tagTitle}`);
-						const hasNote = await Tag.hasNote(tag.id, note.id);
+						const hasNote = await Tag.hasNote(tag.id ?? '', note.id);
 						if (!hasNote) throw new Error(`Tag not associated with note: ${tagTitle}`);
 					}
 				}
@@ -134,6 +135,6 @@ export async function main(syncTargetType: string) {
 	await fs.mkdirp(destDir);
 	await fs.copy(syncDir, destDir);
 
-	// eslint-disable-next-line no-console
+
 	console.info(`Sync target snapshot created in: ${destDir}`);
 }

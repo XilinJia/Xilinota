@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import PluginService, { defaultPluginSetting, PluginSettings } from '@xilinota/lib/services/plugins/PluginService';
-import produce from 'immer';
+import { produce } from 'immer';
 import { _ } from '@xilinota/lib/locale';
 import Logger from '@xilinota/utils/Logger';
 import { ItemEvent } from './PluginBox';
@@ -11,9 +11,9 @@ export interface OnPluginSettingChangeEvent {
 	value: PluginSettings;
 }
 
-type OnPluginSettingChangeHandler = (event: OnPluginSettingChangeEvent)=> void;
+type OnPluginSettingChangeHandler = (event: OnPluginSettingChangeEvent) => void;
 
-// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
+
 export default function(setInstallingPluginIds: Function, pluginSettings: PluginSettings, repoApi: Function, onPluginSettingsChange: OnPluginSettingChangeHandler, isUpdate: boolean) {
 	return useCallback(async (event: ItemEvent) => {
 		const pluginId = event.item.manifest.id;
@@ -57,7 +57,7 @@ export default function(setInstallingPluginIds: Function, pluginSettings: Plugin
 			};
 		});
 
-		if (installError) alert(_('Could not install plugin: %s', installError.message));
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+		if (installError instanceof Error) alert(_('Could not install plugin: %s', installError.message));
+
 	}, [pluginSettings, onPluginSettingsChange]);
 }

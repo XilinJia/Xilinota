@@ -3,12 +3,12 @@ import { useMemo } from 'react';
 import { AppState } from '../app.reducer';
 import TagItem from './TagItem';
 
-const { connect } = require('react-redux');
-const { themeStyle } = require('@xilinota/lib/theme');
+import { connect } from 'react-redux';
+import { themeStyle } from '@xilinota/lib/theme';
 
 interface Props {
 	themeId: number;
-	style: any;
+	style?: any;
 	items: any[];
 }
 

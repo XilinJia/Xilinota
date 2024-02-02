@@ -1,5 +1,5 @@
 import BaseService from './BaseService';
-const Mutex = require('async-mutex').Mutex;
+import { Mutex } from 'async-mutex';
 
 enum ValueType {
 	Int = 1,
@@ -11,7 +11,7 @@ export default class KvStore extends BaseService {
 	private incMutex_: any = null;
 	private db_: any = null;
 
-	private static instance_: KvStore = null;
+	private static instance_: KvStore | null = null;
 
 	public static instance() {
 		if (this.instance_) return this.instance_;
@@ -60,7 +60,7 @@ export default class KvStore extends BaseService {
 
 	public async value<T>(key: string): Promise<T> {
 		const r = await this.db().selectOne('SELECT `value`, `type` FROM key_values WHERE `key` = ?', [key]);
-		if (!r) return null;
+		if (!r) return null as any;
 		return this.formatValue_(r.value, r.type) as any;
 	}
 

@@ -10,7 +10,7 @@ export const declaration: CommandDeclaration = {
 
 export const runtime = (comp: any): CommandRuntime => {
 	return {
-		execute: async (context: CommandContext, tagId: string = null) => {
+		execute: async (context: CommandContext, tagId: string = '') => {
 			tagId = tagId || context.state.selectedTagId;
 			if (!tagId) return;
 
@@ -21,12 +21,12 @@ export const runtime = (comp: any): CommandRuntime => {
 						label: _('Rename tag:'),
 						value: tag.title,
 						onClose: async (answer: string) => {
-							if (answer !== null) {
+							if (answer) {
 								try {
 									tag.title = answer;
 									await Tag.save(tag, { fields: ['title'], userSideValidation: true });
 								} catch (error) {
-									bridge().showErrorMessageBox(error.message);
+									bridge().showErrorMessageBox((error as Error).message);
 								}
 							}
 							comp.setState({ promptOptions: null });

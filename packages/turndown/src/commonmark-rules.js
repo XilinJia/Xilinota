@@ -1,6 +1,7 @@
 import { repeat, isCodeBlockSpecialCase1, isCodeBlockSpecialCase2, isCodeBlock, getStyleProp } from './utilities'
-const Entities = require('html-entities').AllHtmlEntities;
-const htmlentities = (new Entities()).encode;
+// const Entities = require('html-entities').AllHtmlEntities;
+// const htmlentities = (new Entities()).encode;
+const htmlentities = require('html-entities').encode;
 
 function attributesHtml(attributes, options = null) {
   if (!attributes) return '';
@@ -628,7 +629,8 @@ rules.xilinotaHtmlInMarkdown = {
     return node && node.classList && node.classList.contains('jop-noMdConv') && node.nodeName !== 'TABLE';
   },
 
-  replacement: function (content, node) {
+  replacement: function(content, node) {
+    if (!node) return '';
     node.classList.remove('jop-noMdConv');
     const nodeName = node.nodeName.toLowerCase();
     let attrString = attributesHtml(node.attributes, { skipEmptyClass: true });
@@ -647,7 +649,7 @@ rules.xilinotaHtmlInMarkdown = {
 // ===============================================================================
 
 function xilinotaEditableBlockInfo(node) {
-  if (!node.classList.contains('xilinota-editable')) return null;
+  if (!node || !node.classList.contains('xilinota-editable')) return null;
 
   let sourceNode = null;
   let isInline = false;
@@ -693,7 +695,7 @@ rules.xilinotaSourceBlock = {
 // ===============================================================================
 
 function xilinotaCheckboxInfo(liNode) {
-  if (liNode.classList.contains('xilinota-checkbox')) {
+  if (liNode && liNode.classList.contains('xilinota-checkbox')) {
     // Handling of this rendering is buggy as it adds extra new lines between each
     // list item. However, supporting this rendering is normally no longer needed.
     const input = findFirstDescendant(liNode, 'nodeName', 'INPUT');
@@ -706,7 +708,7 @@ function xilinotaCheckboxInfo(liNode) {
   const parentChecklist = findParent(liNode, 'class', 'xilinota-checklist');
   if (parentChecklist) {
     return {
-      checked: !!liNode.classList && liNode.classList.contains('checked'),
+      checked: !!liNode && !!liNode.classList && liNode.classList.contains('checked'),
       renderingType: 2,
     };
   }

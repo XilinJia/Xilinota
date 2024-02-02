@@ -42,7 +42,7 @@ export interface GotoInputProps {
 }
 
 export default function GotoInput(props: GotoInputProps) {
-	const inputRef = useRef<HTMLInputElement>(null);
+	const inputRef = useRef<HTMLInputElement>(document.createElement('input'));
 
 	const inputFocus = useCallback(() => {
 		inputRef.current?.select();

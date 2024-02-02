@@ -1,6 +1,7 @@
 import markdownUtils, { MarkdownTableHeader, MarkdownTableRow } from '../../markdownUtils';
 
-export default function commandsToMarkdownTable(): string {
+export default function commandsToMarkdownTable(this: any): string {
+	
 	const headers: MarkdownTableHeader[] = [
 		{
 			name: 'commandName',

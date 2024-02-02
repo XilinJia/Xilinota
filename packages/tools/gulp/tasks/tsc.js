@@ -1,4 +1,4 @@
-const execa = require('execa');
+// const execa = require('execa');
 
 const rootDir = `${__dirname}/../../../`;
 process.chdir(rootDir);
@@ -13,8 +13,13 @@ module.exports = {
 		'packages/app-cli/**/*.ts',
 	],
 	fn: async function() {
-		const promise = execa('node', ['node_modules/typescript/bin/tsc', '--project', 'tsconfig.json'], { cwd: rootDir });
-		promise.stdout.pipe(process.stdout);
-		return promise;
+		try {
+			const execa = await import('execa');
+			const promise = execa('node', ['node_modules/typescript/bin/tsc', '--project', 'tsconfig.json'], { cwd: rootDir });
+			promise.stdout.pipe(process.stdout);
+			return promise;
+		} catch (error) {
+			console.error('Error importing "execa":', error);
+		}
 	},
 };

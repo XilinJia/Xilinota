@@ -4,8 +4,8 @@ import ToolbarBase from '../ToolbarBase';
 import { utils as pluginUtils } from '@xilinota/lib/services/plugins/reducer';
 import ToolbarButtonUtils, { ToolbarButtonInfo } from '@xilinota/lib/services/commands/ToolbarButtonUtils';
 import stateToWhenClauseContext from '../../services/commands/stateToWhenClauseContext';
-const { connect } = require('react-redux');
-const { buildStyle } = require('@xilinota/lib/theme');
+import { connect } from 'react-redux';
+import { buildStyle } from '@xilinota/lib/theme';
 
 interface NoteToolbarProps {
 	themeId: number;

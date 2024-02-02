@@ -1,11 +1,11 @@
 import Setting from '@xilinota/lib/models/Setting';
 
-let fields: string[] = null;
-let perFieldReverse: { [field: string]: boolean } = null;
+let fields: string[] = [];
+let perFieldReverse: { [field: string]: boolean } = {};
 
 export const notesSortOrderFieldArray = (): string[] => {
 	// The order of the fields is strictly determinate.
-	if (fields === null) {
+	if (fields.length === 0) {
 		fields = Setting.enumOptionValues('notes.sortOrder.field').sort().reverse();
 	}
 	return fields;
@@ -30,7 +30,7 @@ export const setNotesSortOrder = (field?: string, reverse?: boolean) => {
 	const currentReverse = Setting.value('notes.sortOrder.reverse');
 	const enabled = Setting.value('notes.perFieldReversalEnabled');
 	if (enabled) {
-		if (perFieldReverse === null) {
+		if (!perFieldReverse) {
 			perFieldReverse = { ...Setting.value('notes.perFieldReverse') };
 		}
 	}
@@ -42,7 +42,7 @@ export const setNotesSortOrder = (field?: string, reverse?: boolean) => {
 			nextField = currentField;
 		}
 	}
-	if (typeof reverse === 'undefined') {
+	if (nextField && typeof reverse === 'undefined') {
 		if (enabled && perFieldReverse.hasOwnProperty(nextField)) {
 			nextReverse = !!perFieldReverse[nextField];
 		} else {
@@ -55,7 +55,7 @@ export const setNotesSortOrder = (field?: string, reverse?: boolean) => {
 	if (currentReverse !== nextReverse) {
 		Setting.setValue('notes.sortOrder.reverse', nextReverse);
 	}
-	if (enabled) {
+	if (nextField && enabled) {
 		// nextField is sane here.
 		nextReverse = !!nextReverse;
 		if (perFieldReverse[nextField] !== nextReverse) {

@@ -1,4 +1,5 @@
 apply plugin: "com.android.application"
+apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
 import com.android.build.OutputFile
@@ -50,12 +51,12 @@ react {
     // hermesFlags = ["-O", "-output-source-map"]
 }
 
-/**
- * Set this to true to create four separate APKs instead of one,
- * one for each native architecture. This is useful if you don't
- * use App Bundles (https://developer.android.com/guide/app-bundle/)
- * and want to have separate APKs to upload to the Play Store.
- */
+// /**
+//  * Set this to true to create four separate APKs instead of one,
+//  * one for each native architecture. This is useful if you don't
+//  * use App Bundles (https://developer.android.com/guide/app-bundle/)
+//  * and want to have separate APKs to upload to the Play Store.
+//  */
 def enableSeparateBuildPerCPUArchitecture = false
 
 /**
@@ -92,7 +93,8 @@ def reactNativeArchitectures() {
 android {
     ndkVersion rootProject.ext.ndkVersion
 
-    compileSdkVersion rootProject.ext.compileSdkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
+    compileSdk rootProject.ext.compileSdkVersion
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -111,7 +113,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
 		versionCode 2097726
-		versionName "2.14.1"
+		versionName "2.15.0"
 		ndk {
 			abiFilters "armeabi-v7a", "x86", "arm64-v8a", "x86_64"
 		}
@@ -133,6 +135,9 @@ android {
         }
     }
 
+    buildFeatures {
+        buildConfig = true
+    }
     bundle {
         language {
             enableSplit = true
@@ -215,17 +220,10 @@ dependencies {
 
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
+    implementation("com.facebook.react:flipper-integration")
 
     implementation project(':react-native-vector-icons')
 
-    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.0.0")
-    
-    debugImplementation("com.facebook.flipper:flipper:${FLIPPER_VERSION}")
-    debugImplementation("com.facebook.flipper:flipper-network-plugin:${FLIPPER_VERSION}") {
-        exclude group:'com.squareup.okhttp3', module:'okhttp'
-    }
-
-    debugImplementation("com.facebook.flipper:flipper-fresco-plugin:${FLIPPER_VERSION}")
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
     } else {

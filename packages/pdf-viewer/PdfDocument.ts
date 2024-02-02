@@ -4,16 +4,13 @@ import { Mutex, MutexInterface, withTimeout } from 'async-mutex';
 
 
 export default class PdfDocument {
-	public url: string | Uint8Array;
+	public url: string | Uint8Array = '';
 	private doc: any = null;
-	public pageCount: number = null;
+	public pageCount: number = 0;
 	private pages: any = {};
-	private rendererMutex: MutexInterface = null;
-	private pageSize: {
-		height: number;
-		width: number;
-	} = null;
-	private document: HTMLDocument = null;
+	private rendererMutex: MutexInterface;
+	private pageSize = { height: 0, width: 0, };
+	private document: HTMLDocument;
 
 	public constructor(document: HTMLDocument) {
 		this.document = document;
@@ -28,7 +25,7 @@ export default class PdfDocument {
 			this.doc = pdfDocument;
 			this.pageCount = pdfDocument.numPages;
 		} catch (error) {
-			error.message = `Could not load document: ${error.message}`;
+			if (error instanceof Error) error.message = `Could not load document: ${error.message}`;
 			throw error;
 		}
 	};
@@ -55,7 +52,7 @@ export default class PdfDocument {
 		return this.pageSize;
 	};
 
-	public getScaledSize = async (height: number = null, width: number = null): Promise<ScaledSize> => {
+	public getScaledSize = async (height: number = 0, width: number = 0): Promise<ScaledSize> => {
 		const actualSize = await this.getPageSize();
 		let scale = 1.0;
 		if (height && width) {
@@ -105,19 +102,21 @@ export default class PdfDocument {
 		}).promise;
 		checkCancelled();
 
-		let textLayerDiv = null;
+		let textLayerDiv: HTMLDivElement = this.document.createElement('div');
 		if (getTextLayer) {
-			textLayerDiv = this.document.createElement('div');
+			// textLayerDiv = this.document.createElement('div');
 			textLayerDiv.classList.add('textLayer');
 			const textFragment = this.document.createDocumentFragment();
+			const wrapper = this.document.createElement('div');
+			wrapper.appendChild(textFragment);
 			const txtContext = await page.getTextContent();
 			checkCancelled();
 			// Pass the data to the method for rendering of text over the pdf canvas.
 			textLayerDiv.style.height = `${viewport.height}px`;
 			textLayerDiv.style.width = `${viewport.width}px`;
 			await pdfjsLib.renderTextLayer({
-				textContent: txtContext,
-				container: textFragment,
+				textContentSource: txtContext,
+				container: wrapper,
 				viewport: viewport,
 				textDivs: [],
 			}).promise;
@@ -143,11 +142,13 @@ export default class PdfDocument {
 		frame.style.width = '100%';
 		this.document.body.appendChild(frame);
 		frame.onload = () => {
-			frame.contentWindow.onafterprint = () => {
-				frame.remove();
-			};
-			frame.focus();
-			frame.contentWindow.print();
+			if (frame.contentWindow) {
+				frame.contentWindow.onafterprint = () => {
+					frame.remove();
+				};
+				frame.focus();
+				frame.contentWindow.print();
+			}
 		};
 		frame.src = this.url as string;
 	};

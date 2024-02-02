@@ -7,7 +7,7 @@ import SearchPlugins from './SearchPlugins';
 import PluginBox, { ItemEvent, UpdateState } from './PluginBox';
 import Button, { ButtonLevel, ButtonSize } from '../../../Button/Button';
 import bridge from '../../../../services/bridge';
-import produce from 'immer';
+import { produce } from 'immer';
 import { OnChangeEvent } from '../../../lib/SearchInput/SearchInput';
 import { PluginItem } from './PluginBox';
 import RepositoryApi from '@xilinota/lib/services/plugins/RepositoryApi';
@@ -16,7 +16,7 @@ import useOnInstallHandler, { OnPluginSettingChangeEvent } from './useOnInstallH
 import Logger from '@xilinota/utils/Logger';
 import StyledMessage from '../../../style/StyledMessage';
 import StyledLink from '../../../style/StyledLink';
-const { space } = require('styled-system');
+import { space } from 'styled-system';
 
 const logger = Logger.create('PluginState');
 
@@ -37,7 +37,7 @@ const ToolsButton = styled(Button)`
 	margin-right: 6px;
 `;
 
-const RepoApiErrorMessage = styled(StyledMessage)<any>`
+const RepoApiErrorMessage = styled(StyledMessage) <any>`
 	max-width: ${props => props.maxWidth}px;
 	margin-bottom: 10px;
 `;
@@ -45,17 +45,13 @@ const RepoApiErrorMessage = styled(StyledMessage)<any>`
 interface Props {
 	value: any;
 	themeId: number;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	onChange: Function;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	renderLabel: Function;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	renderDescription: Function;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	renderHeader: Function;
 }
 
-let repoApi_: RepositoryApi = null;
+let repoApi_: RepositoryApi;
 
 function repoApi(): RepositoryApi {
 	if (repoApi_) return repoApi_;
@@ -98,14 +94,14 @@ export default function(props: Props) {
 	const [manifestsLoaded, setManifestsLoaded] = useState<boolean>(false);
 	const [updatingPluginsIds, setUpdatingPluginIds] = useState<Record<string, boolean>>({});
 	const [canBeUpdatedPluginIds, setCanBeUpdatedPluginIds] = useState<Record<string, boolean>>({});
-	const [repoApiError, setRepoApiError] = useState<Error>(null);
+	const [repoApiError, setRepoApiError] = useState<Error | null>(null);
 	const [fetchManifestTime, setFetchManifestTime] = useState<number>(Date.now());
 
 	const pluginService = PluginService.instance();
 
 	const pluginSettings = useMemo(() => {
 		return pluginService.unserializePluginSettings(props.value);
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [props.value]);
 
 	const pluginItems = usePluginItems(pluginService.plugins, pluginSettings);
@@ -116,12 +112,12 @@ export default function(props: Props) {
 			setManifestsLoaded(false);
 			setRepoApiError(null);
 
-			let loadError: Error = null;
+			let loadError: Error | null = null;
 			try {
 				await repoApi().initialize();
 			} catch (error) {
 				logger.error(error);
-				loadError = error;
+				loadError = error as Error;
 			}
 
 			if (cancelled) return;
@@ -142,7 +138,7 @@ export default function(props: Props) {
 	}, [fetchManifestTime]);
 
 	useEffect(() => {
-		if (!manifestsLoaded) return () => {};
+		if (!manifestsLoaded) return () => { };
 
 		let cancelled = false;
 
@@ -150,7 +146,7 @@ export default function(props: Props) {
 			const pluginIds = await repoApi().canBeUpdatedPlugins(pluginItems.map(p => p.manifest), pluginService.appVersion);
 			if (cancelled) return;
 			const conv: Record<string, boolean> = {};
-			// eslint-disable-next-line github/array-foreach -- Old code before rule was applied
+
 			pluginIds.forEach(id => conv[id] = true);
 			setCanBeUpdatedPluginIds(conv);
 		}
@@ -173,7 +169,7 @@ export default function(props: Props) {
 		});
 
 		props.onChange({ value: pluginService.serializePluginSettings(newSettings) });
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [pluginSettings, props.onChange]);
 
 	const onToggle = useCallback((event: ItemEvent) => {
@@ -185,7 +181,7 @@ export default function(props: Props) {
 		});
 
 		props.onChange({ value: pluginService.serializePluginSettings(newSettings) });
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [pluginSettings, props.onChange]);
 
 	const onInstall = useCallback(async () => {
@@ -199,11 +195,11 @@ export default function(props: Props) {
 		const plugin = await pluginService.installPlugin(filePath);
 
 		const newSettings = produce(pluginSettings, (draft: PluginSettings) => {
-			draft[plugin.manifest.id] = defaultPluginSetting();
+			if (plugin) draft[plugin.manifest.id] = defaultPluginSetting();
 		});
 
 		props.onChange({ value: pluginService.serializePluginSettings(newSettings) });
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [pluginSettings, props.onChange]);
 
 	const onBrowsePlugins = useCallback(() => {
@@ -212,7 +208,7 @@ export default function(props: Props) {
 
 	const onPluginSettingsChange = useCallback((event: OnPluginSettingChangeEvent) => {
 		props.onChange({ value: pluginService.serializePluginSettings(event.value) });
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, []);
 
 	const onUpdate = useOnInstallHandler(setUpdatingPluginIds, pluginSettings, repoApi, onPluginSettingsChange, true);
@@ -239,7 +235,7 @@ export default function(props: Props) {
 
 	const onSearchPluginSettingsChange = useCallback((event: any) => {
 		props.onChange({ value: pluginService.serializePluginSettings(event.value) });
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [props.onChange]);
 
 	function renderCells(items: PluginItem[]) {
@@ -249,10 +245,10 @@ export default function(props: Props) {
 			if (item.deleted) continue;
 
 			const isUpdating = updatingPluginsIds[item.manifest.id];
-			const onUpdateHandler = canBeUpdatedPluginIds[item.manifest.id] ? onUpdate : null;
+			const onUpdateHandler = canBeUpdatedPluginIds[item.manifest.id] ? onUpdate : (async (_event: ItemEvent) => { });
 
 			let updateState = UpdateState.Idle;
-			if (onUpdateHandler) updateState = UpdateState.CanUpdate;
+			if (canBeUpdatedPluginIds[item.manifest.id]) updateState = UpdateState.CanUpdate;
 			if (isUpdating) updateState = UpdateState.Updating;
 			if (item.hasBeenUpdated) updateState = UpdateState.HasBeenUpdated;
 
@@ -310,7 +306,7 @@ export default function(props: Props) {
 	function renderRepoApiError() {
 		if (!repoApiError) return null;
 
-		return <RepoApiErrorMessage maxWidth={maxWidth} type="error">{_('Could not connect to plugin repository.')}<br/><br/>- <StyledLink href="#" onClick={() => { setFetchManifestTime(Date.now()); }}>{_('Try again')}</StyledLink><br/><br/>- <StyledLink href="#" onClick={onBrowsePlugins}>{_('Browse all plugins')}</StyledLink></RepoApiErrorMessage>;
+		return <RepoApiErrorMessage maxWidth={maxWidth} type="error">{_('Could not connect to plugin repository.')}<br /><br />- <StyledLink href="#" onClick={() => { setFetchManifestTime(Date.now()); }}>{_('Try again')}</StyledLink><br /><br />- <StyledLink href="#" onClick={onBrowsePlugins}>{_('Browse all plugins')}</StyledLink></RepoApiErrorMessage>;
 	}
 
 	function renderBottomArea() {
@@ -320,7 +316,7 @@ export default function(props: Props) {
 			<div>
 				{renderRepoApiError()}
 				<div style={{ display: 'flex', flexDirection: 'row', maxWidth }}>
-					<ToolsButton size={ButtonSize.Small} tooltip={_('Plugin tools')} iconName="fas fa-cog" level={ButtonLevel.Secondary} onClick={onToolsClick}/>
+					<ToolsButton size={ButtonSize.Small} tooltip={_('Plugin tools')} iconName="fas fa-cog" level={ButtonLevel.Secondary} onClick={onToolsClick} />
 					<div style={{ display: 'flex', flex: 1 }}>
 						{props.renderHeader(props.themeId, _('Manage your plugins'))}
 					</div>

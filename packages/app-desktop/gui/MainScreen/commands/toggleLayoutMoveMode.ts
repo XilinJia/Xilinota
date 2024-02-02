@@ -9,7 +9,7 @@ export const declaration: CommandDeclaration = {
 
 export const runtime = (): CommandRuntime => {
 	return {
-		execute: async (context: CommandContext, value: boolean = null) => {
+		execute: async (context: CommandContext, value: boolean|null = null) => {
 			const newValue = value !== null ? value : !(context.state as AppState).layoutMoveMode;
 			context.dispatch({
 				type: 'LAYOUT_MOVE_MODE_SET',

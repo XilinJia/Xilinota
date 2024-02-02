@@ -1,4 +1,4 @@
-const React = require('react');
+import React from 'react';
 import { useMemo } from 'react';
 import { themeStyle } from '@xilinota/lib/theme';
 import { TextInput, TextInputProps, StyleSheet } from 'react-native';

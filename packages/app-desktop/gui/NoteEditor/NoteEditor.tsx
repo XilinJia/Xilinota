@@ -31,8 +31,8 @@ import Setting from '@xilinota/lib/models/Setting';
 import stateToWhenClauseContext from '../../services/commands/stateToWhenClauseContext';
 import ExternalEditWatcher from '@xilinota/lib/services/ExternalEditWatcher';
 import { itemIsReadOnly } from '@xilinota/lib/models/utils/readOnly';
-const { themeStyle } = require('@xilinota/lib/theme');
-const { substrWithEllipsis } = require('@xilinota/lib/string-utils');
+import { themeStyle } from '@xilinota/lib/theme';
+import { substrWithEllipsis } from '@xilinota/lib/string-utils';
 import NoteSearchBar from '../NoteSearchBar';
 import { reg } from '@xilinota/lib/registry';
 import Note from '@xilinota/lib/models/Note';
@@ -47,6 +47,7 @@ import { ErrorCode } from '@xilinota/lib/errors';
 import ItemChange from '@xilinota/lib/models/ItemChange';
 import CodeMirror6 from './NoteBody/CodeMirror/v6/CodeMirror';
 import { PeersNote } from '@xilinota/lib/models/Peers';
+import XilinotaError from '@xilinota/lib/XilinotaError';
 
 const commands = [
 	require('./commands/showRevisions'),
@@ -57,18 +58,18 @@ const toolbarButtonUtils = new ToolbarButtonUtils(CommandService.instance());
 function NoteEditor(props: NoteEditorProps) {
 	const [showRevisions, setShowRevisions] = useState(false);
 	const [titleHasBeenManuallyChanged, setTitleHasBeenManuallyChanged] = useState(false);
-	const [scrollWhenReady, setScrollWhenReady] = useState<ScrollOptions>(null);
+	const [scrollWhenReady, setScrollWhenReady] = useState<ScrollOptions>({ type: 0, value: 0 });
 	const [isReadOnly, setIsReadOnly] = useState<boolean>(false);
 
 	const editorRef = useRef<any>();
-	const titleInputRef = useRef<any>();
+	const titleInputRef = useRef<HTMLInputElement>(document.createElement('input'));
 	const isMountedRef = useRef(true);
 	const noteSearchBarRef = useRef(null);
 
 	const formNote_beforeLoad = useCallback(async (event: OnLoadEvent) => {
 		await saveNoteIfWillChange(event.formNote);
 		setShowRevisions(false);
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, []);
 
 	const formNote_afterLoad = useCallback(async () => {
@@ -85,10 +86,10 @@ function NoteEditor(props: NoteEditorProps) {
 
 	const effectiveNoteId = useEffectiveNoteId(props);
 
-	const { formNote, setFormNote, isNewNote, resourceInfos } = useFormNote({
+	const { isNewNote, formNote, setFormNote, resourceInfos } = useFormNote({
 		syncStarted: props.syncStarted,
 		decryptionStarted: props.decryptionStarted,
-		noteId: effectiveNoteId,
+		noteId: effectiveNoteId ?? '',
 		isProvisional: props.isProvisional,
 		titleInputRef: titleInputRef,
 		editorRef: editorRef,
@@ -168,7 +169,7 @@ function NoteEditor(props: NoteEditorProps) {
 
 	async function saveNoteAndWait(formNote: FormNote) {
 		await saveNoteIfWillChange(formNote);
-		return formNote.saveActionQueue.waitForAllDone();
+		return formNote.saveActionQueue?.waitForAllDone();
 	}
 
 	const markupToHtml = useMarkupToHtml({
@@ -177,7 +178,7 @@ function NoteEditor(props: NoteEditorProps) {
 		plugins: props.plugins,
 	});
 
-	const allAssets = useCallback(async (markupLanguage: number, options: AllAssetsOptions = null): Promise<any[]> => {
+	const allAssets = useCallback(async (markupLanguage: number, options: AllAssetsOptions = {}): Promise<any[]> => {
 		options = {
 			contentMaxWidthTarget: '',
 			...options,
@@ -203,7 +204,7 @@ function NoteEditor(props: NoteEditorProps) {
 				id: formNote.id,
 			});
 		}
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [props.isProvisional, formNote.id]);
 
 	const previousNote = usePrevious(formNote);
@@ -224,7 +225,7 @@ function NoteEditor(props: NoteEditorProps) {
 		});
 
 		void ResourceEditWatcher.instance().stopWatchingAll();
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [formNote.id, previousId]);
 
 	// let prevValue: string = '';
@@ -270,7 +271,7 @@ function NoteEditor(props: NoteEditorProps) {
 			newNote.title = Note.defaultTitle(value);
 		}
 
-		if (changeId !== null && field === 'body' && formNote.bodyWillChangeId !== changeId) {
+		if (changeId && field === 'body' && formNote.bodyWillChangeId !== changeId) {
 			// Note was changed, but another note was loaded before save - skipping
 			// The previously loaded note, that was modified, will be saved via saveNoteIfWillChange()
 		} else {
@@ -285,7 +286,7 @@ function NoteEditor(props: NoteEditorProps) {
 				scheduleSaveNote(newNote);
 			}
 		}
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [handleProvisionalFlag, formNote, isNewNote, titleHasBeenManuallyChanged]);
 
 	useWindowCommandHandler({
@@ -332,7 +333,7 @@ function NoteEditor(props: NoteEditorProps) {
 			if (event.cancelled) return;
 			setIsReadOnly(result);
 		} catch (error) {
-			if (error.code === ErrorCode.NotFound) {
+			if (error instanceof XilinotaError && error.code === ErrorCode.NotFound) {
 				// Can happen if the note has been deleted but a render is
 				// triggered anyway. It can be ignored.
 			} else {
@@ -359,7 +360,7 @@ function NoteEditor(props: NoteEditorProps) {
 			id: formNote.id,
 			status: 'saving',
 		});
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [formNote, handleProvisionalFlag]);
 
 	const onMessage = useMessageHandler(scrollWhenReady, setScrollWhenReady, editorRef, setLocalSearchResultCount, props.dispatch, formNote);
@@ -374,7 +375,7 @@ function NoteEditor(props: NoteEditorProps) {
 
 			setFormNote(newFormNote);
 		}
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [formNote]);
 
 	const onNotePropertyChange = useCallback((event: any) => {
@@ -390,7 +391,7 @@ function NoteEditor(props: NoteEditorProps) {
 
 			return newFormNote;
 		});
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, []);
 
 	useEffect(() => {
@@ -421,10 +422,10 @@ function NoteEditor(props: NoteEditorProps) {
 			// In callbacks of setTimeout()/setInterval(), props/state cannot be used
 			// to refer the current value, since they would be one or more generations old.
 			// For the purpose, useRef value should be used.
-			noteId: formNoteRef.current.id,
+			noteId: formNoteRef.current?.id,
 			percent: event.percent,
 		});
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [props.dispatch, formNote]);
 
 	function renderNoNotes(rootStyle: any) {
@@ -496,8 +497,8 @@ function NoteEditor(props: NoteEditorProps) {
 
 	if (props.bodyEditor === 'TinyMCE') {
 		editor = <TinyMCE {...editorProps} />;
-	// } else if (props.bodyEditor === 'CodeMirror') {
-	// 	editor = <CodeMirror5 {...editorProps} />;
+		// } else if (props.bodyEditor === 'CodeMirror') {
+		// 	editor = <CodeMirror5 {...editorProps} />;
 	} else if (props.bodyEditor === 'CodeMirror6') {
 		editor = <CodeMirror6 {...editorProps} />;
 	} else {
@@ -601,7 +602,7 @@ function NoteEditor(props: NoteEditorProps) {
 					<Button
 						iconName="icon-notebooks"
 						level={ButtonLevel.Primary}
-						title={_('In: %s', substrWithEllipsis(formNoteFolder.title, 0, 100))}
+						title={_('In: %s', substrWithEllipsis(formNoteFolder.title ?? '', 0, 100))}
 						onClick={() => {
 							props.dispatch({
 								type: 'FOLDER_AND_NOTE_SELECT',
@@ -661,7 +662,7 @@ export {
 };
 
 const mapStateToProps = (state: AppState) => {
-	const noteId = state.selectedNoteIds.length === 1 ? state.selectedNoteIds[0] : null;
+	const noteId = state.selectedNoteIds.length === 1 ? state.selectedNoteIds[0] : '';
 	const whenClauseContext = stateToWhenClauseContext(state);
 
 	return {

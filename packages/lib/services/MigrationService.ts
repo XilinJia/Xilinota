@@ -20,13 +20,13 @@ export default class MigrationService extends BaseService {
 		const migrations = await Migration.migrationsToDo();
 
 		for (const migration of migrations) {
-			this.logger().info(`Running migration: ${migration.number}`);
+			BaseService.logger().info(`Running migration: ${migration.number}`);
 
 			try {
 				await this.runScript(migration.number);
 				await Migration.delete(migration.id);
 			} catch (error) {
-				this.logger().error(`Cannot run migration: ${migration.number}`, error);
+				BaseService.logger().error(`Cannot run migration: ${migration.number}`, error);
 				break;
 			}
 		}

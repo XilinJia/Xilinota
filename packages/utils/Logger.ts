@@ -1,6 +1,6 @@
-const moment = require('moment');
-const { sprintf } = require('sprintf-js');
-const Mutex = require('async-mutex').Mutex;
+import moment from 'moment';
+import { sprintf } from 'sprintf-js';
+import { Mutex } from 'async-mutex';
 
 const writeToFileMutex_ = new Mutex();
 
@@ -18,7 +18,7 @@ export enum LogLevel {
 	Debug = 40,
 }
 
-type FormatFunction = (level: LogLevel, targetPrefix?: string)=> string;
+type FormatFunction = (level: LogLevel, targetPrefix?: string) => string;
 
 interface TargetOptions {
 	level?: LogLevel;
@@ -37,22 +37,18 @@ interface Target extends TargetOptions {
 }
 
 export interface LoggerWrapper {
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	debug: Function;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	info: Function;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	warn: Function;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	error: Function;
 }
 
 interface FsDriver {
-	appendFile: (path: string, content: string, encoding: string)=> Promise<void>;
+	appendFile: (path: string, content: string, encoding: string) => Promise<void>;
 }
 
 const dummyFsDriver: FsDriver = {
-	appendFile: async (_path: string, _content: string, _encoding: string) => {},
+	appendFile: async (_path: string, _content: string, _encoding: string) => { },
 };
 
 class Logger {
@@ -64,15 +60,15 @@ class Logger {
 	public static LEVEL_INFO = LogLevel.Info;
 	public static LEVEL_DEBUG = LogLevel.Debug;
 
-	public static fsDriver_: FsDriver|null = null;
-	private static globalLogger_: Logger|null = null;
+	public static fsDriver_: FsDriver | null = null;
+	private static globalLogger_: Logger | null = null;
 
 	private targets_: Target[] = [];
 	private level_: LogLevel = LogLevel.Info;
 	private lastDbCleanup_: number = Date.now();
 	private enabled_ = true;
 
-	public static fsDriver() {
+	public static fsDriver(): FsDriver {
 		if (!Logger.fsDriver_) Logger.fsDriver_ = dummyFsDriver;
 		return Logger.fsDriver_;
 	}
@@ -85,7 +81,7 @@ class Logger {
 		this.enabled_ = v;
 	}
 
-	public static initializeGlobalLogger(logger: Logger) {
+	public static initializeGlobalLogger(logger: Logger): void {
 		this.globalLogger_ = logger;
 	}
 
@@ -101,7 +97,7 @@ class Logger {
 			console.warn('Logger: Trying to access globalLogger, but it has not been initialized. Make sure that initializeGlobalLogger() has been called before logging. Will use the console as fallback.');
 			const output: any = {
 				log: (level: LogLevel, prefix: string, ...object: any[]) => {
-					// eslint-disable-next-line no-console
+
 					console.info(`[UNINITIALIZED GLOBAL LOGGER] ${this.levelIdToString(level)}: ${prefix}:`, object);
 				},
 			};
@@ -121,21 +117,21 @@ class Logger {
 		};
 	}
 
-	public setLevel(level: LogLevel) {
+	public setLevel(level: LogLevel): LogLevel {
 		const previous = this.level_;
 		this.level_ = level;
 		return previous;
 	}
 
-	public level() {
+	public level(): LogLevel {
 		return this.level_;
 	}
 
-	public targets() {
+	public targets(): Target[] {
 		return this.targets_;
 	}
 
-	public addTarget(type: TargetType, options: TargetOptions|null = null) {
+	public addTarget(type: TargetType, options: TargetOptions | null = null): void {
 		const target = { type: type };
 		for (const n in options) {
 			if (!options.hasOwnProperty(n)) continue;
@@ -145,7 +141,7 @@ class Logger {
 		this.targets_.push(target);
 	}
 
-	public objectToString(object: any) {
+	public objectToString(object: any): string {
 		let output = '';
 
 		if (typeof object === 'object') {
@@ -154,7 +150,7 @@ class Logger {
 				output = object.toString();
 				if (object.code) output += `\nCode: ${object.code}`;
 				if (object.headers) output += `\nHeader: ${JSON.stringify(object.headers)}`;
-				if (object.request) output += `\nRequest: ${object.request.substr ? object.request.substr(0, 1024) : ''}`;
+				if (object.request) output += `\nRequest: ${object.request.substring ? object.request.substring(0, 1024) : ''}`;
 				if (object.stack) output += `\n${object.stack}`;
 			} else {
 				output = JSON.stringify(object);
@@ -166,7 +162,7 @@ class Logger {
 		return output;
 	}
 
-	public objectsToString(...object: any[]) {
+	public objectsToString(...object: any[]): string {
 		const output = [];
 		for (let i = 0; i < object.length; i++) {
 			output.push(`"${this.objectToString(object[i])}"`);
@@ -174,7 +170,7 @@ class Logger {
 		return output.join(', ');
 	}
 
-	public static databaseCreateTableSql() {
+	public static databaseCreateTableSql(): string {
 		const output = `
 		CREATE TABLE IF NOT EXISTS logs (
 			id INTEGER PRIMARY KEY,
@@ -188,7 +184,7 @@ class Logger {
 	}
 
 	// Only for database at the moment
-	public async lastEntries(limit = 100, options: any = null) {
+	public async lastEntries(limit = 100, options: any = {}): Promise<Record<string, any>[]> {
 		if (options === null) options = {};
 		if (!options.levels) options.levels = [LogLevel.Debug, LogLevel.Info, LogLevel.Warn, LogLevel.Error];
 		if (!options.levels.length) return [];
@@ -197,8 +193,8 @@ class Logger {
 			const target = this.targets_[i];
 			if (target.type === 'database') {
 				let sql = `SELECT * FROM logs WHERE level IN (${options.levels.join(',')}) ORDER BY timestamp DESC`;
-				if (limit !== null) sql += ` LIMIT ${limit}`;
-				return await target.database.selectAll(sql);
+				if (limit) sql += ` LIMIT ${limit}`;
+				return target.database ? await target.database?.selectAll(sql) : [];
 			}
 		}
 		return [];
@@ -209,7 +205,7 @@ class Logger {
 		return this.level();
 	}
 
-	public log(level: LogLevel, prefix: string | null, ...object: any[]) {
+	public log(level: LogLevel, prefix: string | null, ...object: any[]): void {
 		if (!this.targets_.length || !this.enabled) return;
 
 		for (let i = 0; i < this.targets_.length; i++) {
@@ -257,16 +253,14 @@ class Logger {
 				// because that would slow down the main process, especially
 				// when many log operations are being done (eg. during sync in
 				// dev mode).
-				// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-				let release: Function|null = null;
-				/* eslint-disable-next-line promise/prefer-await-to-then, @typescript-eslint/ban-types -- Old code before rule was applied, Old code before rule was applied */
+				let release: Function | null = null;
 				writeToFileMutex_.acquire().then((r: Function) => {
 					release = r;
 					return Logger.fsDriver().appendFile(target.path as string, `${line.join(': ')}\n`, 'utf8');
-					// eslint-disable-next-line promise/prefer-await-to-then -- Old code before rule was applied
+
 				}).catch((error: any) => {
 					console.error('Cannot write to log file:', error);
-					// eslint-disable-next-line promise/prefer-await-to-then -- Old code before rule was applied
+
 				}).finally(() => {
 					if (release) release();
 				});
@@ -292,25 +286,25 @@ class Logger {
 					});
 				}
 
-				target.database.transactionExecBatch(queries);
+				target.database?.transactionExecBatch(queries);
 			}
 		}
 	}
 
-	public error(...object: any[]) {
+	public error(...object: any[]): void {
 		return this.log(LogLevel.Error, null, ...object);
 	}
-	public warn(...object: any[]) {
+	public warn(...object: any[]): void {
 		return this.log(LogLevel.Warn, null, ...object);
 	}
-	public info(...object: any[]) {
+	public info(...object: any[]): void {
 		return this.log(LogLevel.Info, null, ...object);
 	}
-	public debug(...object: any[]) {
+	public debug(...object: any[]): void {
 		return this.log(LogLevel.Debug, null, ...object);
 	}
 
-	public static levelStringToId(s: string) {
+	public static levelStringToId(s: string): LogLevel {
 		if (s === 'none') return LogLevel.None;
 		if (s === 'error') return LogLevel.Error;
 		if (s === 'warn') return LogLevel.Warn;
@@ -319,7 +313,7 @@ class Logger {
 		throw new Error(`Unknown log level: ${s}`);
 	}
 
-	public static levelIdToString(id: LogLevel) {
+	public static levelIdToString(id: LogLevel): "none" | "error" | "warn" | "info" | "debug" {
 		if (id === LogLevel.None) return 'none';
 		if (id === LogLevel.Error) return 'error';
 		if (id === LogLevel.Warn) return 'warn';
@@ -328,7 +322,7 @@ class Logger {
 		throw new Error(`Unknown level ID: ${id}`);
 	}
 
-	public static levelIds() {
+	public static levelIds(): LogLevel[] {
 		return [LogLevel.None, LogLevel.Error, LogLevel.Warn, LogLevel.Info, LogLevel.Debug];
 	}
 

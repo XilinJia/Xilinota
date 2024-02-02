@@ -94,12 +94,12 @@ describe('services_InteropService', () => {
 	it('should export and import folders', (async () => {
 		const service = InteropService.instance();
 		let folder1 = await Folder.save({ title: 'folder1' });
-		folder1 = await Folder.load(folder1.id);
+		folder1 = (await Folder.load(folder1.id!))!;
 		const filePath = `${exportDir()}/test.jex`;
 
 		await service.export({ path: filePath });
 
-		await Folder.delete(folder1.id);
+		await Folder.delete(folder1.id!);
 
 		await service.import({ path: filePath });
 
@@ -114,7 +114,7 @@ describe('services_InteropService', () => {
 
 		// As there was already a folder with the same title, check that the new one has been renamed
 
-		await Folder.delete(folder2.id);
+		await Folder.delete(folder2.id!);
 		const folder3 = (await Folder.all())[0];
 		expect(await Folder.count()).toBe(1);
 		expect(folder3.title).not.toBe(folder2.title);
@@ -133,8 +133,8 @@ describe('services_InteropService', () => {
 		const filePath = `${exportDir()}/test.jex`;
 		await service.export({ path: filePath });
 
-		await Folder.delete(folder1.id);
-		await Folder.delete(folder2.id);
+		await Folder.delete(folder1.id!);
+		await Folder.delete(folder2.id!);
 
 		await service.import({ path: filePath });
 
@@ -146,36 +146,36 @@ describe('services_InteropService', () => {
 		const service = InteropService.instance();
 		const folder1 = await Folder.save({ title: 'folder1' });
 		const folder2 = await Folder.save({ title: 'folder2' });
-		await Folder.save({ title: 'Sub', parent_id: folder1.id });
-		await Folder.save({ title: 'Sub', parent_id: folder2.id });
+		await Folder.save({ title: 'Sub', parent_id: folder1.id! });
+		await Folder.save({ title: 'Sub', parent_id: folder2.id! });
 		const filePath = `${exportDir()}/test.jex`;
 		await service.export({ path: filePath });
 
-		await Folder.delete(folder1.id);
-		await Folder.delete(folder2.id);
+		await Folder.delete(folder1.id!);
+		await Folder.delete(folder2.id!);
 
 		await service.import({ path: filePath });
 
 		const importedFolder1 = await Folder.loadByTitle('folder1');
 		const importedFolder2 = await Folder.loadByTitle('folder2');
-		const importedSub1 = await Folder.load((await Folder.childrenIds(importedFolder1.id))[0]);
-		const importedSub2 = await Folder.load((await Folder.childrenIds(importedFolder2.id))[0]);
+		const importedSub1 = await Folder.load((await Folder.childrenIds(importedFolder1!.id))[0]);
+		const importedSub2 = await Folder.load((await Folder.childrenIds(importedFolder2!.id))[0]);
 
-		expect(importedSub1.title).toBe('Sub');
-		expect(importedSub2.title).toBe('Sub');
+		expect(importedSub1!.title).toBe('Sub');
+		expect(importedSub2!.title).toBe('Sub');
 	}));
 
 	it('should export and import folders and notes', (async () => {
 		const service = InteropService.instance();
 		const folder1 = await Folder.save({ title: 'folder1' });
-		let note1 = await Note.save({ title: 'ma note', parent_id: folder1.id });
-		note1 = await Note.load(note1.id);
+		let note1 = await Note.save({ title: 'ma note', parent_id: folder1.id! });
+		note1 = (await Note.load(note1.id!))!;
 		const filePath = `${exportDir()}/test.jex`;
 
 		await service.export({ path: filePath });
 
-		await Folder.delete(folder1.id);
-		await Note.delete(note1.id);
+		await Folder.delete(folder1.id!);
+		await Note.delete(note1.id!);
 
 		await service.import({ path: filePath });
 
@@ -207,15 +207,15 @@ describe('services_InteropService', () => {
 	it('should export and import notes to specific folder', (async () => {
 		const service = InteropService.instance();
 		const folder1 = await Folder.save({ title: 'folder1' });
-		let note1 = await Note.save({ title: 'ma note', parent_id: folder1.id });
-		note1 = await Note.load(note1.id);
+		let note1 = await Note.save({ title: 'ma note', parent_id: folder1.id! });
+		note1 = (await Note.load(note1.id!))!;
 		const filePath = `${exportDir()}/test.jex`;
 
 		await service.export({ path: filePath });
 
-		await Note.delete(note1.id);
+		await Note.delete(note1.id!);
 
-		await service.import({ path: filePath, destinationFolderId: folder1.id });
+		await service.import({ path: filePath, destinationFolderId: folder1.id! });
 
 		expect(await Note.count()).toBe(1);
 		expect(await Folder.count()).toBe(1);
@@ -227,16 +227,16 @@ describe('services_InteropService', () => {
 		const service = InteropService.instance();
 		const filePath = `${exportDir()}/test.jex`;
 		const folder1 = await Folder.save({ title: 'folder1' });
-		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id });
+		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id! });
 		let tag1 = await Tag.save({ title: 'mon tag' });
-		tag1 = await Tag.load(tag1.id);
-		await Tag.addNote(tag1.id, note1.id);
+		tag1 = (await Tag.load(tag1.id!))!;
+		await Tag.addNote(tag1.id!, note1.id!);
 
 		await service.export({ path: filePath });
 
-		await Folder.delete(folder1.id);
-		await Note.delete(note1.id);
-		await Tag.delete(tag1.id);
+		await Folder.delete(folder1.id!);
+		await Note.delete(note1.id!);
+		await Tag.delete(tag1.id!);
 
 		await service.import({ path: filePath });
 
@@ -249,7 +249,7 @@ describe('services_InteropService', () => {
 		fieldNames = ArrayUtils.removeElement(fieldNames, 'id');
 		fieldsEqual(tag1, tag2, fieldNames);
 
-		let noteIds = await Tag.noteIds(tag2.id);
+		let noteIds = await Tag.noteIds(tag2.id!);
 		expect(noteIds.length).toBe(1);
 		expect(noteIds[0]).toBe(note2.id);
 
@@ -259,7 +259,7 @@ describe('services_InteropService', () => {
 		// the same name already existed. The newly imported note should
 		// however go under that already existing tag.
 		expect(await Tag.count()).toBe(1);
-		noteIds = await Tag.noteIds(tag2.id);
+		noteIds = await Tag.noteIds(tag2.id!);
 		expect(noteIds.length).toBe(2);
 	}));
 
@@ -267,15 +267,15 @@ describe('services_InteropService', () => {
 		const service = InteropService.instance();
 		const filePath = `${exportDir()}/test.jex`;
 		const folder1 = await Folder.save({ title: 'folder1' });
-		let note1 = await Note.save({ title: 'ma note', parent_id: folder1.id });
+		let note1 = await Note.save({ title: 'ma note', parent_id: folder1.id! });
 		await shim.attachFileToNote(note1, `${supportDir}/photo.jpg`);
-		note1 = await Note.load(note1.id);
-		let resourceIds = await Note.linkedResourceIds(note1.body);
+		note1 = (await Note.load(note1.id!))!;
+		let resourceIds = await Note.linkedResourceIds(note1.body!);
 		const resource1 = await Resource.load(resourceIds[0]);
 
 		await service.export({ path: filePath });
 
-		await Note.delete(note1.id);
+		await Note.delete(note1.id!);
 
 		await service.import({ path: filePath });
 
@@ -286,14 +286,14 @@ describe('services_InteropService', () => {
 		resourceIds = await Note.linkedResourceIds(note2.body);
 		expect(resourceIds.length).toBe(1);
 		const resource2 = await Resource.load(resourceIds[0]);
-		expect(resource2.id).not.toBe(resource1.id);
+		expect(resource2!.id).not.toBe(resource1!.id);
 
 		let fieldNames = Note.fieldNames();
 		fieldNames = ArrayUtils.removeElement(fieldNames, 'id');
 		fieldsEqual(resource1, resource2, fieldNames);
 
-		const resourcePath1 = Resource.fullPath(resource1);
-		const resourcePath2 = Resource.fullPath(resource2);
+		const resourcePath1 = Resource.fullPath(resource1!);
+		const resourcePath2 = Resource.fullPath(resource2!);
 
 		expect(resourcePath1).not.toBe(resourcePath2);
 		expect(fileContentEqual(resourcePath1, resourcePath2)).toBe(true);
@@ -303,12 +303,12 @@ describe('services_InteropService', () => {
 		const service = InteropService.instance();
 		const filePath = `${exportDir()}/test.jex`;
 		const folder1 = await Folder.save({ title: 'folder1' });
-		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id });
+		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id! });
 
-		await service.export({ path: filePath, sourceNoteIds: [note1.id] });
+		await service.export({ path: filePath, sourceNoteIds: [note1.id!] });
 
-		await Note.delete(note1.id);
-		await Folder.delete(folder1.id);
+		await Note.delete(note1.id!);
+		await Folder.delete(folder1.id!);
 
 		await service.import({ path: filePath });
 
@@ -323,12 +323,12 @@ describe('services_InteropService', () => {
 		const service = InteropService.instance();
 		const filePath = `${exportDir()}/test.jex`;
 		const folder1 = await Folder.save({ title: 'folder1' });
-		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id });
+		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id! });
 
-		await service.export({ path: filePath, sourceFolderIds: [folder1.id] });
+		await service.export({ path: filePath, sourceFolderIds: [folder1.id!] });
 
-		await Note.delete(note1.id);
-		await Folder.delete(folder1.id);
+		await Note.delete(note1.id!);
+		await Folder.delete(folder1.id!);
 
 		await service.import({ path: filePath });
 
@@ -344,18 +344,18 @@ describe('services_InteropService', () => {
 		const service = InteropService.instance();
 		const filePath = `${exportDir()}/test.jex`;
 		const folder1 = await Folder.save({ title: 'folder1' });
-		const folder2 = await Folder.save({ title: 'folder2', parent_id: folder1.id });
-		const folder3 = await Folder.save({ title: 'folder3', parent_id: folder2.id });
-		const folder4 = await Folder.save({ title: 'folder4', parent_id: folder2.id });
-		const note1 = await Note.save({ title: 'ma note', parent_id: folder4.id });
+		const folder2 = await Folder.save({ title: 'folder2', parent_id: folder1.id! });
+		const folder3 = await Folder.save({ title: 'folder3', parent_id: folder2.id! });
+		const folder4 = await Folder.save({ title: 'folder4', parent_id: folder2.id! });
+		const note1 = await Note.save({ title: 'ma note', parent_id: folder4.id! });
 
-		await service.export({ path: filePath, sourceFolderIds: [folder1.id] });
+		await service.export({ path: filePath, sourceFolderIds: [folder1.id!] });
 
-		await Note.delete(note1.id);
-		await Folder.delete(folder1.id);
-		await Folder.delete(folder2.id);
-		await Folder.delete(folder3.id);
-		await Folder.delete(folder4.id);
+		await Note.delete(note1.id!);
+		await Folder.delete(folder1.id!);
+		await Folder.delete(folder2.id!);
+		await Folder.delete(folder3.id!);
+		await Folder.delete(folder4.id!);
 
 		await service.import({ path: filePath });
 
@@ -368,24 +368,24 @@ describe('services_InteropService', () => {
 		const folder4_2 = await Folder.loadByTitle('folder4');
 		const note1_2 = await Note.loadByTitle('ma note');
 
-		expect(folder2_2.parent_id).toBe(folder1_2.id);
-		expect(folder3_2.parent_id).toBe(folder2_2.id);
-		expect(folder4_2.parent_id).toBe(folder2_2.id);
-		expect(note1_2.parent_id).toBe(folder4_2.id);
+		expect(folder2_2!.parent_id).toBe(folder1_2!.id);
+		expect(folder3_2!.parent_id).toBe(folder2_2!.id);
+		expect(folder4_2!.parent_id).toBe(folder2_2!.id);
+		expect(note1_2!.parent_id).toBe(folder4_2!.id);
 	}));
 
 	it('should export and import links to notes', (async () => {
 		const service = InteropService.instance();
 		const filePath = `${exportDir()}/test.jex`;
 		const folder1 = await Folder.save({ title: 'folder1' });
-		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id });
-		const note2 = await Note.save({ title: 'ma deuxième note', body: `Lien vers première note : ${Note.markdownTag(note1)}`, parent_id: folder1.id });
+		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id! });
+		const note2 = await Note.save({ title: 'ma deuxième note', body: `Lien vers première note : ${Note.markdownTag(note1)}`, parent_id: folder1.id! });
 
-		await service.export({ path: filePath, sourceFolderIds: [folder1.id] });
+		await service.export({ path: filePath, sourceFolderIds: [folder1.id!] });
 
-		await Note.delete(note1.id);
-		await Note.delete(note2.id);
-		await Folder.delete(folder1.id);
+		await Note.delete(note1.id!);
+		await Note.delete(note2.id!);
+		await Folder.delete(folder1.id!);
 
 		await service.import({ path: filePath });
 
@@ -395,28 +395,28 @@ describe('services_InteropService', () => {
 		const note1_2 = await Note.loadByTitle('ma note');
 		const note2_2 = await Note.loadByTitle('ma deuxième note');
 
-		expect(note2_2.body.indexOf(note1_2.id) >= 0).toBe(true);
+		expect(note2_2!.body.indexOf(note1_2!.id) >= 0).toBe(true);
 	}));
 
 	it('should export selected notes in md format', (async () => {
 		const service = InteropService.instance();
 		const folder1 = await Folder.save({ title: 'folder1' });
-		let note11 = await Note.save({ title: 'title note11', parent_id: folder1.id });
-		note11 = await Note.load(note11.id);
-		const note12 = await Note.save({ title: 'title note12', parent_id: folder1.id });
-		await Note.load(note12.id);
+		let note11 = await Note.save({ title: 'title note11', parent_id: folder1.id! });
+		note11 = (await Note.load(note11.id!))!;
+		const note12 = await Note.save({ title: 'title note12', parent_id: folder1.id! });
+		await Note.load(note12.id!);
 
-		let folder2 = await Folder.save({ title: 'folder2', parent_id: folder1.id });
-		folder2 = await Folder.load(folder2.id);
-		let note21 = await Note.save({ title: 'title note21', parent_id: folder2.id });
-		note21 = await Note.load(note21.id);
+		let folder2 = await Folder.save({ title: 'folder2', parent_id: folder1.id! });
+		folder2 = (await Folder.load(folder2.id!))!;
+		let note21 = await Note.save({ title: 'title note21', parent_id: folder2.id! });
+		note21 = (await Note.load(note21.id!))!;
 
-		await Folder.save({ title: 'folder3', parent_id: folder1.id });
-		await Folder.load(folder2.id);
+		await Folder.save({ title: 'folder3', parent_id: folder1.id! });
+		await Folder.load(folder2.id!);
 
 		const outDir = exportDir();
 
-		await service.export({ path: outDir, format: 'md', sourceNoteIds: [note11.id, note21.id] });
+		await service.export({ path: outDir, format: 'md', sourceNoteIds: [note11.id!, note21.id!] });
 
 		// verify that the md files exist
 		expect(await shim.fsDriver().exists(`${outDir}/folder1`)).toBe(true);
@@ -431,13 +431,13 @@ describe('services_InteropService', () => {
 		const service = InteropService.instance();
 		const folder1 = await Folder.save({ title: 'folder1' });
 		const folder2 = await Folder.save({ title: 'ジョプリン' });
-		await Note.save({ title: '生活', parent_id: folder1.id });
-		await Note.save({ title: '生活', parent_id: folder1.id });
-		await Note.save({ title: '生活', parent_id: folder1.id });
-		await Note.save({ title: '', parent_id: folder1.id });
-		await Note.save({ title: '', parent_id: folder1.id });
-		await Note.save({ title: 'salut, ça roule ?', parent_id: folder1.id });
-		await Note.save({ title: 'ジョプリン', parent_id: folder2.id });
+		await Note.save({ title: '生活', parent_id: folder1.id! });
+		await Note.save({ title: '生活', parent_id: folder1.id! });
+		await Note.save({ title: '生活', parent_id: folder1.id! });
+		await Note.save({ title: '', parent_id: folder1.id! });
+		await Note.save({ title: '', parent_id: folder1.id! });
+		await Note.save({ title: 'salut, ça roule ?', parent_id: folder1.id! });
+		await Note.save({ title: 'ジョプリン', parent_id: folder2.id! });
 
 		const outDir = exportDir();
 
@@ -454,15 +454,15 @@ describe('services_InteropService', () => {
 
 	it('should export a notebook as MD', (async () => {
 		const folder1 = await Folder.save({ title: 'testexportfolder' });
-		await Note.save({ title: 'textexportnote1', parent_id: folder1.id });
-		await Note.save({ title: 'textexportnote2', parent_id: folder1.id });
+		await Note.save({ title: 'textexportnote1', parent_id: folder1.id! });
+		await Note.save({ title: 'textexportnote2', parent_id: folder1.id! });
 
 		const service = InteropService.instance();
 
 		await service.export({
 			path: exportDir(),
 			format: 'md',
-			sourceFolderIds: [folder1.id],
+			sourceFolderIds: [folder1.id!],
 		});
 
 		expect(await shim.fsDriver().exists(`${exportDir()}/testexportfolder/textexportnote1.md`)).toBe(true);
@@ -471,15 +471,15 @@ describe('services_InteropService', () => {
 
 	it('should export conflict notes', (async () => {
 		const folder1 = await Folder.save({ title: 'testexportfolder' });
-		await Note.save({ title: 'textexportnote1', parent_id: folder1.id, is_conflict: 1 });
-		await Note.save({ title: 'textexportnote2', parent_id: folder1.id });
+		await Note.save({ title: 'textexportnote1', parent_id: folder1.id!, is_conflict: 1 });
+		await Note.save({ title: 'textexportnote2', parent_id: folder1.id! });
 
 		const service = InteropService.instance();
 
 		await service.export({
 			path: exportDir(),
 			format: 'md',
-			sourceFolderIds: [folder1.id],
+			sourceFolderIds: [folder1.id!],
 			includeConflicts: false,
 		});
 
@@ -491,7 +491,7 @@ describe('services_InteropService', () => {
 		await service.export({
 			path: exportDir(),
 			format: 'md',
-			sourceFolderIds: [folder1.id],
+			sourceFolderIds: [folder1.id!],
 			includeConflicts: true,
 		});
 
@@ -523,9 +523,9 @@ describe('services_InteropService', () => {
 
 	it('should not export certain note properties', (async () => {
 		const folder = await Folder.save({ title: 'folder', share_id: 'some_id', is_shared: 1 });
-		let note = await Note.save({ title: 'note', is_shared: 1, share_id: 'someid', parent_id: folder.id });
+		let note = await Note.save({ title: 'note', is_shared: 1, share_id: 'someid', parent_id: folder.id! });
 		note = await shim.attachFileToNote(note, `${supportDir}/photo.jpg`);
-		const resourceId = (await Note.linkedResourceIds(note.body))[0];
+		const resourceId = (await Note.linkedResourceIds(note.body!))[0];
 		await Resource.save({ id: resourceId, share_id: 'some_id', is_shared: 1 });
 
 		const service = InteropService.instance();
@@ -536,15 +536,15 @@ describe('services_InteropService', () => {
 			format: 'memory',
 		});
 
-		const exportedNote = (result.items.find(i => i.type === ModelType.Note)).object as NoteEntity;
+		const exportedNote = (result.items.find(i => i.type === ModelType.Note))!.object as NoteEntity;
 		expect(exportedNote.share_id).toBe('');
 		expect(exportedNote.is_shared).toBe(0);
 
-		const exportedFolder = (result.items.find(i => i.type === ModelType.Folder)).object as FolderEntity;
+		const exportedFolder = (result.items.find(i => i.type === ModelType.Folder))!.object as FolderEntity;
 		expect(exportedFolder.share_id).toBe('');
 		expect(exportedFolder.is_shared).toBe(0);
 
-		const exportedResource = (result.items.find(i => i.type === ModelType.Resource)).object as ResourceEntity;
+		const exportedResource = (result.items.find(i => i.type === ModelType.Resource))!.object as ResourceEntity;
 		expect(exportedResource.share_id).toBe('');
 		expect(exportedResource.is_shared).toBe(0);
 	}));
@@ -585,8 +585,8 @@ describe('services_InteropService', () => {
 
 	it('should allow registering new export modules', (async () => {
 		const folder1 = await Folder.save({ title: 'folder1' });
-		const note1 = await Note.save({ title: 'note1', parent_id: folder1.id });
-		await Note.save({ title: 'note2', parent_id: folder1.id });
+		const note1 = await Note.save({ title: 'note1', parent_id: folder1.id! });
+		await Note.save({ title: 'note2', parent_id: folder1.id! });
 		await shim.attachFileToNote(note1, `${supportDir}/photo.jpg`);
 
 		const filePath = `${exportDir()}/example.test`;

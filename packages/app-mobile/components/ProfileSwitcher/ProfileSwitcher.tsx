@@ -1,26 +1,25 @@
-const React = require('react');
+import React from 'react';
 import { useCallback, useMemo, useState } from 'react';
-const { View, FlatList, StyleSheet } = require('react-native');
+import { View, FlatList, StyleSheet, TextStyle } from 'react-native';
 import createRootStyle from '../../utils/createRootStyle';
 import ScreenHeader from '../ScreenHeader';
-const { FAB, List } = require('react-native-paper');
+import { FAB, List } from 'react-native-paper';
 import { Profile } from '@xilinota/lib/services/profileConfig/types';
 import useProfileConfig from './useProfileConfig';
 import { Alert } from 'react-native';
 import { _ } from '@xilinota/lib/locale';
 import { deleteProfileById } from '@xilinota/lib/services/profileConfig';
 import { saveProfileConfig, switchProfile } from '../../services/profiles';
-const { themeStyle } = require('../global-style');
+import { themeStyle } from '../global-style';
 
 interface Props {
 	themeId: number;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	dispatch: Function;
 }
 
 const useStyle = (themeId: number) => {
 	return useMemo(() => {
-		const theme = themeStyle(themeId);
+		const theme = themeStyle(themeId.toString());
 
 		return StyleSheet.create({
 			...createRootStyle(themeId),
@@ -53,7 +52,7 @@ export default (props: Props) => {
 			try {
 				await switchProfile(profile.id);
 			} catch (error) {
-				Alert.alert(_('Could not switch profile: %s', error.message));
+				Alert.alert(_('Could not switch profile: %s', (error as Error).message));
 			}
 		};
 
@@ -68,7 +67,7 @@ export default (props: Props) => {
 				},
 				{
 					text: _('Cancel'),
-					onPress: () => {},
+					onPress: () => { },
 					style: 'cancel',
 				},
 			],
@@ -86,11 +85,12 @@ export default (props: Props) => {
 	const onDeleteProfile = useCallback(async (profile: Profile) => {
 		const doIt = async () => {
 			try {
+				if (!profileConfig) return;
 				const newConfig = deleteProfileById(profileConfig, profile.id);
 				await saveProfileConfig(newConfig);
 				setProfileConfigTime(Date.now());
 			} catch (error) {
-				Alert.alert(error.message);
+				Alert.alert((error as Error).message);
 			}
 		};
 
@@ -105,7 +105,7 @@ export default (props: Props) => {
 				},
 				{
 					text: _('Cancel'),
-					onPress: () => {},
+					onPress: () => { },
 					style: 'cancel',
 				},
 			],
@@ -114,7 +114,7 @@ export default (props: Props) => {
 
 	const renderProfileItem = (event: any) => {
 		const profile = event.item as Profile;
-		const titleStyle = { fontWeight: profile.id === profileConfig.currentProfileId ? 'bold' : 'normal' };
+		const titleStyle: TextStyle = { fontWeight: profileConfig && profile.id === profileConfig.currentProfileId ? 'bold' : 'normal' };
 		return (
 			<List.Item
 				title={profile.name}
@@ -122,7 +122,8 @@ export default (props: Props) => {
 				titleStyle={titleStyle}
 				left={() => <List.Icon icon="file-account-outline" />}
 				key={profile.id}
-				profileId={profile.id}
+				// TODO: profileId doesn't exist
+				// profileId={profile.id}
 				onPress={() => { void onProfileItemPress(profile); }}
 				onLongPress={() => {
 					Alert.alert(
@@ -141,7 +142,7 @@ export default (props: Props) => {
 							},
 							{
 								text: _('Close'),
-								onPress: () => {},
+								onPress: () => { },
 								style: 'cancel',
 							},
 						],

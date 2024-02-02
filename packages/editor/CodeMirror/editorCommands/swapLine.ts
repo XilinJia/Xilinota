@@ -6,7 +6,7 @@ export enum SwapLineDirection {
 	Down = 1,
 }
 
-const swapLine = (direction: SwapLineDirection): Command => (editor: EditorView) => {
+const swapLine = (direction: SwapLineDirection): Command => (editor: EditorView): boolean => {
 	const state = editor.state;
 	const doc = state.doc;
 

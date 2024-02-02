@@ -280,14 +280,14 @@ var mhchemModule = function(katex) {
           '(-)(9.,9)(e)(99)': function (input) {
             var m = input.match(/^(\+\-|\+\/\-|\+|\-|\\pm\s?)?([0-9]+(?:[,.][0-9]+)?|[0-9]*(?:\.[0-9]+))?(\((?:[0-9]+(?:[,.][0-9]+)?|[0-9]*(?:\.[0-9]+))\))?(?:([eE]|\s*(\*|x|\\times|\u00D7)\s*10\^)([+\-]?[0-9]+|\{[+\-]?[0-9]+\}))?/);
             if (m && m[0]) {
-              return { match_: m.splice(1), remainder: input.substr(m[0].length) };
+              return { match_: m.splice(1), remainder: input.substring(m[0].length) };
             }
             return null;
           },
           '(-)(9)^(-9)': function (input) {
             var m = input.match(/^(\+\-|\+\/\-|\+|\-|\\pm\s?)?([0-9]+(?:[,.][0-9]+)?|[0-9]*(?:\.[0-9]+)?)\^([+\-]?[0-9]+|\{[+\-]?[0-9]+\})/);
             if (m && m[0]) {
-              return { match_: m.splice(1), remainder: input.substr(m[0].length) };
+              return { match_: m.splice(1), remainder: input.substring(m[0].length) };
             }
             return null;
           },
@@ -296,7 +296,7 @@ var mhchemModule = function(katex) {
             if (a  &&  a.remainder.match(/^($|[\s,;\)\]\}])/)) { return a; }  //  AND end of 'phrase'
             var m = input.match(/^(?:\((?:\\ca\s?)?\$[amothc]\$\))/);  // OR crystal system ($o$) (\ca$c$)
             if (m) {
-              return { match_: m[0], remainder: input.substr(m[0].length) };
+              return { match_: m[0], remainder: input.substring(m[0].length) };
             }
             return null;
           },
@@ -369,13 +369,13 @@ var mhchemModule = function(katex) {
             // e.g. 2, 0.5, 1/2, -2, n/2, +;  $a$ could be added later in parsing
             match = input.match(/^(?:(?:(?:\([+\-]?[0-9]+\/[0-9]+\)|[+\-]?(?:[0-9]+|\$[a-z]\$|[a-z])\/[0-9]+|[+\-]?[0-9]+[.,][0-9]+|[+\-]?\.[0-9]+|[+\-]?[0-9]+)(?:[a-z](?=\s*[A-Z]))?)|[+\-]?[a-z](?=\s*[A-Z])|\+(?!\s))/);
             if (match) {
-              return { match_: match[0], remainder: input.substr(match[0].length) };
+              return { match_: match[0], remainder: input.substring(match[0].length) };
             }
             var a = mhchemParser.patterns.findObserveGroups(input, "", "$", "$", "");
             if (a) {  // e.g. $2n-1$, $-$
               match = a.match_.match(/^\$(?:\(?[+\-]?(?:[0-9]*[a-z]?[+\-])?[0-9]*[a-z](?:[+\-][0-9]*[a-z]?)?\)?|\+|-)\$$/);
               if (match) {
-                return { match_: match[0], remainder: input.substr(match[0].length) };
+                return { match_: match[0], remainder: input.substring(match[0].length) };
               }
             }
             return null;
@@ -386,7 +386,7 @@ var mhchemModule = function(katex) {
             if (input.match(/^\([a-z]+\)$/)) { return null; }  // state of aggregation = no formula
             var match = input.match(/^(?:[a-z]|(?:[0-9\ \+\-\,\.\(\)]+[a-z])+[0-9\ \+\-\,\.\(\)]*|(?:[a-z][0-9\ \+\-\,\.\(\)]+)+[a-z]?)$/);
             if (match) {
-              return { match_: match[0], remainder: input.substr(match[0].length) };
+              return { match_: match[0], remainder: input.substring(match[0].length) };
             }
             return null;
           },
@@ -412,7 +412,7 @@ var mhchemModule = function(katex) {
             var braces = 0;
             while (i < input.length) {
               var a = input.charAt(i);
-              var match = _match(input.substr(i), endChars);
+              var match = _match(input.substring(i), endChars);
               if (match !== null  &&  braces === 0) {
                 return { endMatchBegin: i, endMatchEnd: i + match.length };
               } else if (a === "{") {
@@ -433,7 +433,7 @@ var mhchemModule = function(katex) {
           };
           var match = _match(input, begExcl);
           if (match === null) { return null; }
-          input = input.substr(match.length);
+          input = input.substring(match.length);
           match = _match(input, begIncl);
           if (match === null) { return null; }
           var e = _findObserveGroups(input, match.length, endIncl || endExcl);
@@ -442,10 +442,10 @@ var mhchemModule = function(katex) {
           if (!(beg2Excl || beg2Incl)) {
             return {
               match_: match1,
-              remainder: input.substr(e.endMatchEnd)
+              remainder: input.substring(e.endMatchEnd)
             };
           } else {
-            var group2 = this.findObserveGroups(input.substr(e.endMatchEnd), beg2Excl, beg2Incl, end2Incl, end2Excl);
+            var group2 = this.findObserveGroups(input.substring(e.endMatchEnd), beg2Excl, beg2Incl, end2Incl, end2Excl);
             if (group2 === null) { return null; }
             /** @type {string[]} */
             var matchRet = [match1, group2.match_];
@@ -478,7 +478,7 @@ var mhchemModule = function(katex) {
               } else {
                 mm = match[0];
               }
-              return { match_: mm, remainder: input.substr(match[0].length) };
+              return { match_: mm, remainder: input.substring(match[0].length) };
             }
             return null;
           }
@@ -518,8 +518,8 @@ var mhchemModule = function(katex) {
           /** @type {ParserOutput[]} */
           var ret = [];
           if (m.match(/^[+\-]/)) {
-            ret.push(m.substr(0, 1));
-            m = m.substr(1);
+            ret.push(m.substring(0, 1));
+            m = m.substring(1);
           }
           var n = m.match(/^([0-9]+|\$[a-z]\$|[a-z])\/([0-9]+)(\$[a-z]\$|[a-z])?$/);
           n[1] = n[1].replace(/\$/g, "");
@@ -1236,7 +1236,7 @@ var mhchemModule = function(katex) {
               m[3] = m[4] || m[3];
               if (m[3]) {
                 m[3] = m[3].trim();
-                if (m[3] === "e"  ||  m[3].substr(0, 1) === "*") {
+                if (m[3] === "e"  ||  m[3].substring(0, 1) === "*") {
                   ret.push({ type_: 'cdot' });
                 } else {
                   ret.push({ type_: 'times' });
@@ -1359,10 +1359,10 @@ var mhchemModule = function(katex) {
               var a = buffer.text_.length % 3;
               if (a === 0) { a = 3; }
               for (var i=buffer.text_.length-3; i>0; i-=3) {
-                ret.push(buffer.text_.substr(i, 3));
+                ret.push(buffer.text_.substring(i, 3));
                 ret.push({ type_: '1000 separator' });
               }
-              ret.push(buffer.text_.substr(0, a));
+              ret.push(buffer.text_.substring(0, a));
               ret.reverse();
             } else {
               ret.push(buffer.text_);
@@ -1377,10 +1377,10 @@ var mhchemModule = function(katex) {
             if (buffer.text_.length > 4) {
               var a = buffer.text_.length - 3;
               for (var i=0; i<a; i+=3) {
-                ret.push(buffer.text_.substr(i, 3));
+                ret.push(buffer.text_.substring(i, 3));
                 ret.push({ type_: '1000 separator' });
               }
-              ret.push(buffer.text_.substr(i));
+              ret.push(buffer.text_.substring(i));
             } else {
               ret.push(buffer.text_);
             }

@@ -12,7 +12,7 @@ export const declaration: CommandDeclaration = {
 
 export const runtime = (): CommandRuntime => {
 	return {
-		execute: async (_context: CommandContext, folderId: string = null) => {
+		execute: async (_context: CommandContext, folderId: string = '') => {
 			const answer = confirm(_('This will remove the notebook from your collection and you will no longer have access to its content. Do you wish to continue?'));
 			if (!answer) return;
 
@@ -25,10 +25,10 @@ export const runtime = (): CommandRuntime => {
 				const share = shares.find(s => s.folder_id === folderId);
 				if (!share) throw new Error(_('Could not verify the share status of this notebook - aborting. Please try again when you are connected to the internet.'));
 
-				await ShareService.instance().leaveSharedFolder(folderId, share.user.id);
+				if (share.user) await ShareService.instance().leaveSharedFolder(folderId, share.user.id);
 			} catch (error) {
 				logger.error(error);
-				alert(_('Error: %s', error.message));
+				alert(_('Error: %s', (error as Error).message));
 			}
 		},
 		enabledCondition: 'xilinotaServerConnected && folderIsShareRootAndNotOwnedByUser',

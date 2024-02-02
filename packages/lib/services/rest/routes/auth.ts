@@ -2,13 +2,13 @@
 import { AuthTokenStatus, Request, RequestContext } from '../Api';
 import uuid from '../../../uuid_';
 
-let authToken: string = null;
+let authToken: string = '';
 
-export default async function(request: Request, id: string = null, _link: string = null, context: RequestContext = null) {
+export default async function(request: Request, id: string = '', _link: string = '', context: RequestContext|null = null) {
 	if (request.method === 'POST') {
 		authToken = uuid.createNano();
 
-		context.dispatch({
+		if (context) context.dispatch({
 			type: 'API_AUTH_TOKEN_SET',
 			value: authToken,
 		});
@@ -19,7 +19,7 @@ export default async function(request: Request, id: string = null, _link: string
 	if (request.method === 'GET') {
 		if (id === 'check') {
 			if ('auth_token' in request.query) {
-				if (context.authToken && request.query.auth_token === context.authToken.value) {
+				if (context && context.authToken && request.query.auth_token === context.authToken.value) {
 					const output: any = {
 						status: context.authToken.status,
 					};
@@ -35,7 +35,7 @@ export default async function(request: Request, id: string = null, _link: string
 			}
 
 			if ('token' in request.query) {
-				const isValid = request.query.token === context.token;
+				const isValid = !!context && request.query.token === context.token;
 
 				if (isValid) {
 					context.dispatch({

@@ -1,17 +1,17 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import shim from '@xilinota/lib/shim';
 import Setting from '@xilinota/lib/models/Setting';
-const { themeStyle } = require('../../global-style.js');
+import { themeStyle } from '../../global-style';
+
 import markupLanguageUtils from '@xilinota/lib/markupLanguageUtils';
 import useEditPopup from './useEditPopup';
 import Logger from '@xilinota/utils/Logger';
-const { assetsToHeaders } = require('@xilinota/renderer');
+import assetsToHeaders from '@xilinota/renderer/assetsToHeaders';
 
 const logger = Logger.create('NoteBodyViewer/useSource');
-
 interface UseSourceResult {
 	// [html] can be null if the note is still being rendered.
-	html: string|null;
+	html: string | null;
 	injectedJs: string[];
 }
 
@@ -23,7 +23,7 @@ function usePrevious(value: any, initialValue: any = null): any {
 	return ref.current;
 }
 
-const onlyCheckboxHasChangedHack = (previousBody: string, newBody: string) => {
+const onlyCheckboxHasChangedHack = (previousBody: string, newBody: string): boolean => {
 	if (previousBody.length !== newBody.length) return false;
 
 	for (let i = 0; i < previousBody.length; i++) {
@@ -52,13 +52,13 @@ export default function useSource(noteBody: string, noteMarkupLanguage: number, 
 		return {
 			bodyPaddingTop: paddingTop, // Extra top padding on the rendered MD so it doesn't touch the border
 			bodyPaddingBottom: paddingBottom, // Extra bottom padding to make it possible to scroll past the action button (so that it doesn't overlap the text)
-			...themeStyle(themeId),
+			...themeStyle(themeId.toString()),
 		};
 	}, [themeId, paddingBottom]);
 
 	const markupToHtml = useMemo(() => {
 		return markupLanguageUtils.newMarkupToHtml();
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [isFirstRender]);
 
 	// To address https://github.com/XilinJia/Xilinota/issues/433
@@ -96,13 +96,13 @@ export default function useSource(noteBody: string, noteMarkupLanguage: number, 
 	useEffect(() => {
 		if (onlyNoteBodyHasChanged && onlyCheckboxesHaveChanged) {
 			logger.info('Only a checkbox has changed - not updating HTML');
-			return () => {};
+			return () => { };
 		}
 
 		let cancelled = false;
 
 		async function renderNote() {
-			const theme = themeStyle(themeId);
+			const theme = themeStyle(themeId.toString());
 
 			const bodyToRender = noteBody || '';
 
@@ -187,8 +187,8 @@ export default function useSource(noteBody: string, noteMarkupLanguage: number, 
 				}
 
 				/*
-				 iOS seems to increase inertial scrolling friction when the WebView body/root elements
-				 scroll. Scroll the main container instead.
+				iOS seems to increase inertial scrolling friction when the WebView body/root elements
+				scroll. Scroll the main container instead.
 				*/
 				body > #rendered-md {
 					width: 100vw;
@@ -250,7 +250,7 @@ export default function useSource(noteBody: string, noteMarkupLanguage: number, 
 		return () => {
 			cancelled = true;
 		};
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, effectDependencies);
 
 	return { html, injectedJs };

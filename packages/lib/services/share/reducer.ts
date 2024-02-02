@@ -86,7 +86,7 @@ export function isSharedFolderOwner(state: RootState, folderId: string): boolean
 	const userId = state.settings['sync.userId'];
 	const share = state[stateRootKey].shares.find(s => s.folder_id === folderId);
 	if (!share) return false;
-	return share.user.id === userId;
+	return !!share.user && share.user.id === userId;
 }
 
 export function isRootSharedFolder(folder: FolderEntity): boolean {
@@ -140,7 +140,7 @@ const reducer = (draftRoot: Draft<RootState>, action: any) => {
 
 		}
 	} catch (error) {
-		error.message = `In share reducer: ${error.message} Action: ${JSON.stringify(action)}`;
+		if (error instanceof Error) error.message = `In share reducer: ${error.message} Action: ${JSON.stringify(action)}`;
 		throw error;
 	}
 };

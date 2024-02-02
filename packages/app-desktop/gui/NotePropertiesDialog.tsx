@@ -7,15 +7,14 @@ import Note from '@xilinota/lib/models/Note';
 import bridge from '../services/bridge';
 import shim from '@xilinota/lib/shim';
 import { NoteEntity } from '@xilinota/lib/services/database/types';
-const Datetime = require('react-datetime').default;
-const { clipboard } = require('electron');
+import Datetime from 'react-datetime';
+import { clipboard } from 'electron';
+
 const formatcoords = require('formatcoords');
 
 interface Props {
 	noteId: string;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	onClose: Function;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	onRevisionLinkClick: Function;
 	themeId: number;
 }
@@ -30,7 +29,7 @@ class NotePropertiesDialog extends React.Component<Props, State> {
 
 	private okButton: any;
 	private keyToLabel_: Record<string, string>;
-	private styleKey_: number;
+	private styleKey_: number = 0;
 	private styles_: any;
 
 	public constructor(props: Props) {
@@ -42,7 +41,7 @@ class NotePropertiesDialog extends React.Component<Props, State> {
 
 		this.state = {
 			formNote: null,
-			editedKey: null,
+			editedKey: '',
 			editedValue: null,
 		};
 
@@ -63,16 +62,17 @@ class NotePropertiesDialog extends React.Component<Props, State> {
 	}
 
 	public componentDidUpdate() {
-		if (this.state.editedKey === null) {
+		if (!this.state.editedKey) {
 			this.okButton.current.focus();
 		}
 	}
 
-	public async loadNote(noteId: string) {
+	public async loadNote(noteId: string): Promise<void> {
 		if (!noteId) {
 			this.setState({ formNote: null });
 		} else {
 			const note = await Note.load(noteId);
+			if (!note) return;
 			const formNote = this.noteToFormNote(note);
 			this.setState({ formNote: formNote });
 		}
@@ -94,8 +94,8 @@ class NotePropertiesDialog extends React.Component<Props, State> {
 	public noteToFormNote(note: NoteEntity) {
 		const formNote: any = {};
 
-		formNote.user_updated_time = time.formatMsToLocal(note.user_updated_time);
-		formNote.user_created_time = time.formatMsToLocal(note.user_created_time);
+		formNote.user_updated_time = time.formatMsToLocal(note.user_updated_time ?? 0);
+		formNote.user_created_time = time.formatMsToLocal(note.user_created_time ?? 0);
 
 		if (note.todo_completed) {
 			formNote.todo_completed = time.formatMsToLocal(note.todo_completed);
@@ -109,7 +109,7 @@ class NotePropertiesDialog extends React.Component<Props, State> {
 		}
 
 		formNote.revisionsLink = note.id;
-		formNote.markup_language = Note.markupLanguageToLabel(note.markup_language);
+		formNote.markup_language = Note.markupLanguageToLabel(note.markup_language ?? 0);
 		formNote.id = note.id;
 
 		return formNote;
@@ -212,7 +212,6 @@ class NotePropertiesDialog extends React.Component<Props, State> {
 	public async saveProperty() {
 		if (!this.state.editedKey) return null;
 
-		// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 		return new Promise((resolve: Function) => {
 			const newFormNote = { ...this.state.formNote };
 
@@ -226,7 +225,7 @@ class NotePropertiesDialog extends React.Component<Props, State> {
 			this.setState(
 				{
 					formNote: newFormNote,
-					editedKey: null,
+					editedKey: '',
 					editedValue: null,
 				},
 				() => {
@@ -237,11 +236,10 @@ class NotePropertiesDialog extends React.Component<Props, State> {
 	}
 
 	public async cancelProperty() {
-		// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 		return new Promise((resolve: Function) => {
 			this.okButton.current.focus();
 			this.setState({
-				editedKey: null,
+				editedKey: '',
 				editedValue: null,
 			}, () => {
 				resolve();
@@ -406,7 +404,7 @@ class NotePropertiesDialog extends React.Component<Props, State> {
 				<div style={theme.dialogBox}>
 					<div style={theme.dialogTitle}>{_('Note properties')}</div>
 					<div>{noteComps}</div>
-					<DialogButtonRow themeId={this.props.themeId} okButtonRef={this.okButton} onClick={this.buttonRow_click}/>
+					<DialogButtonRow themeId={this.props.themeId} okButtonRef={this.okButton} onClick={this.buttonRow_click} />
 				</div>
 			</div>
 		);

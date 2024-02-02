@@ -7,8 +7,7 @@ import theme_nord from './themes/nord';
 import theme_aritimDark from './themes/aritimDark';
 import theme_oledDark from './themes/oledDark';
 import Setting from './models/Setting';
-
-const Color = require('color');
+import Color from 'color';
 
 const themes: any = {
 	[Setting.THEME_LIGHT]: theme_light,
@@ -42,7 +41,7 @@ export function themeById(themeId: string) {
 
 // globalStyle should be used for properties that do not change across themes
 // i.e. should not be used for colors
-const globalStyle: any = {
+const globalStyle: Record<string, any> = {
 	fontFamily: 'Roboto', // 'sans-serif',
 	margin: 15, // No text and no interactive component should be within this margin
 	itemMarginTop: 10,
@@ -111,7 +110,7 @@ globalStyle.buttonStyle = {
 	borderRadius: 4,
 };
 
-export function addExtraStyles(style: any) {
+export function addExtraStyles(style: Record<string, any>): Record<string, any> {
 	const zoomRatio = 1;
 
 	const fontSizes: any = {
@@ -234,16 +233,19 @@ export function addExtraStyles(style: any) {
 
 	style.clickableTextStyle = { ...style.textStyle, userSelect: 'none' };
 
-	style.textStyle2 = { ...style.textStyle,
+	style.textStyle2 = {
+		...style.textStyle,
 		color: style.color2,
 	};
 
-	style.textStyleMinor = { ...style.textStyle,
+	style.textStyleMinor = {
+		...style.textStyle,
 		color: style.colorFaded,
 		fontSize: style.fontSize * 0.8,
 	};
 
-	style.urlStyle = { ...style.textStyle,
+	style.urlStyle = {
+		...style.textStyle,
 		textDecoration: 'underline',
 		color: style.urlColor,
 	};
@@ -332,7 +334,7 @@ export function addExtraStyles(style: any) {
 	return style;
 }
 
-const themeCache_: any = {};
+const themeCache_: Record<string, any> = {};
 
 export function themeStyle(themeId: number) {
 	if (!themeId) throw new Error('Theme must be specified');
@@ -352,7 +354,7 @@ export function themeStyle(themeId: number) {
 	return themeCache_[cacheKey];
 }
 
-const cachedStyles_: any = {
+const cachedStyles_: Record<string, any> = {
 	themeId: null,
 	styles: {},
 };
@@ -360,9 +362,9 @@ const cachedStyles_: any = {
 // cacheKey must be a globally unique key, and must change whenever
 // the dependencies of the style change. If the style depends only
 // on the theme, a static string can be provided as a cache key.
-// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-export function buildStyle(cacheKey: any, themeId: number, callback: Function) {
-	cacheKey = Array.isArray(cacheKey) ? cacheKey.join('_') : cacheKey;
+
+export function buildStyle(cacheKey_: string | string[], themeId: number, callback: Function): Record<string, any> {
+	const cacheKey = Array.isArray(cacheKey_) ? cacheKey_.join('_') : cacheKey_;
 
 	// We clear the cache whenever switching themes
 	if (cachedStyles_.themeId !== themeId) {

@@ -5,8 +5,8 @@ import { Options } from '@xilinota/renderer/MarkupToHtml';
 
 class MarkupLanguageUtils extends BaseMarkupLanguageUtils {
 
-	public newMarkupToHtml(plugins: PluginStates = null, options: Options = null) {
-		plugins = plugins || {};
+	public newMarkupToHtml(plugins: PluginStates = {}, options: Options = {}) {
+		// plugins = plugins || {};
 
 		return super.newMarkupToHtml(null, {
 			extraRendererRules: contentScriptsToRendererRules(plugins),

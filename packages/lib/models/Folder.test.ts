@@ -19,33 +19,33 @@ describe('models/Folder', () => {
 
 	it('should tell if a folder can be nested under another one', (async () => {
 		const f1 = await Folder.save({ title: 'folder1' });
-		const f2 = await Folder.save({ title: 'folder2', parent_id: f1.id });
-		const f3 = await Folder.save({ title: 'folder3', parent_id: f2.id });
+		const f2 = await Folder.save({ title: 'folder2', parent_id: f1.id! });
+		const f3 = await Folder.save({ title: 'folder3', parent_id: f2.id! });
 		const f4 = await Folder.save({ title: 'folder4' });
 
-		expect(await Folder.canNestUnder(f1.id, f2.id)).toBe(false);
-		expect(await Folder.canNestUnder(f2.id, f2.id)).toBe(false);
-		expect(await Folder.canNestUnder(f3.id, f1.id)).toBe(true);
-		expect(await Folder.canNestUnder(f4.id, f1.id)).toBe(true);
-		expect(await Folder.canNestUnder(f2.id, f3.id)).toBe(false);
-		expect(await Folder.canNestUnder(f3.id, f2.id)).toBe(true);
-		expect(await Folder.canNestUnder(f1.id, '')).toBe(true);
-		expect(await Folder.canNestUnder(f2.id, '')).toBe(true);
+		expect(await Folder.canNestUnder(f1.id!, f2.id!)).toBe(false);
+		expect(await Folder.canNestUnder(f2.id!, f2.id!)).toBe(false);
+		expect(await Folder.canNestUnder(f3.id!, f1.id!)).toBe(true);
+		expect(await Folder.canNestUnder(f4.id!, f1.id!)).toBe(true);
+		expect(await Folder.canNestUnder(f2.id!, f3.id!)).toBe(false);
+		expect(await Folder.canNestUnder(f3.id!, f2.id!)).toBe(true);
+		expect(await Folder.canNestUnder(f1.id!, '')).toBe(true);
+		expect(await Folder.canNestUnder(f2.id!, '')).toBe(true);
 	}));
 
 	it('should recursively delete notes and sub-folders', (async () => {
 		const f1 = await Folder.save({ title: 'folder1' });
-		const f2 = await Folder.save({ title: 'folder2', parent_id: f1.id });
-		const f3 = await Folder.save({ title: 'folder3', parent_id: f2.id });
-		const f4 = await Folder.save({ title: 'folder4', parent_id: f1.id });
+		const f2 = await Folder.save({ title: 'folder2', parent_id: f1.id! });
+		const f3 = await Folder.save({ title: 'folder3', parent_id: f2.id! });
+		const f4 = await Folder.save({ title: 'folder4', parent_id: f1.id! });
 
 		const noOfNotes = 20;
-		await createNTestNotes(noOfNotes, f1, null, 'note1');
-		await createNTestNotes(noOfNotes, f2, null, 'note2');
-		await createNTestNotes(noOfNotes, f3, null, 'note3');
-		await createNTestNotes(noOfNotes, f4, null, 'note4');
+		await createNTestNotes(noOfNotes, f1, [], 'note1');
+		await createNTestNotes(noOfNotes, f2, [], 'note2');
+		await createNTestNotes(noOfNotes, f3, [], 'note3');
+		await createNTestNotes(noOfNotes, f4, [], 'note4');
 
-		await Folder.delete(f1.id);
+		await Folder.delete(f1.id!);
 
 		const all = await allItems();
 		expect(all.length).toBe(0);
@@ -57,7 +57,7 @@ describe('models/Folder', () => {
 		const f1 = await Folder.save({ title: 'folder1' }); await sleep(0.1);
 		const f2 = await Folder.save({ title: 'folder2' }); await sleep(0.1);
 		const f3 = await Folder.save({ title: 'folder3' }); await sleep(0.1);
-		const n1 = await Note.save({ title: 'note1', parent_id: f2.id });
+		const n1 = await Note.save({ title: 'note1', parent_id: f2.id! });
 
 		folders = await Folder.orderByLastModified(await Folder.all(), 'desc');
 		expect(folders.length).toBe(3);
@@ -65,7 +65,7 @@ describe('models/Folder', () => {
 		expect(folders[1].id).toBe(f3.id);
 		expect(folders[2].id).toBe(f1.id);
 
-		await Note.save({ title: 'note1', parent_id: f1.id });
+		await Note.save({ title: 'note1', parent_id: f1.id! });
 
 		folders = await Folder.orderByLastModified(await Folder.all(), 'desc');
 		expect(folders[0].id).toBe(f1.id);
@@ -90,8 +90,8 @@ describe('models/Folder', () => {
 
 		const f1 = await Folder.save({ title: 'folder1' }); await sleep(0.1);
 		const f2 = await Folder.save({ title: 'folder2' }); await sleep(0.1);
-		const f3 = await Folder.save({ title: 'folder3', parent_id: f1.id }); await sleep(0.1);
-		const n1 = await Note.save({ title: 'note1', parent_id: f3.id });
+		const f3 = await Folder.save({ title: 'folder3', parent_id: f1.id! }); await sleep(0.1);
+		const n1 = await Note.save({ title: 'note1', parent_id: f3.id! });
 
 		folders = await Folder.orderByLastModified(await Folder.all(), 'desc');
 		expect(folders.length).toBe(3);
@@ -99,7 +99,7 @@ describe('models/Folder', () => {
 		expect(folders[1].id).toBe(f3.id);
 		expect(folders[2].id).toBe(f2.id);
 
-		await Note.save({ title: 'note2', parent_id: f2.id });
+		await Note.save({ title: 'note2', parent_id: f2.id! });
 		folders = await Folder.orderByLastModified(await Folder.all(), 'desc');
 
 		expect(folders[0].id).toBe(f2.id);
@@ -113,8 +113,8 @@ describe('models/Folder', () => {
 		expect(folders[1].id).toBe(f3.id);
 		expect(folders[2].id).toBe(f2.id);
 
-		const f4 = await Folder.save({ title: 'folder4', parent_id: f1.id }); await sleep(0.1);
-		await Note.save({ title: 'note3', parent_id: f4.id });
+		const f4 = await Folder.save({ title: 'folder4', parent_id: f1.id! }); await sleep(0.1);
+		await Note.save({ title: 'note3', parent_id: f4.id! });
 
 		folders = await Folder.orderByLastModified(await Folder.all(), 'desc');
 		expect(folders.length).toBe(4);
@@ -126,35 +126,35 @@ describe('models/Folder', () => {
 
 	it('should add node counts', (async () => {
 		const f1 = await Folder.save({ title: 'folder1' });
-		const f2 = await Folder.save({ title: 'folder2', parent_id: f1.id });
-		const f3 = await Folder.save({ title: 'folder3', parent_id: f2.id });
+		const f2 = await Folder.save({ title: 'folder2', parent_id: f1.id! });
+		const f3 = await Folder.save({ title: 'folder3', parent_id: f2.id! });
 		const f4 = await Folder.save({ title: 'folder4' });
 
-		await Note.save({ title: 'note1', parent_id: f3.id });
-		await Note.save({ title: 'note1', parent_id: f3.id });
-		await Note.save({ title: 'note1', parent_id: f1.id });
-		await Note.save({ title: 'conflicted', parent_id: f1.id, is_conflict: 1 });
+		await Note.save({ title: 'note1', parent_id: f3.id! });
+		await Note.save({ title: 'note1', parent_id: f3.id! });
+		await Note.save({ title: 'note1', parent_id: f1.id! });
+		await Note.save({ title: 'conflicted', parent_id: f1.id!, is_conflict: 1 });
 
 		{
 			const folders = await Folder.all({ includeConflictFolder: false });
 			await Folder.addNoteCounts(folders);
 			const foldersById: any = {};
-			// eslint-disable-next-line github/array-foreach -- Old code before rule was applied
-			folders.forEach((f: FolderEntity) => { foldersById[f.id] = f; });
+
+			folders.forEach((f: FolderEntity) => { foldersById[f.id!] = f; });
 
 			expect(folders.length).toBe(4);
-			expect(foldersById[f1.id].note_count).toBe(3);
-			expect(foldersById[f2.id].note_count).toBe(2);
-			expect(foldersById[f3.id].note_count).toBe(2);
-			expect(foldersById[f4.id].note_count).toBe(0);
+			expect(foldersById[f1.id!].note_count).toBe(3);
+			expect(foldersById[f2.id!].note_count).toBe(2);
+			expect(foldersById[f3.id!].note_count).toBe(2);
+			expect(foldersById[f4.id!].note_count).toBe(0);
 		}
 
 		{
 			const folders = await Folder.all({ includeConflictFolder: true });
 			await Folder.addNoteCounts(folders);
 			const foldersById: any = {};
-			// eslint-disable-next-line github/array-foreach -- Old code before rule was applied
-			folders.forEach((f: FolderEntity) => { foldersById[f.id] = f; });
+
+			folders.forEach((f: FolderEntity) => { foldersById[f.id!] = f; });
 
 			expect(folders.length).toBe(5);
 			expect(foldersById[Folder.conflictFolderId()].note_count).toBe(1);
@@ -164,38 +164,38 @@ describe('models/Folder', () => {
 	it('should not count completed to-dos', (async () => {
 
 		const f1 = await Folder.save({ title: 'folder1' });
-		const f2 = await Folder.save({ title: 'folder2', parent_id: f1.id });
-		const f3 = await Folder.save({ title: 'folder3', parent_id: f2.id });
+		const f2 = await Folder.save({ title: 'folder2', parent_id: f1.id! });
+		const f3 = await Folder.save({ title: 'folder3', parent_id: f2.id! });
 		const f4 = await Folder.save({ title: 'folder4' });
 
-		await Note.save({ title: 'note1', parent_id: f3.id });
-		await Note.save({ title: 'note2', parent_id: f3.id });
-		await Note.save({ title: 'note3', parent_id: f1.id });
-		await Note.save({ title: 'note4', parent_id: f3.id, is_todo: 1, todo_completed: 0 });
-		await Note.save({ title: 'note5', parent_id: f3.id, is_todo: 1, todo_completed: 999 });
-		await Note.save({ title: 'note6', parent_id: f3.id, is_todo: 1, todo_completed: 999 });
+		await Note.save({ title: 'note1', parent_id: f3.id! });
+		await Note.save({ title: 'note2', parent_id: f3.id! });
+		await Note.save({ title: 'note3', parent_id: f1.id! });
+		await Note.save({ title: 'note4', parent_id: f3.id!, is_todo: 1, todo_completed: 0 });
+		await Note.save({ title: 'note5', parent_id: f3.id!, is_todo: 1, todo_completed: 999 });
+		await Note.save({ title: 'note6', parent_id: f3.id!, is_todo: 1, todo_completed: 999 });
 
 		const folders = await Folder.all();
 		await Folder.addNoteCounts(folders, false);
 
 		const foldersById: any = {};
-		// eslint-disable-next-line github/array-foreach -- Old code before rule was applied
-		folders.forEach((f: FolderEntity) => { foldersById[f.id] = f; });
+
+		folders.forEach((f: FolderEntity) => { foldersById[f.id!] = f; });
 
 		expect(folders.length).toBe(4);
-		expect(foldersById[f1.id].note_count).toBe(4);
-		expect(foldersById[f2.id].note_count).toBe(3);
-		expect(foldersById[f3.id].note_count).toBe(3);
-		expect(foldersById[f4.id].note_count).toBe(0);
+		expect(foldersById[f1.id!].note_count).toBe(4);
+		expect(foldersById[f2.id!].note_count).toBe(3);
+		expect(foldersById[f3.id!].note_count).toBe(3);
+		expect(foldersById[f4.id!].note_count).toBe(0);
 	}));
 
 	it('should recursively find folder path', (async () => {
 		const f1 = await Folder.save({ title: 'folder1' });
-		const f2 = await Folder.save({ title: 'folder2', parent_id: f1.id });
-		const f3 = await Folder.save({ title: 'folder3', parent_id: f2.id });
+		const f2 = await Folder.save({ title: 'folder2', parent_id: f1.id! });
+		const f3 = await Folder.save({ title: 'folder3', parent_id: f2.id! });
 
 		const folders = await Folder.all();
-		const folderPath = await Folder.folderPath(folders, f3.id);
+		const folderPath = await Folder.folderPath(folders, f3.id!);
 
 		expect(folderPath.length).toBe(3);
 		expect(folderPath[0].id).toBe(f1.id);
@@ -205,10 +205,10 @@ describe('models/Folder', () => {
 
 	it('should sort folders alphabetically', (async () => {
 		const f1 = await Folder.save({ title: 'folder1' });
-		const f2 = await Folder.save({ title: 'folder2', parent_id: f1.id });
-		const f3 = await Folder.save({ title: 'folder3', parent_id: f1.id });
+		const f2 = await Folder.save({ title: 'folder2', parent_id: f1.id! });
+		const f3 = await Folder.save({ title: 'folder3', parent_id: f1.id! });
 		const f4 = await Folder.save({ title: 'folder4' });
-		const f5 = await Folder.save({ title: 'folder5', parent_id: f4.id });
+		const f5 = await Folder.save({ title: 'folder5', parent_id: f4.id! });
 		const f6 = await Folder.save({ title: 'folder6' });
 
 		const folders = await Folder.allAsTree();
@@ -216,16 +216,18 @@ describe('models/Folder', () => {
 
 		expect(sortedFolderTree.length).toBe(3);
 		expect(sortedFolderTree[0].id).toBe(f1.id);
-		expect(sortedFolderTree[0].children[0].id).toBe(f2.id);
-		expect(sortedFolderTree[0].children[1].id).toBe(f3.id);
+		if (sortedFolderTree[0].children) {
+			expect(sortedFolderTree[0].children[0].id).toBe(f2.id);
+			expect(sortedFolderTree[0].children[1].id).toBe(f3.id);
+		}
 		expect(sortedFolderTree[1].id).toBe(f4.id);
-		expect(sortedFolderTree[1].children[0].id).toBe(f5.id);
+		if (sortedFolderTree[1].children) expect(sortedFolderTree[1].children[0].id).toBe(f5.id);
 		expect(sortedFolderTree[2].id).toBe(f6.id);
 	}));
 
 	it('should not allow setting a folder parent as itself', (async () => {
 		const f1 = await Folder.save({ title: 'folder1' });
-		const hasThrown = await checkThrowAsync(() => Folder.save({ id: f1.id, parent_id: f1.id }, { userSideValidation: true }));
+		const hasThrown = await checkThrowAsync(() => Folder.save({ id: f1.id, parent_id: f1.id! }, { userSideValidation: true }));
 		expect(hasThrown).toBe(true);
 	}));
 
@@ -271,17 +273,17 @@ describe('models/Folder', () => {
 		const folder5 = await Folder.loadByTitle('folder 5');
 
 		{
-			const children = await Folder.allChildrenFolders(folder.id);
-			expect(children.map(c => c.id).sort()).toEqual([folder2.id, folder3.id].sort());
+			const children = await Folder.allChildrenFolders(folder!.id!);
+			expect(children.map(c => c.id).sort()).toEqual([folder2!.id, folder3!.id].sort());
 		}
 
 		{
-			const children = await Folder.allChildrenFolders(folder4.id);
-			expect(children.map(c => c.id).sort()).toEqual([folder5.id].sort());
+			const children = await Folder.allChildrenFolders(folder4!.id);
+			expect(children.map(c => c.id).sort()).toEqual([folder5!.id].sort());
 		}
 
 		{
-			const children = await Folder.allChildrenFolders(folder5.id);
+			const children = await Folder.allChildrenFolders(folder5!.id);
 			expect(children.map(c => c.id).sort()).toEqual([].sort());
 		}
 	}));
@@ -290,7 +292,7 @@ describe('models/Folder', () => {
 		const cleanup = simulateReadOnlyShareEnv('123456789');
 
 		const readonlyFolder = await Folder.save({ share_id: '123456789' });
-		await expectThrow(async () => Folder.save({ parent_id: readonlyFolder.id }), ErrorCode.IsReadOnly);
+		await expectThrow(async () => Folder.save({ parent_id: readonlyFolder.id! }), ErrorCode.IsReadOnly);
 
 		cleanup();
 	});
@@ -300,7 +302,7 @@ describe('models/Folder', () => {
 
 		const readonlyFolder = await Folder.save({ share_id: '123456789' });
 		const folder = await Folder.save({});
-		await expectThrow(async () => Folder.save({ id: folder.id, parent_id: readonlyFolder.id }), ErrorCode.IsReadOnly);
+		await expectThrow(async () => Folder.save({ id: folder.id, parent_id: readonlyFolder.id! }), ErrorCode.IsReadOnly);
 
 		cleanup();
 	});
@@ -318,7 +320,7 @@ describe('models/Folder', () => {
 		const cleanup = simulateReadOnlyShareEnv('123456789');
 
 		const readonlyFolder = await Folder.save({ share_id: '123456789' });
-		await expectThrow(async () => Folder.delete(readonlyFolder.id), ErrorCode.IsReadOnly);
+		await expectThrow(async () => Folder.delete(readonlyFolder.id!), ErrorCode.IsReadOnly);
 
 		cleanup();
 	});

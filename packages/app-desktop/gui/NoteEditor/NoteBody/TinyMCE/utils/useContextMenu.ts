@@ -36,15 +36,15 @@ function contextMenuElement(editor: any, x: number, y: number) {
 }
 
 interface ContextMenuActionOptions {
-	current: ContextMenuOptions;
+	current: ContextMenuOptions | null;
 }
 
 const contextMenuActionOptions: ContextMenuActionOptions = { current: null };
 
-// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
+
 export default function(editor: any, plugins: PluginStates, dispatch: Function) {
 	useEffect(() => {
-		if (!editor) return () => {};
+		if (!editor) return () => { };
 
 		const contextMenuItems = menuItems(dispatch);
 
@@ -70,10 +70,10 @@ export default function(editor: any, plugins: PluginStates, dispatch: Function) 
 			contextMenuActionOptions.current = {
 				itemType,
 				resourceId,
-				filename: null,
-				mime: null,
+				filename: '',
+				mime: '',
 				linkToCopy,
-				textToCopy: null,
+				textToCopy: '',
 				htmlToCopy: editor.selection ? editor.selection.getContent() : '',
 				insertContent: (content: string) => {
 					editor.insertContent(content);
@@ -114,7 +114,7 @@ export default function(editor: any, plugins: PluginStates, dispatch: Function) 
 		bridge().window().webContents.on('context-menu', onContextMenu);
 
 		return () => {
-			if (bridge().window()?.webContents?.off) {
+			if (bridge().window().webContents.off) {
 				bridge().window().webContents.off('context-menu', onContextMenu);
 			}
 		};

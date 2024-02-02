@@ -1,7 +1,7 @@
 import shim from '../shim';
 import { _, supportedLocalesToLanguages, defaultLocale } from '../locale';
 import eventManager from '../eventManager';
-import BaseModel from '../BaseModel';
+import BaseModel, { ModelType } from '../BaseModel';
 import Database from '../database';
 import SyncTargetRegistry from '../SyncTargetRegistry';
 import time from '../time';
@@ -10,10 +10,11 @@ import Logger from '@xilinota/utils/Logger';
 import mergeGlobalAndLocalSettings from '../services/profileConfig/mergeGlobalAndLocalSettings';
 import splitGlobalAndLocalSettings from '../services/profileConfig/splitGlobalAndLocalSettings';
 import XilinotaError from '../XilinotaError';
-const { sprintf } = require('sprintf-js');
-const ObjectUtils = require('../ObjectUtils');
-const { toTitleCase } = require('../string-utils.js');
-const { rtrimSlashes, toSystemSlashes } = require('../path-utils');
+import { sprintf } from 'sprintf-js';
+import { sortByValue } from '../ObjectUtils';
+import { toTitleCase } from '../string-utils';
+import { rtrimSlashes, toSystemSlashes } from '../path-utils';
+import BaseItem from './BaseItem';
 
 const logger = Logger.create('models/Setting');
 
@@ -57,7 +58,6 @@ export interface SettingItem {
 	isEnum?: boolean;
 	section?: string;
 	label?(): string;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	description?: Function;
 	options?(): any;
 	optionsOrder?(): string[];
@@ -70,7 +70,6 @@ export interface SettingItem {
 	maximum?: number;
 	step?: number;
 	onClick?(): void;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	unitLabel?: Function;
 	needRestart?: boolean;
 	autoSave?: boolean;
@@ -210,7 +209,6 @@ const defaultMigrations: DefaultMigration[] = [
 interface UserSettingMigration {
 	oldName: string;
 	newName: string;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	transformValue: Function;
 }
 
@@ -306,36 +304,36 @@ class Setting extends BaseModel {
 
 	public static autoSaveEnabled = true;
 
-	private static metadata_: SettingItems = null;
+	private static metadata_: SettingItems | undefined;
 	private static keychainService_: any = null;
-	private static keys_: string[] = null;
+	private static keys_: string[] | undefined;
 	private static cache_: CacheItem[] = [];
 	private static saveTimeoutId_: any = null;
 	private static changeEventTimeoutId_: any = null;
 	private static customMetadata_: SettingItems = {};
 	private static customSections_: SettingSections = {};
 	private static changedKeys_: string[] = [];
-	private static fileHandler_: FileHandler = null;
-	private static rootFileHandler_: FileHandler = null;
+	private static fileHandler_: FileHandler | null = null;
+	private static rootFileHandler_: FileHandler | null = null;
 	private static settingFilename_ = 'settings.json';
-	private static buildInMetadata_: SettingItems = null;
+	private static buildInMetadata_: SettingItems | null = null;
 
-	public static tableName() {
+	public static tableName(): string {
 		return 'settings';
 	}
 
-	public static modelType() {
+	public static modelType(): ModelType {
 		return BaseModel.TYPE_SETTING;
 	}
 
-	public static async reset() {
+	public static async reset(): Promise<void> {
 		if (this.saveTimeoutId_) shim.clearTimeout(this.saveTimeoutId_);
 		if (this.changeEventTimeoutId_) shim.clearTimeout(this.changeEventTimeoutId_);
 
 		this.saveTimeoutId_ = null;
 		this.changeEventTimeoutId_ = null;
-		this.metadata_ = null;
-		this.keys_ = null;
+		this.metadata_ = undefined;
+		this.keys_ = undefined;
 		this.cache_ = [];
 		this.customMetadata_ = {};
 		this.fileHandler_ = null;
@@ -794,7 +792,7 @@ class Setting extends BaseModel {
 				public: true,
 				label: () => _('Language'),
 				options: () => {
-					return ObjectUtils.sortByValue(supportedLocalesToLanguages({ includeStats: true }));
+					return sortByValue(supportedLocalesToLanguages({ includeStats: true }));
 				},
 				storage: SettingStorage.File,
 				isGlobal: true,
@@ -933,7 +931,7 @@ class Setting extends BaseModel {
 				appTypes: [AppType.Cli],
 				label: () => _('Sort notes by'),
 				options: () => {
-					const Note = require('./Note').default;
+					const Note = BaseItem.getClass('Note');
 					const noteSortFields = ['user_updated_time', 'user_created_time', 'title', 'order'];
 					const options: any = {};
 					for (let i = 0; i < noteSortFields.length; i++) {
@@ -1021,7 +1019,7 @@ class Setting extends BaseModel {
 				appTypes: [AppType.Cli],
 				label: () => _('Sort notebooks by'),
 				options: () => {
-					const Folder = require('./Folder').default;
+					const Folder = BaseItem.getClass('Folder');
 					const folderSortFields = ['title', 'last_note_user_updated_time'];
 					const options: any = {};
 					for (let i = 0; i < folderSortFields.length; i++) {
@@ -1422,22 +1420,26 @@ class Setting extends BaseModel {
 			tagHeaderIsExpanded: { value: true, type: SettingItemType.Bool, public: false, appTypes: [AppType.Desktop] },
 			folderHeaderIsExpanded: { value: true, type: SettingItemType.Bool, public: false, appTypes: [AppType.Desktop] },
 			editor: { value: '', type: SettingItemType.String, subType: 'file_path_and_args', storage: SettingStorage.File, isGlobal: true, public: true, appTypes: [AppType.Cli, AppType.Desktop], label: () => _('Text editor command'), description: () => _('The editor command (may include arguments) that will be used to open a note. If none is provided it will try to auto-detect the default editor.') },
-			'export.pdfPageSize': { value: 'A4', type: SettingItemType.String, advanced: true, storage: SettingStorage.File, isGlobal: true, isEnum: true, public: true, appTypes: [AppType.Desktop], label: () => _('Page size for PDF export'), options: () => {
-				return {
-					'A4': _('A4'),
-					'Letter': _('Letter'),
-					'A3': _('A3'),
-					'A5': _('A5'),
-					'Tabloid': _('Tabloid'),
-					'Legal': _('Legal'),
-				};
-			} },
-			'export.pdfPageOrientation': { value: 'portrait', type: SettingItemType.String, storage: SettingStorage.File, isGlobal: true, advanced: true, isEnum: true, public: true, appTypes: [AppType.Desktop], label: () => _('Page orientation for PDF export'), options: () => {
-				return {
-					'portrait': _('Portrait'),
-					'landscape': _('Landscape'),
-				};
-			} },
+			'export.pdfPageSize': {
+				value: 'A4', type: SettingItemType.String, advanced: true, storage: SettingStorage.File, isGlobal: true, isEnum: true, public: true, appTypes: [AppType.Desktop], label: () => _('Page size for PDF export'), options: () => {
+					return {
+						'A4': _('A4'),
+						'Letter': _('Letter'),
+						'A3': _('A3'),
+						'A5': _('A5'),
+						'Tabloid': _('Tabloid'),
+						'Legal': _('Legal'),
+					};
+				}
+			},
+			'export.pdfPageOrientation': {
+				value: 'portrait', type: SettingItemType.String, storage: SettingStorage.File, isGlobal: true, advanced: true, isEnum: true, public: true, appTypes: [AppType.Desktop], label: () => _('Page orientation for PDF export'), options: () => {
+					return {
+						'portrait': _('Portrait'),
+						'landscape': _('Landscape'),
+					};
+				}
+			},
 
 			useCustomPdfViewer: {
 				value: false,
@@ -1616,8 +1618,8 @@ class Setting extends BaseModel {
 				minimum: 1,
 				maximum: 365 * 2,
 				step: 1,
-				unitLabel: (value: number = null) => {
-					return value === null ? _('days') : _('%d days', value);
+				unitLabel: (value: number = 0) => {
+					return !value ? _('days') : _('%d days', value);
 				},
 				label: () => _('Keep note history for'),
 				storage: SettingStorage.File,
@@ -1656,9 +1658,9 @@ class Setting extends BaseModel {
 				label: () => _('Notebook list growth factor'),
 				description: () =>
 					_('The factor property sets how the item will grow or shrink ' +
-				'to fit the available space in its container with respect to the other items. ' +
-				'Thus an item with a factor of 2 will take twice as much space as an item with a factor of 1.' +
-				'Restart app to see changes.'),
+						'to fit the available space in its container with respect to the other items. ' +
+						'Thus an item with a factor of 2 will take twice as much space as an item with a factor of 1.' +
+						'Restart app to see changes.'),
 				storage: SettingStorage.File,
 				isGlobal: true,
 			},
@@ -1671,9 +1673,9 @@ class Setting extends BaseModel {
 				label: () => _('Note list growth factor'),
 				description: () =>
 					_('The factor property sets how the item will grow or shrink ' +
-				'to fit the available space in its container with respect to the other items. ' +
-				'Thus an item with a factor of 2 will take twice as much space as an item with a factor of 1.' +
-				'Restart app to see changes.'),
+						'to fit the available space in its container with respect to the other items. ' +
+						'Thus an item with a factor of 2 will take twice as much space as an item with a factor of 1.' +
+						'Restart app to see changes.'),
 				storage: SettingStorage.File,
 				isGlobal: true,
 			},
@@ -1686,9 +1688,9 @@ class Setting extends BaseModel {
 				label: () => _('Note area growth factor'),
 				description: () =>
 					_('The factor property sets how the item will grow or shrink ' +
-				'to fit the available space in its container with respect to the other items. ' +
-				'Thus an item with a factor of 2 will take twice as much space as an item with a factor of 1.' +
-				'Restart app to see changes.'),
+						'to fit the available space in its container with respect to the other items. ' +
+						'Thus an item with a factor of 2 will take twice as much space as an item with a factor of 1.' +
+						'Restart app to see changes.'),
 				storage: SettingStorage.File,
 				isGlobal: true,
 			},
@@ -1801,27 +1803,27 @@ class Setting extends BaseModel {
 		return this.metadata_;
 	}
 
-	private static validateMetadata(md: SettingItems) {
+	private static validateMetadata(md: SettingItems): void {
 		for (const [k, v] of Object.entries(md)) {
 			if (v.isGlobal && v.storage !== SettingStorage.File) throw new Error(`Setting "${k}" is global but storage is not "file"`);
 		}
 	}
 
 	public static isBuiltinKey(key: string): boolean {
-		return key in this.buildInMetadata_;
+		return !!this.buildInMetadata_ && key in this.buildInMetadata_;
 	}
 
 	public static customCssFilePath(filename: string): string {
 		return `${this.value('rootProfileDir')}/${filename}`;
 	}
 
-	public static skipDefaultMigrations() {
+	public static skipDefaultMigrations(): void {
 		logger.info('Skipping all default migrations...');
 
 		this.setValue('lastSettingDefaultMigration', defaultMigrations.length - 1);
 	}
 
-	public static applyDefaultMigrations() {
+	public static applyDefaultMigrations(): void {
 		logger.info('Applying default migrations...');
 		const lastSettingDefaultMigration: number = this.value('lastSettingDefaultMigration');
 
@@ -1844,9 +1846,9 @@ class Setting extends BaseModel {
 		this.setValue('lastSettingDefaultMigration', defaultMigrations.length - 1);
 	}
 
-	public static applyUserSettingMigration() {
+	public static applyUserSettingMigration(): void {
 		// Function to translate existing user settings to new setting.
-		// eslint-disable-next-line github/array-foreach -- Old code before rule was applied
+
 		userSettingMigration.forEach(userMigration => {
 			if (!this.isSet(userMigration.newName) && this.isSet(userMigration.oldName)) {
 				this.setValue(userMigration.newName, userMigration.transformValue(this.value(userMigration.oldName)));
@@ -1857,21 +1859,21 @@ class Setting extends BaseModel {
 
 	public static featureFlagKeys(appType: AppType): string[] {
 		const keys = this.keys(false, appType);
-		return keys.filter(k => k.indexOf('featureFlag.') === 0);
+		return keys.filter((k): k is string => !!k && k.indexOf('featureFlag.') === 0);
 	}
 
-	private static validateKey(key: string) {
+	private static validateKey(key: string): void {
 		if (!key) throw new Error('Cannot register empty key');
 		if (key.length > 128) throw new Error(`Key length cannot be longer than 128 characters: ${key}`);
 		if (!key.match(/^[a-zA-Z0-9_\-.]+$/)) throw new Error(`Key must only contain characters /a-zA-Z0-9_-./ : ${key}`);
 	}
 
-	private static validateType(type: SettingItemType) {
+	private static validateType(type: SettingItemType): void {
 		if (!Number.isInteger(type)) throw new Error(`Setting type is not an integer: ${type}`);
 		if (type < 0) throw new Error(`Invalid setting type: ${type}`);
 	}
 
-	public static async registerSetting(key: string, metadataItem: SettingItem) {
+	public static async registerSetting(key: string, metadataItem: SettingItem): Promise<void> {
 		try {
 			if (metadataItem.isEnum && !metadataItem.options) throw new Error('The `options` property is required for enum types');
 
@@ -1884,8 +1886,8 @@ class Setting extends BaseModel {
 			};
 
 			// Clear cache
-			this.metadata_ = null;
-			this.keys_ = null;
+			this.metadata_ = undefined;
+			this.keys_ = undefined;
 
 			// Reload the value from the database, if it was already present
 			const valueRow = await this.loadOne(key);
@@ -1902,12 +1904,12 @@ class Setting extends BaseModel {
 				value: this.value(key),
 			});
 		} catch (error) {
-			error.message = `Could not register setting "${key}": ${error.message}`;
+			if (error instanceof Error) error.message = `Could not register setting "${key}": ${error.message}`;
 			throw error;
 		}
 	}
 
-	public static async registerSection(name: string, source: SettingSectionSource, section: SettingSection) {
+	public static async registerSection(name: string, source: SettingSectionSource, section: SettingSection): Promise<void> {
 		this.customSections_[name] = { ...section, name: name, source: source };
 	}
 
@@ -1920,30 +1922,29 @@ class Setting extends BaseModel {
 	}
 
 	// Resets the key to its default value.
-	public static resetKey(key: string) {
+	public static resetKey(key: string): void {
 		const md = this.settingMetadata(key);
 		this.setValue(key, md.value);
 	}
 
-	public static keyExists(key: string) {
+	public static keyExists(key: string): boolean {
 		return key in this.metadata();
 	}
 
-	public static isSet(key: string) {
+	public static isSet(key: string): boolean {
 		return !!this.cache_.find(d => d.key === key);
 	}
 
-	public static keyDescription(key: string, appType: AppType = null) {
+	public static keyDescription(key: string, appType: AppType | null = null) {
 		const md = this.settingMetadata(key);
-		if (!md.description) return null;
-		return md.description(appType);
+		return md.description?.(appType);
 	}
 
-	public static isSecureKey(key: string) {
+	public static isSecureKey(key: string): boolean {
 		return this.metadata()[key] && this.metadata()[key].secure === true;
 	}
 
-	public static keys(publicOnly = false, appType: AppType = null, options: KeysOptions = null) {
+	public static keys(publicOnly = false, appType: AppType | null = null, options: KeysOptions = {}): string[] {
 		options = { secureOnly: false, ...options };
 
 		if (!this.keys_) {
@@ -1956,13 +1957,13 @@ class Setting extends BaseModel {
 		}
 
 		if (appType || publicOnly || options.secureOnly) {
-			const output = [];
+			const output: string[] = [];
 			for (let i = 0; i < this.keys_.length; i++) {
 				const md = this.settingMetadata(this.keys_[i]);
 				if (publicOnly && !md.public) continue;
 				if (appType && md.appTypes && md.appTypes.indexOf(appType) < 0) continue;
 				if (options.secureOnly && !md.secure) continue;
-				output.push(md.key);
+				if (md.key) output.push(md.key);
 			}
 			return output;
 		} else {
@@ -1970,7 +1971,7 @@ class Setting extends BaseModel {
 		}
 	}
 
-	public static isPublic(key: string) {
+	public static isPublic(key: string): boolean {
 		return this.keys(true).indexOf(key) >= 0;
 	}
 
@@ -1996,7 +1997,7 @@ class Setting extends BaseModel {
 		// if writing to the keychain previously failed).
 		//
 		// https://github.com/XilinJia/Xilinota/issues/5720
-		const row = await this.modelSelectOne('SELECT * FROM settings WHERE key = ?', [key]);
+		const row = await this.modelSelectOne('SELECT * FROM settings WHERE key = ?', [key]) as CacheItem;
 		if (row) return row;
 
 		if (this.settingMetadata(key).secure) {
@@ -2009,12 +2010,12 @@ class Setting extends BaseModel {
 		return null;
 	}
 
-	public static async load() {
+	public static async load(): Promise<Setting> {
 		this.cancelScheduleSave();
 		this.cancelScheduleChangeEvent();
 
 		this.cache_ = [];
-		const rows: CacheItem[] = await this.modelSelectAll('SELECT * FROM settings');
+		const rows: CacheItem[] = await this.modelSelectAll('SELECT * FROM settings') as CacheItem[];
 
 		this.cache_ = [];
 
@@ -2043,7 +2044,7 @@ class Setting extends BaseModel {
 			if (rowKeys.includes(key)) continue;
 
 			const password = await this.keychainService().password(`setting.${key}`);
-			if (password) {
+			if (password && key) {
 				secureItems.push({
 					key: key,
 					value: password,
@@ -2074,6 +2075,7 @@ class Setting extends BaseModel {
 		pushItemsToCache(itemsFromFile);
 
 		this.dispatchUpdateAll();
+		return this;
 	}
 
 	private static canUseFileStorage(): boolean {
@@ -2090,24 +2092,26 @@ class Setting extends BaseModel {
 		const keys = this.keys();
 		const keyToValues: any = {};
 		for (let i = 0; i < keys.length; i++) {
-			keyToValues[keys[i]] = this.value(keys[i]);
+			if (!keys[i]) continue;
+			const k = keys[i] ?? '';
+			keyToValues[k] = this.value(k);
 		}
 		return keyToValues;
 	}
 
-	public static dispatchUpdateAll() {
+	public static dispatchUpdateAll(): void {
 		this.dispatch({
 			type: 'SETTING_UPDATE_ALL',
 			settings: this.toPlainObject(),
 		});
 	}
 
-	public static setConstant(key: string, value: any) {
+	public static setConstant(key: string, value: any): void {
 		if (!(key in this.constants_)) throw new Error(`Unknown constant key: ${key}`);
 		(this.constants_ as any)[key] = value;
 	}
 
-	public static setValue(key: string, value: any) {
+	public static setValue(key: string, value: any): void {
 		if (!this.cache_) throw new Error('Settings have not been initialized!');
 
 		value = this.formatValue(key, value);
@@ -2131,8 +2135,8 @@ class Setting extends BaseModel {
 				// Don't log this to prevent sensitive info (passwords, auth tokens...) to end up in logs
 				// logger.info('Setting: ' + key + ' = ' + c.value + ' => ' + value);
 
-				if ('minimum' in md && value < md.minimum) value = md.minimum;
-				if ('maximum' in md && value > md.maximum) value = md.maximum;
+				if ('minimum' in md && md.minimum && value < md.minimum) value = md.minimum;
+				if ('maximum' in md && md.maximum && value > md.maximum) value = md.maximum;
 
 				c.value = value;
 				// logger.debug('Setting setValue', key, c.value, this.cache_[i].value);
@@ -2167,12 +2171,12 @@ class Setting extends BaseModel {
 		this.scheduleChangeEvent();
 	}
 
-	public static incValue(key: string, inc: any) {
-		return this.setValue(key, this.value(key) + inc);
+	public static incValue(key: string, inc: any): void {
+		this.setValue(key, this.value(key) + inc);
 	}
 
-	public static toggle(key: string) {
-		return this.setValue(key, !this.value(key));
+	public static toggle(key: string): void {
+		this.setValue(key, !this.value(key));
 	}
 
 	// this method checks if the 'value' passed is present in the Setting "Array"
@@ -2192,34 +2196,32 @@ class Setting extends BaseModel {
 		return o[objectKey];
 	}
 
-	public static setObjectValue(settingKey: string, objectKey: string, value: any) {
+	public static setObjectValue(settingKey: string, objectKey: string, value: any): void {
 		let o = this.value(settingKey);
 		if (typeof o !== 'object') o = {};
 		o[objectKey] = value;
 		this.setValue(settingKey, o);
 	}
 
-	public static deleteObjectValue(settingKey: string, objectKey: string) {
+	public static deleteObjectValue(settingKey: string, objectKey: string): void {
 		const o = this.value(settingKey);
 		if (typeof o !== 'object') return;
 		delete o[objectKey];
 		this.setValue(settingKey, o);
 	}
 
-	public static async deleteKeychainPasswords() {
+	public static async deleteKeychainPasswords(): Promise<void> {
 		const secureKeys = this.keys(false, null, { secureOnly: true });
 		for (const key of secureKeys) {
 			await this.keychainService().deletePassword(`setting.${key}`);
 		}
 	}
 
-	public static enumOptionsToValueLabels(enumOptions: Record<string, string>, order: string[], options: OptionsToValueLabelsOptions = null) {
-		options = {
-			labelKey: 'label',
-			valueKey: 'value',
-			...options,
-		};
-
+	public static enumOptionsToValueLabels(enumOptions: Record<string, string>, order: string[], options: OptionsToValueLabelsOptions = { labelKey: 'label', valueKey: 'value' }): { [x: string]: string; }[] {
+		// if (!options) options = { labelKey: 'label', valueKey: 'value' };
+		// else {
+		// 	options = { ...options, };
+		// }
 		const output = [];
 
 		for (const value of order) {
@@ -2242,7 +2244,7 @@ class Setting extends BaseModel {
 		return output;
 	}
 
-	public static valueToString(key: string, value: any) {
+	public static valueToString(key: string, value: any): string {
 		const md = this.settingMetadata(key);
 		value = this.formatValue(key, value);
 		if (md.type === SettingItemType.Int) return value.toFixed(0);
@@ -2334,12 +2336,12 @@ class Setting extends BaseModel {
 		return this.value(key);
 	}
 
-	public static isEnum(key: string) {
+	public static isEnum(key: string): boolean {
 		const md = this.settingMetadata(key);
 		return md.isEnum === true;
 	}
 
-	public static enumOptionValues(key: string) {
+	public static enumOptionValues(key: string): string[] {
 		const options = this.enumOptions(key);
 		const output = [];
 		for (const n in options) {
@@ -2359,13 +2361,14 @@ class Setting extends BaseModel {
 
 	public static enumOptions(key: string) {
 		const metadata = this.metadata();
-		if (!metadata[key]) throw new XilinotaError(`Unknown key: ${key}`, 'unknown_key');
-		if (!metadata[key].options) throw new Error(`No options for: ${key}`);
-		return metadata[key].options();
+		const eOps = metadata[key];
+		if (!eOps) throw new XilinotaError(`Unknown key: ${key}`, 'unknown_key');
+		if (!eOps.options) throw new Error(`No options for: ${key}`);
+		return eOps.options();
 	}
 
-	public static enumOptionsDoc(key: string, templateString: string = null) {
-		if (templateString === null) templateString = '%s: %s';
+	public static enumOptionsDoc(key: string, templateString: string = ''): string {
+		if (!templateString) templateString = '%s: %s';
 		const options = this.enumOptions(key);
 		const output = [];
 		for (const n in options) {
@@ -2375,7 +2378,7 @@ class Setting extends BaseModel {
 		return output.join(', ');
 	}
 
-	public static isAllowedEnumOption(key: string, value: any) {
+	public static isAllowedEnumOption(key: string, value: any): boolean {
 		const options = this.enumOptions(key);
 		return !!options[value];
 	}
@@ -2391,14 +2394,14 @@ class Setting extends BaseModel {
 		for (const key in settings) {
 			if (!settings.hasOwnProperty(key)) continue;
 			if (key.indexOf(baseKey) === 0) {
-				const subKey = includeBaseKeyInName ? key : key.substr(baseKey.length + 1);
+				const subKey = includeBaseKeyInName ? key : key.substring(baseKey.length + 1);
 				output[subKey] = settings[key];
 			}
 		}
 		return output;
 	}
 
-	public static async saveAll() {
+	public static async saveAll(): Promise<void> {
 		if (Setting.autoSaveEnabled && !this.saveTimeoutId_) return Promise.resolve();
 
 		// logger.debug('Saving settings...');
@@ -2483,7 +2486,7 @@ class Setting extends BaseModel {
 		logger.debug('Settings have been saved.');
 	}
 
-	public static scheduleChangeEvent() {
+	public static scheduleChangeEvent(): void {
 		if (this.changeEventTimeoutId_) shim.clearTimeout(this.changeEventTimeoutId_);
 
 		this.changeEventTimeoutId_ = shim.setTimeout(() => {
@@ -2491,12 +2494,12 @@ class Setting extends BaseModel {
 		}, 1000);
 	}
 
-	public static cancelScheduleChangeEvent() {
+	public static cancelScheduleChangeEvent(): void {
 		if (this.changeEventTimeoutId_) shim.clearTimeout(this.changeEventTimeoutId_);
 		this.changeEventTimeoutId_ = null;
 	}
 
-	public static emitScheduledChangeEvent() {
+	public static emitScheduledChangeEvent(): void {
 		if (!this.changeEventTimeoutId_) return;
 
 		shim.clearTimeout(this.changeEventTimeoutId_);
@@ -2513,7 +2516,7 @@ class Setting extends BaseModel {
 		eventManager.emit('settingsChange', { keys });
 	}
 
-	public static scheduleSave() {
+	public static scheduleSave(): void {
 		if (!Setting.autoSaveEnabled) return;
 
 		if (this.saveTimeoutId_) shim.clearTimeout(this.saveTimeoutId_);
@@ -2527,7 +2530,7 @@ class Setting extends BaseModel {
 		}, 2000);
 	}
 
-	public static cancelScheduleSave() {
+	public static cancelScheduleSave(): void {
 		if (this.saveTimeoutId_) shim.clearTimeout(this.saveTimeoutId_);
 		this.saveTimeoutId_ = null;
 	}
@@ -2549,7 +2552,7 @@ class Setting extends BaseModel {
 		return output;
 	}
 
-	public static typeToString(typeId: number) {
+	public static typeToString(typeId: number): "object" | "string" | "int" | "bool" | "array" {
 		if (typeId === SettingItemType.Int) return 'int';
 		if (typeId === SettingItemType.String) return 'string';
 		if (typeId === SettingItemType.Bool) return 'bool';
@@ -2558,7 +2561,7 @@ class Setting extends BaseModel {
 		throw new Error(`Invalid type ID: ${typeId}`);
 	}
 
-	public static sectionOrder() {
+	public static sectionOrder(): string[] {
 		return [
 			'general',
 			'application',
@@ -2580,7 +2583,7 @@ class Setting extends BaseModel {
 		return SettingSectionSource.Default;
 	}
 
-	public static isSubSection(sectionName: string) {
+	public static isSubSection(sectionName: string): boolean {
 		return ['encryption', 'application', 'appearance', 'joplinCloud'].includes(sectionName);
 	}
 
@@ -2618,7 +2621,7 @@ class Setting extends BaseModel {
 		return sections;
 	}
 
-	public static sectionNameToLabel(name: string) {
+	public static sectionNameToLabel(name: string): string {
 		if (name === 'general') return _('General');
 		if (name === 'sync') return _('Synchronisation');
 		if (name === 'appearance') return _('Appearance');
@@ -2638,16 +2641,16 @@ class Setting extends BaseModel {
 		return name;
 	}
 
-	public static sectionDescription(name: string) {
+	public static sectionDescription(name: string): string {
 		if (name === 'markdownPlugins') return _('These plugins enhance the Markdown renderer with additional features. Please note that, while these features might be useful, they are not standard Markdown and thus most of them will only work in Xilinota. Additionally, some of them are *incompatible* with the WYSIWYG editor. If you open a note that uses one of these plugins in that editor, you will lose the plugin formatting. It is indicated below which plugins are compatible or not with the WYSIWYG editor.');
 		if (name === 'general') return _('Notes and settings are stored in: %s', toSystemSlashes(this.value('profileDir'), process.platform));
-
-		if (this.customSections_[name] && this.customSections_[name].description) return this.customSections_[name].description;
+		const sec = this.customSections_[name];
+		if (sec && sec.description) return sec.description;
 
 		return '';
 	}
 
-	public static sectionNameToIcon(name: string) {
+	public static sectionNameToIcon(name: string): string {
 		if (name === 'general') return 'icon-general';
 		if (name === 'sync') return 'icon-sync';
 		if (name === 'appearance') return 'icon-appearance';
@@ -2662,15 +2665,16 @@ class Setting extends BaseModel {
 		if (name === 'keymap') return 'fa fa-keyboard';
 		if (name === 'joplinCloud') return 'fa fa-cloud';
 
-		if (this.customSections_[name] && this.customSections_[name].iconName) return this.customSections_[name].iconName;
+		const sec = this.customSections_[name];
+		if (sec && sec.iconName) return sec.iconName;
 
 		return 'fas fa-cog';
 	}
 
-	public static appTypeToLabel(name: string) {
+	public static appTypeToLabel(name: string): string {
 		// Not translated for now because only used on Welcome notes (which are not translated)
 		if (name === 'cli') return 'CLI';
-		return name[0].toUpperCase() + name.substr(1).toLowerCase();
+		return name[0].toUpperCase() + name.substring(1).toLowerCase();
 	}
 }
 

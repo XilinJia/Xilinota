@@ -4,66 +4,65 @@ import BaseService from './BaseService';
 import ResourceService from './ResourceService';
 import Logger from '@xilinota/utils/Logger';
 import shim from '../shim';
-const { Dirnames } = require('./synchronizer/utils/types');
-const EventEmitter = require('events');
+import { Dirnames } from './synchronizer/utils/types';
+import { ResourceEntity } from './database/types';
+
+import EventEmitter from 'events';
 
 export default class ResourceFetcher extends BaseService {
 
-	public static instance_: ResourceFetcher;
+	public static instance_: ResourceFetcher | null;
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	public dispatch: Function = (_o: any) => {};
+	public dispatch: Function = (_o: any) => { };
 	private logger_: Logger = new Logger();
-	private queue_: any[] = [];
-	private fetchingItems_: any = {};
+	private queue_: { id: string; }[] = [];
+	private fetchingItems_: Record<string, any> = {};
 	private maxDownloads_ = 3;
 	private addingResources_ = false;
-	private eventEmitter_ = new EventEmitter();
-	private autoAddResourcesCalls_: any[] = [];
-	private fileApi_: any;
-	private updateReportIID_: any;
-	private scheduleQueueProcessIID_: any;
-	private scheduleAutoAddResourcesIID_: any;
+	private eventEmitter_: EventEmitter | null = new EventEmitter();
+	private autoAddResourcesCalls_: boolean[] = [];
+	private fileApi_: (() => any) | null = null;
+	private updateReportIID_: any;	// seems not used
+	private scheduleQueueProcessIID_: string | null = null;
+	private scheduleAutoAddResourcesIID_: string | null = null;
 
 	public constructor(fileApi: any = null) {
 		super();
 		this.setFileApi(fileApi);
 	}
 
-	public static instance() {
+	public static instance(): ResourceFetcher {
 		if (ResourceFetcher.instance_) return ResourceFetcher.instance_;
 		ResourceFetcher.instance_ = new ResourceFetcher();
 		return ResourceFetcher.instance_;
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	public on(eventName: string, callback: Function) {
-		return this.eventEmitter_.on(eventName, callback);
+	public on(eventName: string, callback: (...args: any[]) => void) {
+		return this.eventEmitter_?.on(eventName, callback);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	public off(eventName: string, callback: Function) {
-		return this.eventEmitter_.removeListener(eventName, callback);
+	public off(eventName: string, callback: (...args: any[]) => void) {
+		return this.eventEmitter_?.removeListener(eventName, callback);
 	}
 
-	public setLogger(logger: Logger) {
+	public setLogger(logger: Logger): void {
 		this.logger_ = logger;
 	}
 
-	public logger() {
+	public logger(): Logger {
 		return this.logger_;
 	}
 
-	public setFileApi(v: any) {
+	public setFileApi(v: () => any): void {
 		if (v !== null && typeof v !== 'function') throw new Error(`fileApi must be a function that returns the API. Type is ${typeof v}`);
 		this.fileApi_ = v;
 	}
 
-	public async fileApi() {
-		return this.fileApi_();
+	public async fileApi(): Promise<any> {
+		return this.fileApi_?.();
 	}
 
-	private queuedItemIndex_(resourceId: string) {
+	private queuedItemIndex_(resourceId: string): number {
 		for (let i = 0; i < this.fetchingItems_.length; i++) {
 			const item = this.fetchingItems_[i];
 			if (item.id === resourceId) return i;
@@ -71,7 +70,7 @@ export default class ResourceFetcher extends BaseService {
 		return -1;
 	}
 
-	public updateReport() {
+	public updateReport(): void {
 		const fetchingCount = Object.keys(this.fetchingItems_).length;
 		this.dispatch({
 			type: 'RESOURCE_FETCHER_SET',
@@ -80,7 +79,7 @@ export default class ResourceFetcher extends BaseService {
 		});
 	}
 
-	public async markForDownload(resourceIds: string[]) {
+	public async markForDownload(resourceIds: string | string[]): Promise<void> {
 		if (!Array.isArray(resourceIds)) resourceIds = [resourceIds];
 
 		const fetchStatuses = await Resource.fetchStatuses(resourceIds);
@@ -100,8 +99,8 @@ export default class ResourceFetcher extends BaseService {
 		}
 	}
 
-	public queueDownload_(resourceId: string, priority: string = null) {
-		if (priority === null) priority = 'normal';
+	public queueDownload_(resourceId: string, priority: string = ''): boolean {
+		if (!priority) priority = 'normal';
 
 		const index = this.queuedItemIndex_(resourceId);
 		if (index >= 0) return false;
@@ -121,33 +120,39 @@ export default class ResourceFetcher extends BaseService {
 		return true;
 	}
 
-	private async startDownload_(resourceId: string) {
+	private async startDownload_(resourceId: string): Promise<void> {
 		if (this.fetchingItems_[resourceId]) return;
 		this.fetchingItems_[resourceId] = true;
 
 		this.updateReport();
 
-		const resource = await Resource.load(resourceId);
+		const resource: ResourceEntity | null = await Resource.load(resourceId);
+		if (!resource) {
+			this.logger().info(`ResourceFetcher: Resource is not in DB: ${resourceId}`);
+			return;
+		}
 		const localState = await Resource.localState(resource);
 
 		const completeDownload = async (emitDownloadComplete = true, localResourceContentPath = '') => {
 			// 2019-05-12: This is only necessary to set the file size of the resources that come via
 			// sync. The other ones have been done using migrations/20.js. This code can be removed
 			// after a few months.
-			if (resource && resource.size < 0 && localResourceContentPath && !resource.encryption_blob_encrypted) {
+			if (resource && (resource.size ?? 0) <= 0 && localResourceContentPath && !resource.encryption_blob_encrypted) {
 				await shim.fsDriver().waitTillExists(localResourceContentPath);
 				await ResourceService.autoSetFileSizes();
 			}
 
-			delete this.fetchingItems_[resource.id];
-			this.logger().debug(`ResourceFetcher: Removed from fetchingItems: ${resource.id}. New: ${JSON.stringify(this.fetchingItems_)}`);
+			if (resource && resource.id) {
+				delete this.fetchingItems_[resource.id];
+				this.logger().debug(`ResourceFetcher: Removed from fetchingItems: ${resource.id}. New: ${JSON.stringify(this.fetchingItems_)}`);
+			}
 			this.scheduleQueueProcess();
 
 			// Note: This downloadComplete event is not really right or useful because the resource
 			// might still be encrypted and the caller usually can't do much with this. In particular
 			// the note being displayed will refresh the resource images but since they are still
 			// encrypted it's not useful. Probably, the views should listen to DecryptionWorker events instead.
-			if (resource && emitDownloadComplete) this.eventEmitter_.emit('downloadComplete', { id: resource.id, encrypted: !!resource.encryption_blob_encrypted });
+			if (resource && emitDownloadComplete) this.eventEmitter_?.emit('downloadComplete', { id: resource.id, encrypted: !!resource.encryption_blob_encrypted });
 			this.updateReport();
 		};
 
@@ -180,17 +185,17 @@ export default class ResourceFetcher extends BaseService {
 
 		this.logger().debug(`ResourceFetcher: Downloading resource: ${resource.id}`);
 
-		this.eventEmitter_.emit('downloadStarted', { id: resource.id });
+		this.eventEmitter_?.emit('downloadStarted', { id: resource.id });
 
 		fileApi
 			.get(remoteResourceContentPath, { path: localResourceContentPath, target: 'file' })
-		// eslint-disable-next-line promise/prefer-await-to-then -- Old code before rule was applied
+
 			.then(async () => {
 				await Resource.setLocalState(resource, { fetch_status: Resource.FETCH_STATUS_DONE });
 				this.logger().debug(`ResourceFetcher: Resource downloaded: ${resource.id}`);
 				await completeDownload(true, localResourceContentPath);
 			})
-		// eslint-disable-next-line promise/prefer-await-to-then -- Old code before rule was applied
+
 			.catch(async (error: any) => {
 				this.logger().error(`ResourceFetcher: Could not download resource: ${resource.id}`, error);
 				await Resource.setLocalState(resource, { fetch_status: Resource.FETCH_STATUS_ERROR, fetch_error: error.message });
@@ -198,7 +203,7 @@ export default class ResourceFetcher extends BaseService {
 			});
 	}
 
-	private processQueue_() {
+	private processQueue_(): void {
 		while (Object.getOwnPropertyNames(this.fetchingItems_).length < this.maxDownloads_) {
 			if (!this.queue_.length) break;
 			const item = this.queue_.splice(0, 1)[0];
@@ -210,14 +215,14 @@ export default class ResourceFetcher extends BaseService {
 		}
 	}
 
-	public async waitForAllFinished() {
+	public async waitForAllFinished(): Promise<null> {
 		return new Promise((resolve) => {
 			const iid = shim.setInterval(() => {
 				if (!this.updateReportIID_ &&
-                    !this.scheduleQueueProcessIID_ &&
-                    !this.queue_.length &&
-                    !this.autoAddResourcesCalls_.length &&
-                    !Object.getOwnPropertyNames(this.fetchingItems_).length) {
+					!this.scheduleQueueProcessIID_ &&
+					!this.queue_.length &&
+					!this.autoAddResourcesCalls_.length &&
+					!Object.getOwnPropertyNames(this.fetchingItems_).length) {
 
 					shim.clearInterval(iid);
 					resolve(null);
@@ -226,10 +231,10 @@ export default class ResourceFetcher extends BaseService {
 		});
 	}
 
-	public async autoAddResources(limit: number = null) {
+	public async autoAddResources(limit: number = 0): Promise<void> {
 		this.autoAddResourcesCalls_.push(true);
 		try {
-			if (limit === null) limit = 10;
+			if (limit === 0) limit = 10;
 
 			if (this.addingResources_) return;
 			this.addingResources_ = true;
@@ -239,7 +244,7 @@ export default class ResourceFetcher extends BaseService {
 			let count = 0;
 			const resources = await Resource.needToBeFetched(Setting.value('sync.resourceDownloadMode'), limit);
 			for (let i = 0; i < resources.length; i++) {
-				const added = this.queueDownload_(resources[i].id);
+				const added = this.queueDownload_(resources[i].id ?? '');
 				if (added) count++;
 			}
 
@@ -254,12 +259,12 @@ export default class ResourceFetcher extends BaseService {
 		}
 	}
 
-	public async start() {
+	public async start(): Promise<void> {
 		await Resource.resetStartedFetchStatus();
 		void this.autoAddResources(10);
 	}
 
-	public scheduleQueueProcess() {
+	public scheduleQueueProcess(): void {
 		if (this.scheduleQueueProcessIID_) {
 			shim.clearTimeout(this.scheduleQueueProcessIID_);
 			this.scheduleQueueProcessIID_ = null;
@@ -271,7 +276,7 @@ export default class ResourceFetcher extends BaseService {
 		}, 100);
 	}
 
-	public scheduleAutoAddResources() {
+	public scheduleAutoAddResources(): void {
 		if (this.scheduleAutoAddResourcesIID_) return;
 
 		this.scheduleAutoAddResourcesIID_ = shim.setTimeout(() => {
@@ -280,13 +285,13 @@ export default class ResourceFetcher extends BaseService {
 		}, 1000);
 	}
 
-	public async fetchAll() {
+	public async fetchAll(): Promise<void> {
 		await Resource.resetStartedFetchStatus();
-		void this.autoAddResources(null);
+		void this.autoAddResources();
 	}
 
-	public async destroy() {
-		this.eventEmitter_.removeAllListeners();
+	public async destroy(): Promise<void> {
+		this.eventEmitter_?.removeAllListeners();
 		if (this.scheduleQueueProcessIID_) {
 			shim.clearTimeout(this.scheduleQueueProcessIID_);
 			this.scheduleQueueProcessIID_ = null;

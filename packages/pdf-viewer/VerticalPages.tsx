@@ -38,8 +38,8 @@ export interface VerticalPagesProps {
 }
 
 export default function VerticalPages(props: VerticalPagesProps) {
-	const [containerWidth, setContainerWidth] = useState<number>(null);
-	const innerContainerEl = useRef<HTMLDivElement>(null);
+	const [containerWidth, setContainerWidth] = useState<number>(0);
+	const innerContainerEl = useRef<HTMLDivElement>(document.createElement('div'));
 
 	const scaledSize = useScaledSize({
 		pdfDocument: props.pdfDocument,
@@ -64,7 +64,7 @@ export default function VerticalPages(props: VerticalPagesProps) {
 	} as ScrollSaver);
 
 	useEffect(() => {
-		let resizeTimer: number = null;
+		let resizeTimer: number = 0;
 		let cancelled = false;
 
 		const updateWidth = () => {
@@ -76,7 +76,7 @@ export default function VerticalPages(props: VerticalPagesProps) {
 		const onResize = () => {
 			if (resizeTimer) {
 				clearTimeout(resizeTimer);
-				resizeTimer = null;
+				resizeTimer = 0;
 			}
 			resizeTimer = window.setTimeout(updateWidth, 200);
 		};
@@ -89,7 +89,7 @@ export default function VerticalPages(props: VerticalPagesProps) {
 			window.removeEventListener('resize', onResize);
 			if (resizeTimer) {
 				clearTimeout(resizeTimer);
-				resizeTimer = null;
+				resizeTimer = 0;
 			}
 		};
 	}, [props.container, props.pdfDocument, props.widthPercent]);
@@ -98,10 +98,10 @@ export default function VerticalPages(props: VerticalPagesProps) {
 		{scaledSize ?
 			Array.from(Array(props.pdfDocument.pageCount).keys()).map((i: number) => {
 				// setting focusOnLoad only after scaledSize is set so that the container height is set correctly
-				return <Page pdfDocument={props.pdfDocument} pageNo={i + 1} focusOnLoad={scaledSize && props.anchorPage && props.anchorPage === i + 1}
-					isAnchored={props.anchorPage && props.anchorPage === i + 1}
+				return <Page pdfDocument={props.pdfDocument} pageNo={i + 1} focusOnLoad={!!scaledSize && !!props.anchorPage && props.anchorPage === i + 1}
+					isAnchored={!!props.anchorPage && props.anchorPage === i + 1}
 					showPageNumbers={props.showPageNumbers}
-					isSelected={scaledSize && props.selectedPage && props.selectedPage === i + 1}
+					isSelected={!!scaledSize && !!props.selectedPage && props.selectedPage === i + 1}
 					onClick={props.onPageClick}
 					textSelectable={props.textSelectable}
 					onTextSelect={props.onTextSelect}

@@ -1,17 +1,19 @@
-import produce, { Draft, original } from 'immer';
+import { produce, Draft, original } from 'immer';
 import pluginServiceReducer, { stateRootKey as pluginServiceStateRootKey, defaultState as pluginServiceDefaultState, State as PluginServiceState } from './services/plugins/reducer';
 import shareServiceReducer, { stateRootKey as shareServiceStateRootKey, defaultState as shareServiceDefaultState, State as ShareServiceState } from './services/share/reducer';
-import Note from './models/Note';
+import Note, { NotesOrder } from './models/Note';
 import Folder from './models/Folder';
 import BaseModel from './BaseModel';
 import { Store } from 'redux';
 import { ProfileConfig } from './services/profileConfig/types';
 import * as ArrayUtils from './ArrayUtils';
-import { FolderEntity } from './services/database/types';
+import { BaseItemEntity, FolderEntity, NoteEntity, NoteTagEntity, TagEntity } from './services/database/types';
 import { getListRendererIds } from './services/noteList/renderers';
-const fastDeepEqual = require('fast-deep-equal');
+import fastDeepEqual from 'fast-deep-equal';
 const { ALL_NOTES_FILTER_ID } = require('./reserved-ids');
-const { createSelectorCreator, defaultMemoize } = require('reselect');
+import { createSelectorCreator, defaultMemoize } from 'reselect';
+import { Row } from './database';
+// import { createCachedSelector } from 're-reselect';
 const { createCachedSelector } = require('re-reselect');
 
 const additionalReducers: any[] = [];
@@ -52,13 +54,24 @@ interface StateResourceFetcher {
 	toFetchCount: number;
 }
 
+interface NoteHistoryInfo {
+	id?: string | null;
+	parent_id?: string;
+	notesParentType: string;
+	selectedFolderId?: string;
+	selectedTagId: string;
+	selectedSearchId: string;
+	searches: any[];
+	selectedSmartFilterId: string;
+};
+
 export interface State {
-	notes: any[];
+	notes: NoteEntity[];
 	noteSelectionEnabled?: boolean;
 	notesSource: string;
 	notesParentType: string;
 	folders: FolderEntity[];
-	tags: any[];
+	tags: TagEntity[];
 	masterKeys: any[];
 	notLoadedMasterKeys: string[];
 	searches: any[];
@@ -88,17 +101,17 @@ export interface State {
 	collapsedFolderIds: string[];
 	clipperServer: StateClipperServer;
 	decryptionWorker: StateDecryptionWorker;
-	selectedNoteTags: any[];
+	selectedNoteTags: NoteTagEntity[];
 	resourceFetcher: StateResourceFetcher;
-	backwardHistoryNotes: any[];
-	forwardHistoryNotes: any[];
+	backwardHistoryNotes: NoteHistoryInfo[];
+	forwardHistoryNotes: NoteHistoryInfo[];
 	pluginsLegacy: any;
 	provisionalNoteIds: string[];
 	editorNoteStatuses: any;
 	isInsertingNotes: boolean;
 	hasEncryptedItems: boolean;
 	needApiAuth: boolean;
-	profileConfig: ProfileConfig;
+	profileConfig: ProfileConfig | null;
 	noteListRendererIds: string[];
 
 	// Extra reducer keys go here:
@@ -109,7 +122,7 @@ export interface State {
 export const defaultState: State = {
 	notes: [],
 	notesSource: '',
-	notesParentType: null,
+	notesParentType: '',
 	folders: [],
 	tags: [],
 	masterKeys: [],
@@ -118,10 +131,10 @@ export const defaultState: State = {
 	highlightedWords: [],
 	selectedNoteIds: [],
 	selectedNoteHash: '',
-	selectedFolderId: null,
-	selectedTagId: null,
-	selectedSearchId: null,
-	selectedSmartFilterId: null,
+	selectedFolderId: '',
+	selectedTagId: '',
+	selectedSearchId: '',
+	selectedSmartFilterId: '',
 	selectedItemType: 'note',
 	lastSelectedNotesIds: {
 		Folder: {},
@@ -145,7 +158,7 @@ export const defaultState: State = {
 	collapsedFolderIds: [],
 	clipperServer: {
 		startState: 'idle',
-		port: null,
+		port: 0,
 	},
 	decryptionWorker: {
 		state: 'idle',
@@ -182,23 +195,23 @@ for (const additionalReducer of additionalReducers) {
 	(defaultState as any)[additionalReducer.stateRootKey] = additionalReducer.defaultState;
 }
 
-let store_: Store<any> = null;
+let store_: Store<any> | null = null;
 
-export function setStore(v: Store<any>) {
+export function setStore(v: Store<any>): void {
 	store_ = v;
 }
 
-export function store(): Store<any> {
+export function store(): Store<any> | null {
 	return store_;
 }
 
 export const MAX_HISTORY = 200;
 
-const derivedStateCache_: any = {};
+const derivedStateCache_: Record<string, NotesOrder[]> = {};
 
 // Allows, for a given state, to return the same derived
 // objects, to prevent unecessary updates on calling components.
-const cacheEnabledOutput = (key: string, output: any) => {
+const cacheEnabledOutput = (key: string, output: NotesOrder[]): NotesOrder[] => {
 	key = `${key}_${JSON.stringify(output)}`;
 	if (derivedStateCache_[key]) return derivedStateCache_[key];
 
@@ -232,14 +245,16 @@ class StateUtils {
 	// Given an input array, this selector ensures that the same array is returned
 	// if its content hasn't changed.
 	public selectArrayShallow(props: any, cacheKey: any) {
+		// TODO: strange thing related to re-reselect import
 		return selectArrayShallow(props, cacheKey);
+		// return selectArrayShallow(cacheKey);
 	}
 
 	public oneNoteSelected(state: State): boolean {
 		return state.selectedNoteIds.length === 1;
 	}
 
-	public notesOrder(stateSettings: any) {
+	public notesOrder(stateSettings: Record<string, string>) {
 		if (stateSettings['notes.sortOrder.field'] === 'order') {
 			return cacheEnabledOutput('notesOrder', [
 				{
@@ -261,7 +276,7 @@ class StateUtils {
 		}
 	}
 
-	public foldersOrder(stateSettings: any) {
+	public foldersOrder(stateSettings: Record<string, string>) {
 		return cacheEnabledOutput('foldersOrder', [
 			{
 				by: stateSettings['folders.sortOrder.field'],
@@ -277,7 +292,7 @@ class StateUtils {
 		return false;
 	}
 
-	public parentItem(state: State) {
+	public parentItem(state: State): { type: string; id: string; } | null {
 		const t = state.notesParentType;
 		let id = null;
 		if (t === 'Folder') id = state.selectedFolderId;
@@ -294,12 +309,12 @@ class StateUtils {
 		return output ? output : [];
 	}
 
-	public selectedNote(state: State): any {
+	public selectedNote(state: State): NoteEntity | null {
 		const noteId = this.selectedNoteId(state);
 		return noteId ? BaseModel.byId(state.notes, noteId) : null;
 	}
 
-	public selectedNoteId(state: State): any {
+	public selectedNoteId(state: State): string | null {
 		return state.selectedNoteIds.length ? state.selectedNoteIds[0] : null;
 	}
 
@@ -307,21 +322,21 @@ class StateUtils {
 
 export const stateUtils: StateUtils = new StateUtils();
 
-function arrayHasEncryptedItems(array: any[]) {
+function arrayHasEncryptedItems(array: { encryption_applied?: number }[]): boolean {
 	for (let i = 0; i < array.length; i++) {
 		if (array[i].encryption_applied) return true;
 	}
 	return false;
 }
 
-function stateHasEncryptedItems(state: State) {
+function stateHasEncryptedItems(state: State): boolean {
 	if (arrayHasEncryptedItems(state.notes)) return true;
 	if (arrayHasEncryptedItems(state.folders)) return true;
 	if (arrayHasEncryptedItems(state.tags)) return true;
 	return false;
 }
 
-function folderSetCollapsed(draft: Draft<State>, action: any) {
+function folderSetCollapsed(draft: Draft<State>, action: { id: string; collapsed: boolean; }): void {
 	const collapsedFolderIds = draft.collapsedFolderIds.slice();
 	const idx = collapsedFolderIds.indexOf(action.id);
 
@@ -336,13 +351,13 @@ function folderSetCollapsed(draft: Draft<State>, action: any) {
 	draft.collapsedFolderIds = collapsedFolderIds;
 }
 
-function removeAdjacentDuplicates(items: any[]) {
-	return items.filter((item: any, idx: number) => (idx >= 1) ? items[idx - 1].id !== item.id : true);
+function removeAdjacentDuplicates(items: NoteHistoryInfo[]): NoteHistoryInfo[] {
+	return items.filter((item: NoteHistoryInfo, idx: number) => (idx >= 1) ? items[idx - 1].id !== item.id : true);
 }
 
 // When deleting a note, tag or folder
-function handleItemDelete(draft: Draft<State>, action: any) {
-	const map: any = {
+function handleItemDelete(draft: Draft<State>, action: { type: string | number; id: string; }): void {
+	const map: Record<string, any[]> = {
 		FOLDER_DELETE: ['folders', 'selectedFolderId', true],
 		NOTE_DELETE: ['notes', 'selectedNoteIds', false],
 		TAG_DELETE: ['tags', 'selectedTagId', true],
@@ -409,9 +424,10 @@ function handleItemDelete(draft: Draft<State>, action: any) {
 	}
 }
 
-function updateOneItem(draft: Draft<State>, action: any, keyName = '') {
-	let itemsKey = null;
-	if (keyName) { itemsKey = keyName; } else {
+function updateOneItem(draft: Draft<State>, action: { type: string; item: { id: string }; }, keyName = ''): void {
+	let itemsKey = '';
+	if (keyName) { itemsKey = keyName; }
+	else {
 		if (action.type === 'TAG_UPDATE_ONE') itemsKey = 'tags';
 		if (action.type === 'FOLDER_UPDATE_ONE') itemsKey = 'folders';
 		if (action.type === 'MASTERKEY_UPDATE_ONE') itemsKey = 'masterKeys';
@@ -435,7 +451,7 @@ function updateOneItem(draft: Draft<State>, action: any, keyName = '') {
 	(draft as any)[itemsKey] = newItems;
 }
 
-function updateSelectedNotesFromExistingNotes(draft: Draft<State>) {
+function updateSelectedNotesFromExistingNotes(draft: Draft<State>): void {
 	const newSelectedNoteIds = [];
 	for (const selectedNoteId of draft.selectedNoteIds) {
 		for (const n of draft.notes) {
@@ -448,8 +464,8 @@ function updateSelectedNotesFromExistingNotes(draft: Draft<State>) {
 	draft.selectedNoteIds = newSelectedNoteIds;
 }
 
-function defaultNotesParentType(draft: Draft<State>, exclusion: string) {
-	let newNotesParentType = null;
+function defaultNotesParentType(draft: Draft<State>, exclusion: string): string {
+	let newNotesParentType = '';
 
 	if (exclusion !== 'SmartFilter' && draft.selectedSmartFilterId) {
 		newNotesParentType = 'SmartFilter';
@@ -509,9 +525,9 @@ export const getNotesParent = (state: State): NotesParent => {
 	return { type, selectedItemId };
 };
 
-function changeSelectedFolder(draft: Draft<State>, action: any, options: any = null) {
+function changeSelectedFolder(draft: Draft<State>, action: { folderId?: string; id: string; }, options: any = null): void {
 	if (!options) options = {};
-	draft.selectedFolderId = 'folderId' in action ? action.folderId : action.id;
+	draft.selectedFolderId = 'folderId' in action && action.folderId ? action.folderId : action.id;
 	if (!draft.selectedFolderId) {
 		draft.notesParentType = defaultNotesParentType(draft, 'Folder');
 	} else {
@@ -521,7 +537,7 @@ function changeSelectedFolder(draft: Draft<State>, action: any, options: any = n
 	if (options.clearSelectedNoteIds) draft.selectedNoteIds = [];
 }
 
-function recordLastSelectedNoteIds(draft: Draft<State>, noteIds: string[]) {
+function recordLastSelectedNoteIds(draft: Draft<State>, noteIds: string[]): void {
 	const newOnes: any = { ...draft.lastSelectedNotesIds };
 	const parent = stateUtils.parentItem(draft);
 	if (!parent) return;
@@ -532,15 +548,17 @@ function recordLastSelectedNoteIds(draft: Draft<State>, noteIds: string[]) {
 	draft.lastSelectedNotesIds = newOnes;
 }
 
-function changeSelectedNotes(draft: Draft<State>, action: any, options: any = null) {
+function changeSelectedNotes(draft: Draft<State>, action: { type: string; id: string; ids?: string[]; noteId?: string; index?: number; hash?: string; }, options: any = null): void {
 	if (!options) options = {};
 
-	let noteIds = [];
+	let noteIds: string[] = [];
 	if (action.id) noteIds = [action.id];
 	if (action.ids) noteIds = action.ids;
 	if (action.noteId) noteIds = [action.noteId];
-	if (action.index) noteIds = [draft.notes[action.index].id];
-
+	if (action.index) {
+		const n = draft.notes[action.index];
+		if (n && n.id) noteIds = [n.id];
+	}
 	if (action.type === 'NOTE_SELECT') {
 		if (JSON.stringify(draft.selectedNoteIds) === JSON.stringify(noteIds)) return;
 		draft.selectedNoteIds = noteIds;
@@ -574,7 +592,7 @@ function changeSelectedNotes(draft: Draft<State>, action: any, options: any = nu
 	recordLastSelectedNoteIds(draft, draft.selectedNoteIds);
 }
 
-function removeItemFromArray(array: any[], property: any, value: any) {
+function removeItemFromArray(array: any[], property: any, value: any): any[] {
 	for (let i = 0; i !== array.length; ++i) {
 		const currentItem = array[i];
 		if (currentItem[property] === value) {
@@ -602,7 +620,7 @@ const getContextFromHistory = (ctx: any) => {
 	return result;
 };
 
-function getNoteHistoryInfo(state: State) {
+function getNoteHistoryInfo(state: State): NoteHistoryInfo | null {
 	const selectedNoteIds = state.selectedNoteIds;
 	const notes = state.notes;
 	if (selectedNoteIds && selectedNoteIds.length > 0) {
@@ -623,110 +641,114 @@ function getNoteHistoryInfo(state: State) {
 	return null;
 }
 
-function handleHistory(draft: Draft<State>, action: any) {
+function handleHistory(draft: Draft<State>, action: { type?: string; id: string; note?: NoteEntity; folderId?: string; ids?: string[]; noteId?: string; index?: number; hash?: any; }): void {
 	const currentNote = getNoteHistoryInfo(draft);
 	switch (action.type) {
-	case 'HISTORY_BACKWARD': {
-		const note = draft.backwardHistoryNotes[draft.backwardHistoryNotes.length - 1];
-		if (currentNote && (draft.forwardHistoryNotes.length === 0 || currentNote.id !== draft.forwardHistoryNotes[draft.forwardHistoryNotes.length - 1].id)) {
-			draft.forwardHistoryNotes = draft.forwardHistoryNotes.concat(currentNote).slice(-MAX_HISTORY);
-		}
+		case 'HISTORY_BACKWARD': {
+			const note = draft.backwardHistoryNotes[draft.backwardHistoryNotes.length - 1];
+			if (currentNote && (draft.forwardHistoryNotes.length === 0 || currentNote.id !== draft.forwardHistoryNotes[draft.forwardHistoryNotes.length - 1].id)) {
+				draft.forwardHistoryNotes = draft.forwardHistoryNotes.concat(currentNote).slice(-MAX_HISTORY);
+			}
 
-		changeSelectedFolder(draft, { ...action, type: 'FOLDER_SELECT', folderId: note.parent_id });
-		changeSelectedNotes(draft, { ...action, type: 'NOTE_SELECT', noteId: note.id });
+			// type has no effect in changeSelectedFolder
+			// changeSelectedFolder(draft, { ...action, type: 'FOLDER_SELECT', folderId: note.parent_id??'' });
+			changeSelectedFolder(draft, { ...action, folderId: note.parent_id ?? '' });
+			if (note.id) changeSelectedNotes(draft, { ...action, type: 'NOTE_SELECT', noteId: note.id });
 
-		const ctx = draft.backwardHistoryNotes[draft.backwardHistoryNotes.length - 1];
-		Object.assign(draft, getContextFromHistory(ctx));
+			const ctx = draft.backwardHistoryNotes[draft.backwardHistoryNotes.length - 1];
+			Object.assign(draft, getContextFromHistory(ctx));
 
-		draft.backwardHistoryNotes.pop();
-		break;
-	}
-	case 'HISTORY_FORWARD': {
-		const note = draft.forwardHistoryNotes[draft.forwardHistoryNotes.length - 1];
-
-		if (currentNote && (draft.backwardHistoryNotes.length === 0 || currentNote.id !== draft.backwardHistoryNotes[draft.backwardHistoryNotes.length - 1].id)) {
-			draft.backwardHistoryNotes = draft.backwardHistoryNotes.concat(currentNote).slice(-MAX_HISTORY);
-		}
-
-		changeSelectedFolder(draft, { ...action, type: 'FOLDER_SELECT', folderId: note.parent_id });
-		changeSelectedNotes(draft, { ...action, type: 'NOTE_SELECT', noteId: note.id });
-
-		const ctx = draft.forwardHistoryNotes[draft.forwardHistoryNotes.length - 1];
-		Object.assign(draft, getContextFromHistory(ctx));
-
-
-		draft.forwardHistoryNotes.pop();
-		break;
-	}
-	case 'NOTE_SELECT':
-		if (currentNote && action.id !== currentNote.id) {
-			draft.forwardHistoryNotes = [];
-			draft.backwardHistoryNotes = draft.backwardHistoryNotes.concat(currentNote).slice(-MAX_HISTORY);
-		}
-		// History should be free from duplicates.
-		if (draft.backwardHistoryNotes && draft.backwardHistoryNotes.length > 0 &&
-						action.id === draft.backwardHistoryNotes[draft.backwardHistoryNotes.length - 1].id) {
 			draft.backwardHistoryNotes.pop();
+			break;
 		}
-		break;
-	case 'TAG_SELECT':
-	case 'FOLDER_AND_NOTE_SELECT':
-	case 'FOLDER_SELECT':
-		if (currentNote) {
-			if (draft.forwardHistoryNotes.length) draft.forwardHistoryNotes = [];
-			draft.backwardHistoryNotes = draft.backwardHistoryNotes.concat(currentNote).slice(-MAX_HISTORY);
-		}
-		break;
-	case 'NOTE_UPDATE_ONE': {
-		const modNote = action.note;
+		case 'HISTORY_FORWARD': {
+			const note = draft.forwardHistoryNotes[draft.forwardHistoryNotes.length - 1];
 
-		draft.backwardHistoryNotes = draft.backwardHistoryNotes.map(note => {
-			if (note.id === modNote.id) {
-				return { ...note, parent_id: modNote.parent_id, selectedFolderId: modNote.parent_id };
+			if (currentNote && (draft.backwardHistoryNotes.length === 0 || currentNote.id !== draft.backwardHistoryNotes[draft.backwardHistoryNotes.length - 1].id)) {
+				draft.backwardHistoryNotes = draft.backwardHistoryNotes.concat(currentNote).slice(-MAX_HISTORY);
 			}
-			return note;
-		});
 
-		draft.forwardHistoryNotes = draft.forwardHistoryNotes.map(note => {
-			if (note.id === modNote.id) {
-				return { ...note, parent_id: modNote.parent_id, selectedFolderId: modNote.parent_id };
+			// type has no effect in changeSelectedFolder
+			// changeSelectedFolder(draft, { ...action, type: 'FOLDER_SELECT', folderId: note.parent_id });
+			changeSelectedFolder(draft, { ...action, folderId: note.parent_id });
+			if (note.id) changeSelectedNotes(draft, { ...action, type: 'NOTE_SELECT', noteId: note.id });
+
+			const ctx = draft.forwardHistoryNotes[draft.forwardHistoryNotes.length - 1];
+			Object.assign(draft, getContextFromHistory(ctx));
+
+
+			draft.forwardHistoryNotes.pop();
+			break;
+		}
+		case 'NOTE_SELECT':
+			if (currentNote && action.id !== currentNote.id) {
+				draft.forwardHistoryNotes = [];
+				draft.backwardHistoryNotes = draft.backwardHistoryNotes.concat(currentNote).slice(-MAX_HISTORY);
 			}
-			return note;
-		});
+			// History should be free from duplicates.
+			if (draft.backwardHistoryNotes && draft.backwardHistoryNotes.length > 0 &&
+				action.id === draft.backwardHistoryNotes[draft.backwardHistoryNotes.length - 1].id) {
+				draft.backwardHistoryNotes.pop();
+			}
+			break;
+		case 'TAG_SELECT':
+		case 'FOLDER_AND_NOTE_SELECT':
+		case 'FOLDER_SELECT':
+			if (currentNote) {
+				if (draft.forwardHistoryNotes.length) draft.forwardHistoryNotes = [];
+				draft.backwardHistoryNotes = draft.backwardHistoryNotes.concat(currentNote).slice(-MAX_HISTORY);
+			}
+			break;
+		case 'NOTE_UPDATE_ONE': {
+			const modNote = action.note;
 
-		break;
-	}
-	case 'SEARCH_UPDATE':
-		if (currentNote && (draft.backwardHistoryNotes.length === 0 ||
-						draft.backwardHistoryNotes[draft.backwardHistoryNotes.length - 1].id !== currentNote.id)) {
-			if (draft.forwardHistoryNotes.length) draft.forwardHistoryNotes = [];
-			draft.backwardHistoryNotes = draft.backwardHistoryNotes.concat(currentNote).slice(-MAX_HISTORY);
+			draft.backwardHistoryNotes = draft.backwardHistoryNotes.map(note => {
+				if (modNote && note.id === modNote.id) {
+					return { ...note, parent_id: modNote.parent_id, selectedFolderId: modNote.parent_id };
+				}
+				return note;
+			});
+
+			draft.forwardHistoryNotes = draft.forwardHistoryNotes.map(note => {
+				if (modNote && note.id === modNote.id) {
+					return { ...note, parent_id: modNote.parent_id, selectedFolderId: modNote.parent_id };
+				}
+				return note;
+			});
+
+			break;
 		}
-		break;
-	case 'FOLDER_DELETE':
-		draft.backwardHistoryNotes = draft.backwardHistoryNotes.filter(note => note.parent_id !== action.id);
-		draft.forwardHistoryNotes = draft.forwardHistoryNotes.filter(note => note.parent_id !== action.id);
+		case 'SEARCH_UPDATE':
+			if (currentNote && (draft.backwardHistoryNotes.length === 0 ||
+				draft.backwardHistoryNotes[draft.backwardHistoryNotes.length - 1].id !== currentNote.id)) {
+				if (draft.forwardHistoryNotes.length) draft.forwardHistoryNotes = [];
+				draft.backwardHistoryNotes = draft.backwardHistoryNotes.concat(currentNote).slice(-MAX_HISTORY);
+			}
+			break;
+		case 'FOLDER_DELETE':
+			draft.backwardHistoryNotes = draft.backwardHistoryNotes.filter(note => note.parent_id !== action.id);
+			draft.forwardHistoryNotes = draft.forwardHistoryNotes.filter(note => note.parent_id !== action.id);
 
-		draft.backwardHistoryNotes = removeAdjacentDuplicates(draft.backwardHistoryNotes);
-		draft.forwardHistoryNotes = removeAdjacentDuplicates(draft.forwardHistoryNotes);
-		break;
-	case 'NOTE_DELETE': {
-		draft.backwardHistoryNotes = draft.backwardHistoryNotes.filter(note => note.id !== action.id);
-		draft.forwardHistoryNotes = draft.forwardHistoryNotes.filter(note => note.id !== action.id);
+			draft.backwardHistoryNotes = removeAdjacentDuplicates(draft.backwardHistoryNotes);
+			draft.forwardHistoryNotes = removeAdjacentDuplicates(draft.forwardHistoryNotes);
+			break;
+		case 'NOTE_DELETE': {
+			draft.backwardHistoryNotes = draft.backwardHistoryNotes.filter(note => note.id !== action.id);
+			draft.forwardHistoryNotes = draft.forwardHistoryNotes.filter(note => note.id !== action.id);
 
-		draft.backwardHistoryNotes = removeAdjacentDuplicates(draft.backwardHistoryNotes);
-		draft.forwardHistoryNotes = removeAdjacentDuplicates(draft.forwardHistoryNotes);
+			draft.backwardHistoryNotes = removeAdjacentDuplicates(draft.backwardHistoryNotes);
+			draft.forwardHistoryNotes = removeAdjacentDuplicates(draft.forwardHistoryNotes);
 
-		// Fix the case where after deletion the currently selected note is also the latest in history
-		const selectedNoteIds = draft.selectedNoteIds;
-		if (selectedNoteIds.length && draft.backwardHistoryNotes.length && draft.backwardHistoryNotes[draft.backwardHistoryNotes.length - 1].id === selectedNoteIds[0]) {
-			draft.backwardHistoryNotes = draft.backwardHistoryNotes.slice(0, draft.backwardHistoryNotes.length - 1);
+			// Fix the case where after deletion the currently selected note is also the latest in history
+			const selectedNoteIds = draft.selectedNoteIds;
+			if (selectedNoteIds.length && draft.backwardHistoryNotes.length && draft.backwardHistoryNotes[draft.backwardHistoryNotes.length - 1].id === selectedNoteIds[0]) {
+				draft.backwardHistoryNotes = draft.backwardHistoryNotes.slice(0, draft.backwardHistoryNotes.length - 1);
+			}
+			if (selectedNoteIds.length && draft.forwardHistoryNotes.length && draft.forwardHistoryNotes[draft.forwardHistoryNotes.length - 1].id === selectedNoteIds[0]) {
+				draft.forwardHistoryNotes = draft.forwardHistoryNotes.slice(0, draft.forwardHistoryNotes.length - 1);
+			}
+			break;
 		}
-		if (selectedNoteIds.length && draft.forwardHistoryNotes.length && draft.forwardHistoryNotes[draft.forwardHistoryNotes.length - 1].id === selectedNoteIds[0]) {
-			draft.forwardHistoryNotes = draft.forwardHistoryNotes.slice(0, draft.forwardHistoryNotes.length - 1);
-		}
-		break;
-	}
 	}
 }
 
@@ -746,479 +768,480 @@ const reducer = produce((draft: Draft<State> = defaultState, action: any) => {
 	try {
 		switch (action.type) {
 
-		case 'NOTE_SELECT':
-		case 'NOTE_SELECT_ADD':
-		case 'NOTE_SELECT_REMOVE':
-		case 'NOTE_SELECT_TOGGLE':
-			changeSelectedNotes(draft, action);
-			break;
-		case 'NOTE_SELECT_EXTEND':
-			{
-				if (!draft.selectedNoteIds.length) {
-					draft.selectedNoteIds = [action.id];
-				} else {
-					const selectRangeId1 = draft.selectedNoteIds[draft.selectedNoteIds.length - 1];
-					const selectRangeId2 = action.id;
-					if (selectRangeId1 === selectRangeId2) {
-						// Nothing
+			case 'NOTE_SELECT':
+			case 'NOTE_SELECT_ADD':
+			case 'NOTE_SELECT_REMOVE':
+			case 'NOTE_SELECT_TOGGLE':
+				changeSelectedNotes(draft, action);
+				break;
+			case 'NOTE_SELECT_EXTEND':
+				{
+					if (!draft.selectedNoteIds.length) {
+						draft.selectedNoteIds = [action.id];
 					} else {
-						const newSelectedNoteIds = draft.selectedNoteIds.slice();
-						let selectionStarted = false;
-						for (let i = 0; i < draft.notes.length; i++) {
-							const id = draft.notes[i].id;
+						const selectRangeId1 = draft.selectedNoteIds[draft.selectedNoteIds.length - 1];
+						const selectRangeId2 = action.id;
+						if (selectRangeId1 === selectRangeId2) {
+							// Nothing
+						} else {
+							const newSelectedNoteIds = draft.selectedNoteIds.slice();
+							let selectionStarted = false;
+							for (let i = 0; i < draft.notes.length; i++) {
+								const id = draft.notes[i].id;
+								if (!id) continue;
+								if (!selectionStarted && (id === selectRangeId1 || id === selectRangeId2)) {
+									selectionStarted = true;
+									if (newSelectedNoteIds.indexOf(id) < 0) newSelectedNoteIds.push(id);
+									continue;
+								} else if (selectionStarted && (id === selectRangeId1 || id === selectRangeId2)) {
+									if (newSelectedNoteIds.indexOf(id) < 0) newSelectedNoteIds.push(id);
+									break;
+								}
 
-							if (!selectionStarted && (id === selectRangeId1 || id === selectRangeId2)) {
-								selectionStarted = true;
-								if (newSelectedNoteIds.indexOf(id) < 0) newSelectedNoteIds.push(id);
-								continue;
-							} else if (selectionStarted && (id === selectRangeId1 || id === selectRangeId2)) {
-								if (newSelectedNoteIds.indexOf(id) < 0) newSelectedNoteIds.push(id);
-								break;
+								if (selectionStarted && newSelectedNoteIds.indexOf(id) < 0) {
+									newSelectedNoteIds.push(id);
+								}
 							}
-
-							if (selectionStarted && newSelectedNoteIds.indexOf(id) < 0) {
-								newSelectedNoteIds.push(id);
-							}
+							draft.selectedNoteIds = newSelectedNoteIds;
 						}
-						draft.selectedNoteIds = newSelectedNoteIds;
 					}
 				}
-			}
-			break;
+				break;
 
-		case 'NOTE_SELECT_ALL':
-			draft.selectedNoteIds = draft.notes.map((n: any) => n.id);
-			break;
+			case 'NOTE_SELECT_ALL':
+				draft.selectedNoteIds = draft.notes.map((n: NoteEntity) => n.id ?? '');
+				break;
 
-		case 'NOTE_SELECT_ALL_TOGGLE': {
-			const allSelected = draft.notes.every((n: any) => draft.selectedNoteIds.includes(n.id));
-			if (allSelected) {
-				draft.selectedNoteIds = [];
-			} else {
-				draft.selectedNoteIds = draft.notes.map(n => n.id);
-			}
-			break;
-		}
-
-		case 'SMART_FILTER_SELECT':
-			draft.notesParentType = 'SmartFilter';
-			draft.selectedSmartFilterId = action.id;
-			break;
-
-		case 'FOLDER_SELECT':
-			changeSelectedFolder(draft, action, { clearSelectedNoteIds: true });
-			break;
-
-		case 'FOLDER_AND_NOTE_SELECT':
-			{
-				changeSelectedFolder(draft, action);
-				const noteSelectAction = { ...action, type: 'NOTE_SELECT' };
-				changeSelectedNotes(draft, noteSelectAction);
-			}
-			break;
-
-		case 'SETTING_UPDATE_ALL':
-			draft.settings = action.settings;
-			break;
-
-		case 'SETTING_UPDATE_ONE':
-			{
-				const newSettings = { ...draft.settings };
-				newSettings[action.key] = action.value;
-				draft.settings = newSettings;
-			}
-			break;
-
-		case 'NOTE_PROVISIONAL_FLAG_CLEAR':
-			{
-				const newIds = ArrayUtils.removeElement(draft.provisionalNoteIds, action.id);
-				if (newIds !== draft.provisionalNoteIds) {
-					draft.provisionalNoteIds = newIds;
+			case 'NOTE_SELECT_ALL_TOGGLE': {
+				const allSelected = draft.notes.every((n: NoteEntity) => n.id && draft.selectedNoteIds.includes(n.id));
+				if (allSelected) {
+					draft.selectedNoteIds = [];
+				} else {
+					draft.selectedNoteIds = draft.notes.map(n => n.id ?? '');
 				}
+				break;
 			}
-			break;
+
+			case 'SMART_FILTER_SELECT':
+				draft.notesParentType = 'SmartFilter';
+				draft.selectedSmartFilterId = action.id;
+				break;
+
+			case 'FOLDER_SELECT':
+				changeSelectedFolder(draft, action, { clearSelectedNoteIds: true });
+				break;
+
+			case 'FOLDER_AND_NOTE_SELECT':
+				{
+					changeSelectedFolder(draft, action);
+					const noteSelectAction = { ...action, type: 'NOTE_SELECT' };
+					changeSelectedNotes(draft, noteSelectAction);
+				}
+				break;
+
+			case 'SETTING_UPDATE_ALL':
+				draft.settings = action.settings;
+				break;
+
+			case 'SETTING_UPDATE_ONE':
+				{
+					const newSettings = { ...draft.settings };
+					newSettings[action.key] = action.value;
+					draft.settings = newSettings;
+				}
+				break;
+
+			case 'NOTE_PROVISIONAL_FLAG_CLEAR':
+				{
+					const newIds = ArrayUtils.removeElement(draft.provisionalNoteIds, action.id);
+					if (newIds !== draft.provisionalNoteIds) {
+						draft.provisionalNoteIds = newIds;
+					}
+				}
+				break;
 
 			// Replace all the notes with the provided array
-		case 'NOTE_UPDATE_ALL':
-			draft.notes = action.notes;
-			draft.notesSource = action.notesSource;
-			updateSelectedNotesFromExistingNotes(draft);
-			break;
+			case 'NOTE_UPDATE_ALL':
+				draft.notes = action.notes;
+				draft.notesSource = action.notesSource;
+				updateSelectedNotesFromExistingNotes(draft);
+				break;
 
 			// Insert the note into the note list if it's new, or
 			// update it within the note array if it already exists.
-		case 'NOTE_UPDATE_ONE':
-			{
-				const modNote = action.note;
-				const isViewingAllNotes = (draft.notesParentType === 'SmartFilter' && draft.selectedSmartFilterId === ALL_NOTES_FILTER_ID);
-				const isViewingConflictFolder = draft.notesParentType === 'Folder' && draft.selectedFolderId === Folder.conflictFolderId();
+			case 'NOTE_UPDATE_ONE':
+				{
+					const modNote = action.note;
+					const isViewingAllNotes = (draft.notesParentType === 'SmartFilter' && draft.selectedSmartFilterId === ALL_NOTES_FILTER_ID);
+					const isViewingConflictFolder = draft.notesParentType === 'Folder' && draft.selectedFolderId === Folder.conflictFolderId();
 
-				const noteIsInFolder = function(note: any, folderId: string) {
-					if (note.is_conflict && isViewingConflictFolder) return true;
-					if (!('parent_id' in modNote) || note.parent_id === folderId) return true;
-					return false;
-				};
+					const noteIsInFolder = function(note: NoteEntity, folderId: string) {
+						if (note.is_conflict && isViewingConflictFolder) return true;
+						if (!('parent_id' in modNote) || note.parent_id === folderId) return true;
+						return false;
+					};
 
-				let movedNotePreviousIndex = 0;
-				let noteFolderHasChanged = false;
-				let newNotes = draft.notes.slice();
-				let found = false;
-				for (let i = 0; i < newNotes.length; i++) {
-					const n = newNotes[i];
-					if (n.id === modNote.id) {
-						if (n.is_conflict && !modNote.is_conflict) {
-							// Note was a conflict but was moved outside of
-							// the conflict folder
-							newNotes.splice(i, 1);
-							noteFolderHasChanged = true;
-							movedNotePreviousIndex = i;
-						} else if (isViewingAllNotes || noteIsInFolder(modNote, n.parent_id)) {
-							// Note is still in the same folder
-							// Merge the properties that have changed (in modNote) into
-							// the object we already have.
-							newNotes[i] = { ...newNotes[i] };
+					let movedNotePreviousIndex = 0;
+					let noteFolderHasChanged = false;
+					let newNotes = draft.notes.slice();
+					let found = false;
+					for (let i = 0; i < newNotes.length; i++) {
+						const n = newNotes[i];
+						if (n.id === modNote.id) {
+							if (n.is_conflict && !modNote.is_conflict) {
+								// Note was a conflict but was moved outside of
+								// the conflict folder
+								newNotes.splice(i, 1);
+								noteFolderHasChanged = true;
+								movedNotePreviousIndex = i;
+							} else if (isViewingAllNotes || noteIsInFolder(modNote, n.parent_id ?? '')) {
+								// Note is still in the same folder
+								// Merge the properties that have changed (in modNote) into
+								// the object we already have.
+								newNotes[i] = { ...newNotes[i] };
 
-							for (const n in modNote) {
-								if (!modNote.hasOwnProperty(n)) continue;
-								newNotes[i][n] = modNote[n];
+								for (const n in modNote) {
+									if (!modNote.hasOwnProperty(n)) continue;
+									(newNotes[i] as any)[n] = modNote[n];
+								}
+							} else {
+								// Note has moved to a different folder
+								newNotes.splice(i, 1);
+								noteFolderHasChanged = true;
+								movedNotePreviousIndex = i;
 							}
-						} else {
-							// Note has moved to a different folder
-							newNotes.splice(i, 1);
-							noteFolderHasChanged = true;
-							movedNotePreviousIndex = i;
+							found = true;
+							break;
 						}
-						found = true;
-						break;
 					}
-				}
 
-				// Note was not found - if the current folder is the same as the note folder,
-				// add it to it.
-				if (!found) {
-					if (isViewingAllNotes || noteIsInFolder(modNote, draft.selectedFolderId)) {
-						newNotes.push(modNote);
+					// Note was not found - if the current folder is the same as the note folder,
+					// add it to it.
+					if (!found) {
+						if (isViewingAllNotes || noteIsInFolder(modNote, draft.selectedFolderId)) {
+							newNotes.push(modNote);
+						}
 					}
-				}
 
-				// newNotes = Note.sortNotes(newNotes, draft.notesOrder, draft.settings.uncompletedTodosOnTop);
-				newNotes = Note.sortNotes(newNotes, stateUtils.notesOrder(draft.settings), draft.settings.uncompletedTodosOnTop);
-				draft.notes = newNotes;
+					// newNotes = Note.sortNotes(newNotes, draft.notesOrder, draft.settings.uncompletedTodosOnTop);
+					newNotes = Note.sortNotes(newNotes, stateUtils.notesOrder(draft.settings), draft.settings.uncompletedTodosOnTop);
+					draft.notes = newNotes;
 
-				if (noteFolderHasChanged) {
-					let newIndex = movedNotePreviousIndex;
-					if (newIndex >= newNotes.length) newIndex = newNotes.length - 1;
-					if (!newNotes.length) newIndex = -1;
-					draft.selectedNoteIds = newIndex >= 0 ? [newNotes[newIndex].id] : [];
-				}
+					if (noteFolderHasChanged) {
+						let newIndex = movedNotePreviousIndex;
+						if (newIndex >= newNotes.length) newIndex = newNotes.length - 1;
+						if (!newNotes.length) newIndex = -1;
+						const newId = newNotes[newIndex].id;
+						draft.selectedNoteIds = newId && newIndex >= 0 ? [newId] : [];
+					}
 
-				if (!action.ignoreProvisionalFlag) {
-					let newProvisionalNoteIds = draft.provisionalNoteIds;
+					if (!action.ignoreProvisionalFlag) {
+						let newProvisionalNoteIds = draft.provisionalNoteIds;
 
-					if (action.provisional) {
-						newProvisionalNoteIds = newProvisionalNoteIds.slice();
-						newProvisionalNoteIds.push(modNote.id);
-					} else {
-						const idx = newProvisionalNoteIds.indexOf(modNote.id);
-						if (idx >= 0) {
+						if (action.provisional) {
 							newProvisionalNoteIds = newProvisionalNoteIds.slice();
-							newProvisionalNoteIds.splice(idx, 1);
+							newProvisionalNoteIds.push(modNote.id);
+						} else {
+							const idx = newProvisionalNoteIds.indexOf(modNote.id);
+							if (idx >= 0) {
+								newProvisionalNoteIds = newProvisionalNoteIds.slice();
+								newProvisionalNoteIds.splice(idx, 1);
+							}
 						}
+
+						draft.provisionalNoteIds = newProvisionalNoteIds;
 					}
-
-					draft.provisionalNoteIds = newProvisionalNoteIds;
 				}
-			}
-			break;
+				break;
 
-		case 'NOTE_DELETE':
+			case 'NOTE_DELETE':
 
-			{
+				{
+					handleItemDelete(draft, action);
+
+					const idx = draft.provisionalNoteIds.indexOf(action.id);
+					if (idx >= 0) {
+						const t = draft.provisionalNoteIds.slice();
+						t.splice(idx, 1);
+						draft.provisionalNoteIds = t;
+					}
+				}
+				break;
+
+			case 'NOTE_IS_INSERTING_NOTES':
+
+				if (draft.isInsertingNotes !== action.value) {
+					draft.isInsertingNotes = action.value;
+				}
+				break;
+
+			case 'TAG_DELETE':
 				handleItemDelete(draft, action);
+				draft.selectedNoteTags = removeItemFromArray(draft.selectedNoteTags, 'id', action.id);
+				break;
 
-				const idx = draft.provisionalNoteIds.indexOf(action.id);
-				if (idx >= 0) {
-					const t = draft.provisionalNoteIds.slice();
-					t.splice(idx, 1);
-					draft.provisionalNoteIds = t;
-				}
-			}
-			break;
+			case 'FOLDER_UPDATE_ALL':
+				draft.folders = action.items;
+				break;
 
-		case 'NOTE_IS_INSERTING_NOTES':
+			case 'FOLDER_SET_COLLAPSED':
+				folderSetCollapsed(draft, action);
+				break;
 
-			if (draft.isInsertingNotes !== action.value) {
-				draft.isInsertingNotes = action.value;
-			}
-			break;
-
-		case 'TAG_DELETE':
-			handleItemDelete(draft, action);
-			draft.selectedNoteTags = removeItemFromArray(draft.selectedNoteTags, 'id', action.id);
-			break;
-
-		case 'FOLDER_UPDATE_ALL':
-			draft.folders = action.items;
-			break;
-
-		case 'FOLDER_SET_COLLAPSED':
-			folderSetCollapsed(draft, action);
-			break;
-
-		case 'FOLDER_TOGGLE':
-			if (draft.collapsedFolderIds.indexOf(action.id) >= 0) {
-				folderSetCollapsed(draft, { collapsed: false, ...action });
-			} else {
-				folderSetCollapsed(draft, { collapsed: true, ...action });
-			}
-			break;
-
-		case 'FOLDER_SET_COLLAPSED_ALL':
-			draft.collapsedFolderIds = action.ids.slice();
-			break;
-
-		case 'TAG_UPDATE_ALL':
-			if (!fastDeepEqual(original(draft.tags), action.items)) {
-				draft.tags = action.items;
-			}
-			break;
-
-		case 'TAG_SELECT':
-
-			if (draft.selectedTagId !== action.id || draft.notesParentType !== 'Tag') {
-				draft.selectedTagId = action.id;
-				if (!action.id) {
-					draft.notesParentType = defaultNotesParentType(draft, 'Tag');
+			case 'FOLDER_TOGGLE':
+				if (draft.collapsedFolderIds.indexOf(action.id) >= 0) {
+					folderSetCollapsed(draft, { collapsed: false, ...action });
 				} else {
-					draft.notesParentType = 'Tag';
+					folderSetCollapsed(draft, { collapsed: true, ...action });
 				}
-				draft.selectedNoteIds = [];
-			}
-			break;
+				break;
 
-		case 'TAG_UPDATE_ONE':
-			{
-				// We only want to update the selected note tags if the tag belongs to the currently open note
-				const selectedNoteHasTag = !!draft.selectedNoteTags.find(tag => tag.id === action.item.id);
+			case 'FOLDER_SET_COLLAPSED_ALL':
+				draft.collapsedFolderIds = action.ids.slice();
+				break;
+
+			case 'TAG_UPDATE_ALL':
+				if (!fastDeepEqual(original(draft.tags), action.items)) {
+					draft.tags = action.items;
+				}
+				break;
+
+			case 'TAG_SELECT':
+
+				if (draft.selectedTagId !== action.id || draft.notesParentType !== 'Tag') {
+					draft.selectedTagId = action.id;
+					if (!action.id) {
+						draft.notesParentType = defaultNotesParentType(draft, 'Tag');
+					} else {
+						draft.notesParentType = 'Tag';
+					}
+					draft.selectedNoteIds = [];
+				}
+				break;
+
+			case 'TAG_UPDATE_ONE':
+				{
+					// We only want to update the selected note tags if the tag belongs to the currently open note
+					const selectedNoteHasTag = !!draft.selectedNoteTags.find(tag => tag.id === action.item.id);
+					updateOneItem(draft, action);
+					if (selectedNoteHasTag) updateOneItem(draft, action, 'selectedNoteTags');
+				}
+				break;
+
+			case 'NOTE_TAG_REMOVE':
+				{
+					updateOneItem(draft, action, 'tags');
+					const tagRemoved = action.item;
+					draft.selectedNoteTags = removeItemFromArray(draft.selectedNoteTags, 'id', tagRemoved.id);
+				}
+				break;
+
+			case 'EDITOR_NOTE_STATUS_SET':
+
+				{
+					draft.editorNoteStatuses[action.id] = action.status;
+				}
+				break;
+
+			case 'EDITOR_NOTE_STATUS_REMOVE':
+
+				{
+					delete draft.editorNoteStatuses[action.id];
+				}
+				break;
+
+			case 'FOLDER_UPDATE_ONE':
+			case 'MASTERKEY_UPDATE_ONE':
 				updateOneItem(draft, action);
-				if (selectedNoteHasTag) updateOneItem(draft, action, 'selectedNoteTags');
-			}
-			break;
+				break;
 
-		case 'NOTE_TAG_REMOVE':
-			{
-				updateOneItem(draft, action, 'tags');
-				const tagRemoved = action.item;
-				draft.selectedNoteTags = removeItemFromArray(draft.selectedNoteTags, 'id', tagRemoved.id);
-			}
-			break;
-
-		case 'EDITOR_NOTE_STATUS_SET':
-
-			{
-				draft.editorNoteStatuses[action.id] = action.status;
-			}
-			break;
-
-		case 'EDITOR_NOTE_STATUS_REMOVE':
-
-			{
-				delete draft.editorNoteStatuses[action.id];
-			}
-			break;
-
-		case 'FOLDER_UPDATE_ONE':
-		case 'MASTERKEY_UPDATE_ONE':
-			updateOneItem(draft, action);
-			break;
-
-		case 'FOLDER_DELETE':
-			handleItemDelete(draft, action);
-			break;
+			case 'FOLDER_DELETE':
+				handleItemDelete(draft, action);
+				break;
 
 			// case 'MASTERKEY_UPDATE_ALL':
 			// 	draft.masterKeys = action.items;
 			// 	break;
 
-		case 'MASTERKEY_SET_NOT_LOADED':
-			draft.notLoadedMasterKeys = action.ids;
-			break;
+			case 'MASTERKEY_SET_NOT_LOADED':
+				draft.notLoadedMasterKeys = action.ids;
+				break;
 
-		case 'MASTERKEY_ADD_NOT_LOADED':
-			{
-				if (draft.notLoadedMasterKeys.indexOf(action.id) < 0) {
-					const keys = draft.notLoadedMasterKeys.slice();
-					keys.push(action.id);
-					draft.notLoadedMasterKeys = keys;
-				}
-			}
-			break;
-
-		case 'MASTERKEY_REMOVE_NOT_LOADED':
-			{
-				const ids = action.id ? [action.id] : action.ids;
-				for (let i = 0; i < ids.length; i++) {
-					const id = ids[i];
-					const index = draft.notLoadedMasterKeys.indexOf(id);
-					if (index >= 0) {
+			case 'MASTERKEY_ADD_NOT_LOADED':
+				{
+					if (draft.notLoadedMasterKeys.indexOf(action.id) < 0) {
 						const keys = draft.notLoadedMasterKeys.slice();
-						keys.splice(index, 1);
+						keys.push(action.id);
 						draft.notLoadedMasterKeys = keys;
 					}
 				}
-			}
-			break;
+				break;
 
-		case 'CONTAINS_LEGACY_TEMPLATES':
-			draft.hasLegacyTemplates = true;
-			break;
-
-		case 'SYNC_STARTED':
-			draft.syncStarted = true;
-			break;
-
-		case 'SYNC_COMPLETED':
-			draft.syncStarted = false;
-			break;
-
-		case 'SYNC_REPORT_UPDATE':
-			draft.syncReport = action.report;
-			break;
-
-		case 'SEARCH_QUERY':
-			draft.searchQuery = action.query.trim();
-			break;
-
-		case 'SEARCH_ADD':
-			{
-				const searches = draft.searches.slice();
-				searches.push(action.search);
-				draft.searches = searches;
-			}
-			break;
-
-		case 'SEARCH_UPDATE':
-			{
-				const searches = draft.searches.slice();
-				let found = false;
-				for (let i = 0; i < searches.length; i++) {
-					if (searches[i].id === action.search.id) {
-						searches[i] = { ...action.search };
-						found = true;
-						break;
+			case 'MASTERKEY_REMOVE_NOT_LOADED':
+				{
+					const ids = action.id ? [action.id] : action.ids;
+					for (let i = 0; i < ids.length; i++) {
+						const id = ids[i];
+						const index = draft.notLoadedMasterKeys.indexOf(id);
+						if (index >= 0) {
+							const keys = draft.notLoadedMasterKeys.slice();
+							keys.splice(index, 1);
+							draft.notLoadedMasterKeys = keys;
+						}
 					}
 				}
+				break;
 
-				if (!found) searches.push(action.search);
+			case 'CONTAINS_LEGACY_TEMPLATES':
+				draft.hasLegacyTemplates = true;
+				break;
 
-				draft.notesParentType = 'Search';
-				draft.searches = searches;
-			}
-			break;
+			case 'SYNC_STARTED':
+				draft.syncStarted = true;
+				break;
 
-		case 'SEARCH_DELETE':
-			handleItemDelete(draft, action);
-			break;
+			case 'SYNC_COMPLETED':
+				draft.syncStarted = false;
+				break;
 
-		case 'SEARCH_SELECT':
-			draft.selectedSearchId = action.id;
-			if (!action.id) {
-				draft.notesParentType = defaultNotesParentType(draft, 'Search');
-			} else {
-				draft.notesParentType = 'Search';
-			}
-			draft.selectedNoteIds = [];
-			break;
-		case 'SET_HIGHLIGHTED':
-			draft.highlightedWords = action.words;
-			break;
+			case 'SYNC_REPORT_UPDATE':
+				draft.syncReport = action.report;
+				break;
 
-		case 'APP_STATE_SET':
-			draft.appState = action.state;
-			break;
+			case 'SEARCH_QUERY':
+				draft.searchQuery = action.query.trim();
+				break;
 
-		case 'BIOMETRICS_DONE_SET':
-			draft.biometricsDone = action.value;
-			break;
-
-		case 'SYNC_HAS_DISABLED_SYNC_ITEMS':
-			draft.hasDisabledSyncItems = true;
-			break;
-
-		case 'ENCRYPTION_HAS_DISABLED_ITEMS':
-			draft.hasDisabledEncryptionItems = action.value;
-			break;
-
-		case 'CLIPPER_SERVER_SET':
-			{
-				const clipperServer = { ...draft.clipperServer };
-				if ('startState' in action) clipperServer.startState = action.startState;
-				if ('port' in action) clipperServer.port = action.port;
-				draft.clipperServer = clipperServer;
-			}
-			break;
-
-		case 'DECRYPTION_WORKER_SET':
-			{
-				const decryptionWorker = { ...draft.decryptionWorker };
-				for (const n in action) {
-					if (!action.hasOwnProperty(n) || n === 'type') continue;
-					(decryptionWorker as any)[n] = action[n];
+			case 'SEARCH_ADD':
+				{
+					const searches = draft.searches.slice();
+					searches.push(action.search);
+					draft.searches = searches;
 				}
-				draft.decryptionWorker = decryptionWorker;
-			}
-			break;
+				break;
 
-		case 'RESOURCE_FETCHER_SET':
-			{
-				const rf = { ...action };
-				delete rf.type;
-				draft.resourceFetcher = rf;
-			}
-			break;
+			case 'SEARCH_UPDATE':
+				{
+					const searches = draft.searches.slice();
+					let found = false;
+					for (let i = 0; i < searches.length; i++) {
+						if (searches[i].id === action.search.id) {
+							searches[i] = { ...action.search };
+							found = true;
+							break;
+						}
+					}
 
-		case 'CUSTOM_CSS_APPEND':
-			draft.customCss += action.css;
-			break;
+					if (!found) searches.push(action.search);
 
-		case 'SET_NOTE_TAGS':
-			if (!fastDeepEqual(original(draft.selectedNoteTags), action.items)) {
-				draft.selectedNoteTags = action.items;
-			}
-			break;
+					draft.notesParentType = 'Search';
+					draft.searches = searches;
+				}
+				break;
 
-		case 'PLUGINLEGACY_DIALOG_SET':
-			{
-				if (!action.pluginName) throw new Error('action.pluginName not specified');
-				const newPluginsLegacy = { ...draft.pluginsLegacy };
-				const newPlugin = draft.pluginsLegacy[action.pluginName] ? { ...draft.pluginsLegacy[action.pluginName] } : {};
-				if ('open' in action) newPlugin.dialogOpen = action.open;
-				if ('userData' in action) newPlugin.userData = action.userData;
-				newPluginsLegacy[action.pluginName] = newPlugin;
-				draft.pluginsLegacy = newPluginsLegacy;
-			}
-			break;
+			case 'SEARCH_DELETE':
+				handleItemDelete(draft, action);
+				break;
 
-		case 'API_NEED_AUTH_SET':
-			draft.needApiAuth = action.value;
-			break;
+			case 'SEARCH_SELECT':
+				draft.selectedSearchId = action.id;
+				if (!action.id) {
+					draft.notesParentType = defaultNotesParentType(draft, 'Search');
+				} else {
+					draft.notesParentType = 'Search';
+				}
+				draft.selectedNoteIds = [];
+				break;
+			case 'SET_HIGHLIGHTED':
+				draft.highlightedWords = action.words;
+				break;
 
-		case 'PROFILE_CONFIG_SET':
-			draft.profileConfig = action.value;
-			break;
+			case 'APP_STATE_SET':
+				draft.appState = action.state;
+				break;
 
-		case 'NOTE_LIST_RENDERER_ADD':
-			{
-				const noteListRendererIds = draft.noteListRendererIds.slice();
-				if (noteListRendererIds.includes(action.value)) throw new Error(`Note list renderer is already registered: ${action.value}`);
-				noteListRendererIds.push(action.value);
-				draft.noteListRendererIds = noteListRendererIds;
-			}
-			break;
+			case 'BIOMETRICS_DONE_SET':
+				draft.biometricsDone = action.value;
+				break;
+
+			case 'SYNC_HAS_DISABLED_SYNC_ITEMS':
+				draft.hasDisabledSyncItems = true;
+				break;
+
+			case 'ENCRYPTION_HAS_DISABLED_ITEMS':
+				draft.hasDisabledEncryptionItems = action.value;
+				break;
+
+			case 'CLIPPER_SERVER_SET':
+				{
+					const clipperServer = { ...draft.clipperServer };
+					if ('startState' in action) clipperServer.startState = action.startState;
+					if ('port' in action) clipperServer.port = action.port;
+					draft.clipperServer = clipperServer;
+				}
+				break;
+
+			case 'DECRYPTION_WORKER_SET':
+				{
+					const decryptionWorker = { ...draft.decryptionWorker };
+					for (const n in action) {
+						if (!action.hasOwnProperty(n) || n === 'type') continue;
+						(decryptionWorker as any)[n] = action[n];
+					}
+					draft.decryptionWorker = decryptionWorker;
+				}
+				break;
+
+			case 'RESOURCE_FETCHER_SET':
+				{
+					const rf = { ...action };
+					delete rf.type;
+					draft.resourceFetcher = rf;
+				}
+				break;
+
+			case 'CUSTOM_CSS_APPEND':
+				draft.customCss += action.css;
+				break;
+
+			case 'SET_NOTE_TAGS':
+				if (!fastDeepEqual(original(draft.selectedNoteTags), action.items)) {
+					draft.selectedNoteTags = action.items;
+				}
+				break;
+
+			case 'PLUGINLEGACY_DIALOG_SET':
+				{
+					if (!action.pluginName) throw new Error('action.pluginName not specified');
+					const newPluginsLegacy = { ...draft.pluginsLegacy };
+					const newPlugin = draft.pluginsLegacy[action.pluginName] ? { ...draft.pluginsLegacy[action.pluginName] } : {};
+					if ('open' in action) newPlugin.dialogOpen = action.open;
+					if ('userData' in action) newPlugin.userData = action.userData;
+					newPluginsLegacy[action.pluginName] = newPlugin;
+					draft.pluginsLegacy = newPluginsLegacy;
+				}
+				break;
+
+			case 'API_NEED_AUTH_SET':
+				draft.needApiAuth = action.value;
+				break;
+
+			case 'PROFILE_CONFIG_SET':
+				draft.profileConfig = action.value;
+				break;
+
+			case 'NOTE_LIST_RENDERER_ADD':
+				{
+					const noteListRendererIds = draft.noteListRendererIds.slice();
+					if (noteListRendererIds.includes(action.value)) throw new Error(`Note list renderer is already registered: ${action.value}`);
+					noteListRendererIds.push(action.value);
+					draft.noteListRendererIds = noteListRendererIds;
+				}
+				break;
 
 		}
 	} catch (error) {
-		error.message = `In reducer: ${error.message} Action: ${JSON.stringify(action)}`;
+		if (error instanceof Error) error.message = `In reducer: ${error.message} Action: ${JSON.stringify(action)}`;
 		throw error;
 	}
 
@@ -1239,6 +1262,8 @@ const reducer = produce((draft: Draft<State> = defaultState, action: any) => {
 	// } else {
 	// 	return newState;
 	// }
+
+	return draft;
 });
 
 export default reducer;

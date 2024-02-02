@@ -1,5 +1,5 @@
 import shim from '@xilinota/lib/shim';
-const os = require('os');
+import os from 'os';
 import { readFile } from 'fs/promises';
 const { filename } = require('@xilinota/lib/path-utils');
 import HtmlToMd from '@xilinota/lib/HtmlToMd';
@@ -59,7 +59,7 @@ describe('HtmlToMd', () => {
 				result.push('--------------------------------------------');
 				result.push('');
 
-				// eslint-disable-next-line no-console
+
 				console.info(result.join('\n'));
 
 				// console.info('');

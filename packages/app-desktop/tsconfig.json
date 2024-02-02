@@ -1,15 +1,5 @@
 {
 	"extends": "../../tsconfig.json",
-	"compilerOptions": {
-		// "baseUrl": "./",
-		// "outDir": "./dist",
-		"esModuleInterop": true,
-		// "paths": {
-		// 	"app-desktop/*": [
-		// 		"./dist/*"
-		// 	],
-		// }
-	},
 	"include": [
 		"**/*.ts",
 		"**/*.tsx",
@@ -17,5 +7,5 @@
 	"exclude": [
 		"**/node_modules",
 		"**/dist",
-	],
+	]
 }

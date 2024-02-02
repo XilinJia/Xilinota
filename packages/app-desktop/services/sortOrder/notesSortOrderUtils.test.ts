@@ -1,6 +1,6 @@
 import { notesSortOrderFieldArray, notesSortOrderNextField, setNotesSortOrder } from './notesSortOrderUtils';
 import Setting from '@xilinota/lib/models/Setting';
-const { shimInit } = require('@xilinota/lib/shim-init-node.js');
+import { shimInit } from '@xilinota/lib/shim-init-node';
 
 describe('notesSortOrderUtils', () => {
 

@@ -8,7 +8,7 @@ import { runtime as focusSearchRuntime } from './commands/focusSearch';
 import Note from '@xilinota/lib/models/Note';
 import { notesSortOrderNextField } from '../../services/sortOrder/notesSortOrderUtils';
 import { _ } from '@xilinota/lib/locale';
-const { connect } = require('react-redux');
+import { connect } from 'react-redux';
 import styled from 'styled-components';
 import stateToWhenClauseContext from '../../services/commands/stateToWhenClauseContext';
 
@@ -96,21 +96,22 @@ function NoteListControls(props: Props) {
 	const [dynamicBreakpoints, setDynamicBreakpoints] = useState<Breakpoints>({ Sm: BaseBreakpoint.Sm, Md: BaseBreakpoint.Md, Lg: BaseBreakpoint.Lg, Xl: BaseBreakpoint.Xl });
 
 	const searchBarRef = useRef(null);
-	const newNoteRef = useRef(null);
+	const newNoteRef = useRef<Element>(null);
 	const newTodoRef = useRef(null);
-	const noteControlsRef = useRef(null);
-	const searchAndSortRef = useRef(null);
+	const noteControlsRef = useRef<HTMLDivElement>(document.createElement('div'));
+	const searchAndSortRef = useRef<HTMLDivElement>(document.createElement('div'));
 
 	const getTextWidth = (text: string): number => {
 		const canvas = document.createElement('canvas');
 		if (!canvas) throw new Error('Failed to create canvas element');
 		const ctx = canvas.getContext('2d');
 		if (!ctx) throw new Error('Failed to get context');
-		const fontWeight = getComputedStyle(newNoteRef.current).getPropertyValue('font-weight');
-		const fontSize = getComputedStyle(newNoteRef.current).getPropertyValue('font-size');
-		const fontFamily = getComputedStyle(newNoteRef.current).getPropertyValue('font-family');
-		ctx.font = `${fontWeight} ${fontSize} ${fontFamily}`;
-
+		if (newNoteRef.current) {
+			const fontWeight = getComputedStyle(newNoteRef.current).getPropertyValue('font-weight');
+			const fontSize = getComputedStyle(newNoteRef.current).getPropertyValue('font-size');
+			const fontFamily = getComputedStyle(newNoteRef.current).getPropertyValue('font-family');
+			ctx.font = `${fontWeight} ${fontSize} ${fontFamily}`;
+		}
 		return ctx.measureText(text).width;
 	};
 
@@ -181,10 +182,10 @@ function NoteListControls(props: Props) {
 
 	useEffect(() => {
 		if (breakpoint === dynamicBreakpoints.Xl) {
-			noteControlsRef.current.style.flexDirection = 'row';
-			searchAndSortRef.current.style.flex = '2 1 50%';
+			if (noteControlsRef.current) noteControlsRef.current.style.flexDirection = 'row';
+			if (searchAndSortRef.current) searchAndSortRef.current.style.flex = '2 1 50%';
 		} else {
-			noteControlsRef.current.style.flexDirection = 'column';
+			if (noteControlsRef.current) noteControlsRef.current.style.flexDirection = 'column';
 		}
 	}, [breakpoint, dynamicBreakpoints]);
 

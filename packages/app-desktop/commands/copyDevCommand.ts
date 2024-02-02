@@ -1,7 +1,7 @@
 import { CommandRuntime, CommandDeclaration } from '@xilinota/lib/services/CommandService';
 import { _ } from '@xilinota/lib/locale';
 const app = require('@electron/remote').app;
-const { clipboard } = require('electron');
+import { clipboard } from 'electron';
 
 export const declaration: CommandDeclaration = {
 	name: 'copyDevCommand',

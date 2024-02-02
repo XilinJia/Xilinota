@@ -2,7 +2,7 @@
 
 type Vosk = any;
 
-export { Vosk };
+export type { Vosk };
 
 interface StartOptions {
 	onResult: (text: string)=> void;

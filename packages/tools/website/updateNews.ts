@@ -54,12 +54,12 @@ const getPostContent = async (post: Post): Promise<PostContent> => {
 		lines.splice(0, 1);
 
 		return {
-			title: titleLine.substr(1).trim(),
+			title: titleLine.substring(1).trim(),
 			body: lines.join('\n').trim(),
 			parsed,
 		};
 	} catch (error) {
-		error.message = `Could not get post content: ${post.id}: ${post.path}: ${error.message}`;
+		if (error instanceof Error) error.message = `Could not get post content: ${post.id}: ${post.path}: ${error.message}`;
 		throw error;
 	}
 };
@@ -73,7 +73,7 @@ const generateRssFeed = async (posts: Post[]) => {
 		const postDate = getNewsDate(content.parsed.header, post.path);
 		const html = markdownToHtml(content.body);
 
-		if (pubDate === null) pubDate = postDate;
+		if (!pubDate) pubDate = postDate;
 
 		feedItems.push({
 			title: content.title,
@@ -104,7 +104,7 @@ const generateRssFeed = async (posts: Post[]) => {
 
 	// Change the build date otherwise it changes even when nothing has changed.
 	// https://github.com/dylang/node-rss/pull/52
-	xml = xml.replace(/<lastBuildDate>(.*?)<\/lastBuildDate>/, `<lastBuildDate>${pubDate.toUTCString()}</lastBuildDate>`);
+	xml = xml.replace(/<lastBuildDate>(.*?)<\/lastBuildDate>/, `<lastBuildDate>${pubDate?.toUTCString()}</lastBuildDate>`);
 
 	return xml;
 };

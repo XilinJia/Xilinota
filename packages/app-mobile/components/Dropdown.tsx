@@ -1,4 +1,4 @@
-const React = require('react');
+import React from 'react';
 import { TouchableOpacity, TouchableWithoutFeedback, Dimensions, Text, Modal, View, LayoutRectangle, ViewStyle, TextStyle, FlatList } from 'react-native';
 import { Component } from 'react';
 import { _ } from '@xilinota/lib/locale';
@@ -33,7 +33,7 @@ interface DropdownState {
 }
 
 class Dropdown extends Component<DropdownProps, DropdownState> {
-	private headerRef: TouchableOpacity;
+	private headerRef: TouchableOpacity | null;
 
 	public constructor(props: DropdownProps) {
 		super(props);
@@ -47,7 +47,7 @@ class Dropdown extends Component<DropdownProps, DropdownState> {
 
 	private updateHeaderCoordinates() {
 		// https://stackoverflow.com/questions/30096038/react-native-getting-the-position-of-an-element
-		this.headerRef.measure((_fx, _fy, width, height, px, py) => {
+		this.headerRef?.measure((_fx, _fy, width, height, px, py) => {
 			this.setState({
 				headerSize: { x: px, y: py, width: width, height: height },
 			});

@@ -1,3 +1,5 @@
+// only used to generate script for desktop/gui/note-viewer/lib.js
+
 function pregQuote(str, delimiter = '') {
 	return (`${str}`).replace(new RegExp(`[.\\\\+*?\\[\\^\\]$(){}=!<>|:\\${delimiter || ''}-]`, 'g'), '\\$&');
 }

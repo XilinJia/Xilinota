@@ -67,7 +67,7 @@ export interface TemplateParams {
 	showJoplinCloudLinks?: boolean;
 	assetUrls: AssetUrls;
 	showBottomLinks?: boolean;
-	openGraph: OpenGraphTags;
+	openGraph?: OpenGraphTags;
 	isNews?: boolean;
 	locale?: Locale;
 }

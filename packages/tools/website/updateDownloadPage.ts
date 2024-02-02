@@ -7,10 +7,10 @@ async function getReadmeMd() {
 
 async function createDownloadButtonsHtml(readmeMd: string): Promise<Record<string, string>> {
 	const output: Record<string, string> = {};
-	output['windows'] = readmeMd.match(/(<a href=.*?Xilinota-Setup-.*?<\/a>)/)[0];
-	output['macOs'] = readmeMd.match(/(<a href=.*?Xilinota-.*\.dmg.*?<\/a>)/)[0];
-	output['linux'] = readmeMd.match(/(<a href=.*?Xilinota-.*\.AppImage.*?<\/a>)/)[0];
-	output['android'] = readmeMd.match(/(<a href='https:\/\/play.google.com\/store\/apps\/details\?id=ac\.mdiq\.xilinota.*?<\/a>)/)[0];
+	output['windows'] = readmeMd.match(/(<a href=.*?Xilinota-Setup-.*?<\/a>)/)?.[0]??'';
+	output['macOs'] = readmeMd.match(/(<a href=.*?Xilinota-.*\.dmg.*?<\/a>)/)?.[0]??'';
+	output['linux'] = readmeMd.match(/(<a href=.*?Xilinota-.*\.AppImage.*?<\/a>)/)?.[0]??'';
+	output['android'] = readmeMd.match(/(<a href='https:\/\/play.google.com\/store\/apps\/details\?id=ac\.mdiq\.xilinota.*?<\/a>)/)?.[0]??'';
 	// output['ios'] = readmeMd.match(/(<a href='https:\/\/itunes\.apple\.com\/us\/app\/xilinota\/id1315599797.*?<\/a>)/)[0];
 
 	for (const [k, v] of Object.entries(output)) {
@@ -20,8 +20,8 @@ async function createDownloadButtonsHtml(readmeMd: string): Promise<Record<strin
 	return output;
 }
 
-export default async function updateDownloadPage(readmeMd: string = null) {
-	readmeMd = readmeMd === null ? await getReadmeMd() : readmeMd;
+export default async function updateDownloadPage(readmeMd: string = '') {
+	readmeMd = !readmeMd ? await getReadmeMd() : readmeMd;
 
 	const downloadButtonsHtml = await createDownloadButtonsHtml(readmeMd);
 

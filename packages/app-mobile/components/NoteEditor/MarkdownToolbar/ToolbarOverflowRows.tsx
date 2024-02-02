@@ -5,7 +5,7 @@ import ToggleOverflowButton from './ToggleOverflowButton';
 import ToolbarButton, { buttonSize } from './ToolbarButton';
 import { ButtonGroup, ButtonSpec, StyleSheetData } from './types';
 
-const React = require('react');
+import React from 'react';
 
 type OnToggleOverflowCallback = ()=> void;
 interface OverflowPopupProps {

@@ -1,7 +1,5 @@
 /* eslint-disable import/prefer-default-export */
 
-const Entities = require('html-entities').AllHtmlEntities;
-
 const selfClosingElements = [
 	'area',
 	'base',
@@ -24,7 +22,10 @@ const selfClosingElements = [
 	'wbr',
 ];
 
-export const htmlentities = new Entities().encode;
+import { encode as htmlentities } from 'html-entities';
+export { htmlentities };
+
+// export const htmlentities = new Entities().encode;
 
 export const attributesHtml = (attr: Record<string, any>) => {
 	const output = [];

@@ -31,7 +31,7 @@ describe('Synchronizer.resources', () => {
 		while (insideBeforeEach) await time.msleep(500);
 
 		const folder1 = await Folder.save({ title: 'folder1' });
-		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id });
+		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id! });
 		await shim.attachFileToNote(note1, `${supportDir}/photo.jpg`);
 		const resource1 = (await Resource.all())[0];
 		const resourcePath1 = Resource.fullPath(resource1);
@@ -52,7 +52,7 @@ describe('Synchronizer.resources', () => {
 		fetcher.queueDownload_(resource1_2.id);
 		await fetcher.waitForAllFinished();
 
-		resource1_2 = await Resource.load(resource1.id);
+		resource1_2 = (await Resource.load(resource1.id))!;
 		ls = await Resource.localState(resource1_2);
 		expect(ls.fetch_status).toBe(Resource.FETCH_STATUS_DONE);
 
@@ -64,7 +64,7 @@ describe('Synchronizer.resources', () => {
 		while (insideBeforeEach) await time.msleep(500);
 
 		const folder1 = await Folder.save({ title: 'folder1' });
-		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id });
+		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id! });
 		await shim.attachFileToNote(note1, `${supportDir}/photo.jpg`);
 		let resource1 = (await Resource.all())[0];
 		await synchronizerStart();
@@ -75,15 +75,14 @@ describe('Synchronizer.resources', () => {
 
 		const fetcher = new ResourceFetcher(() => {
 			return {
-			// Simulate a failed download
-				// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
+				// Simulate a failed download
 				get: () => { return new Promise((_resolve: Function, reject: Function) => { reject(new Error('did not work')); }); },
 			};
 		});
 		fetcher.queueDownload_(resource1.id);
 		await fetcher.waitForAllFinished();
 
-		resource1 = await Resource.load(resource1.id);
+		resource1 = (await Resource.load(resource1.id))!;
 		const ls = await Resource.localState(resource1);
 		expect(ls.fetch_status).toBe(Resource.FETCH_STATUS_ERROR);
 		expect(ls.fetch_error).toBe('did not work');
@@ -93,7 +92,7 @@ describe('Synchronizer.resources', () => {
 		while (insideBeforeEach) await time.msleep(500);
 
 		const folder1 = await Folder.save({ title: 'folder1' });
-		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id });
+		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id! });
 		await shim.attachFileToNote(note1, `${supportDir}/photo.jpg`);
 		await synchronizerStart();
 
@@ -102,13 +101,13 @@ describe('Synchronizer.resources', () => {
 		await synchronizerStart();
 		let r1 = (await Resource.all())[0];
 		await Resource.setFileSizeOnly(r1.id, -1);
-		r1 = await Resource.load(r1.id);
+		r1 = (await Resource.load(r1.id))!;
 		expect(r1.size).toBe(-1);
 
 		const fetcher = new ResourceFetcher(() => { return synchronizer().api(); });
 		fetcher.queueDownload_(r1.id);
 		await fetcher.waitForAllFinished();
-		r1 = await Resource.load(r1.id);
+		r1 = (await Resource.load(r1.id))!;
 		expect(r1.size).toBe(2720);
 	}));
 
@@ -116,7 +115,7 @@ describe('Synchronizer.resources', () => {
 		while (insideBeforeEach) await time.msleep(500);
 
 		const folder1 = await Folder.save({ title: 'folder1' });
-		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id });
+		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id! });
 		await shim.attachFileToNote(note1, `${supportDir}/photo.jpg`);
 		const resource1 = (await Resource.all())[0];
 		const resourcePath1 = Resource.fullPath(resource1);
@@ -149,7 +148,7 @@ describe('Synchronizer.resources', () => {
 		const masterKey = await loadEncryptionMasterKey();
 
 		const folder1 = await Folder.save({ title: 'folder1' });
-		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id });
+		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id! });
 		await shim.attachFileToNote(note1, `${supportDir}/photo.jpg`);
 		const resource1 = (await Resource.all())[0];
 		const resourcePath1 = Resource.fullPath(resource1);
@@ -158,7 +157,7 @@ describe('Synchronizer.resources', () => {
 		await switchClient(2);
 
 		await synchronizerStart();
-		Setting.setObjectValue('encryption.passwordCache', masterKey.id, '123456');
+		Setting.setObjectValue('encryption.passwordCache', masterKey.id!, '123456');
 		await loadMasterKeysFromSettings(encryptionService());
 
 		const fetcher = new ResourceFetcher(() => { return synchronizer().api(); });
@@ -176,7 +175,7 @@ describe('Synchronizer.resources', () => {
 		const tempFile = tempFilePath('txt');
 		await shim.fsDriver().writeFile(tempFile, '1234', 'utf8');
 		const folder1 = await Folder.save({ title: 'folder1' });
-		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id });
+		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id! });
 		await shim.attachFileToNote(note1, tempFile);
 		await synchronizerStart();
 
@@ -211,7 +210,7 @@ describe('Synchronizer.resources', () => {
 			const tempFile = tempFilePath('txt');
 			await shim.fsDriver().writeFile(tempFile, '1234', 'utf8');
 			const folder1 = await Folder.save({ title: 'folder1' });
-			const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id });
+			const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id! });
 			await shim.attachFileToNote(note1, tempFile);
 			await synchronizerStart();
 		}
@@ -260,7 +259,7 @@ describe('Synchronizer.resources', () => {
 				return v.parent_id === resourceConflictFolderId;
 			});
 			expect(!!conflictNote).toBe(true);
-			const resourceIds = await Note.linkedResourceIds(conflictNote.body);
+			const resourceIds = await Note.linkedResourceIds(conflictNote!.body);
 			expect(resourceIds.length).toBe(1);
 			const conflictContent = await Resource.resourceBlobContent(resourceIds[0], 'utf8');
 			expect(conflictContent).toBe('1234 MOD 1');
@@ -269,7 +268,7 @@ describe('Synchronizer.resources', () => {
 			// is a top folder.
 			const resourceConflictFolder = await Folder.load(resourceConflictFolderId);
 			expect(resourceConflictFolder).toBeTruthy();
-			expect(resourceConflictFolder.parent_id).toBeFalsy();
+			expect(resourceConflictFolder!.parent_id).toBeFalsy();
 		}
 	}));
 
@@ -278,7 +277,7 @@ describe('Synchronizer.resources', () => {
 			const tempFile = tempFilePath('txt');
 			await shim.fsDriver().writeFile(tempFile, '1234', 'utf8');
 			const folder1 = await Folder.save({ title: 'folder1' });
-			const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id });
+			const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id! });
 			await shim.attachFileToNote(note1, tempFile);
 			await synchronizerStart();
 		}

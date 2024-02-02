@@ -1,17 +1,33 @@
+// import FsDriverBase from '@xilinota/lib/fs-driver-base';
 import InMemoryCache from './InMemoryCache';
 import noteStyle from './noteStyle';
 import { fileExtension } from './pathUtils';
 import setupLinkify from './MdToHtml/setupLinkify';
 import validateLinks from './MdToHtml/validateLinks';
-import { ItemIdToUrlHandler } from './utils';
+import { ItemIdToUrlHandler, ResourceProps, ResourcesRecord } from './utils';
 import { RenderResult, RenderResultPluginAsset } from './MarkupToHtml';
 import { Options as NoteStyleOptions } from './noteStyle';
 import hljs from './highlight';
+import markdownit from 'markdown-it';
 
-const Entities = require('html-entities').AllHtmlEntities;
-const htmlentities = new Entities().encode;
-const MarkdownIt = require('markdown-it');
-const md5 = require('md5');
+import { encode } from 'html-entities';
+import md5 from 'md5';
+
+import fence from './MdToHtml/rules/fence';
+import sanitize_html from './MdToHtml/rules/sanitize_html';
+import image from './MdToHtml/rules/image';
+import checkbox from './MdToHtml/rules/checkbox';
+import katex from './MdToHtml/rules/katex';
+import link_open from './MdToHtml/rules/link_open';
+import link_close from './MdToHtml/rules/link_close';
+import html_image from './MdToHtml/rules/html_image';
+import highlight_keywords from './MdToHtml/rules/highlight_keywords';
+import code_inline from './MdToHtml/rules/code_inline';
+import fountain from './MdToHtml/rules/fountain';
+import mermaid from './MdToHtml/rules/mermaid';
+import source_map from './MdToHtml/rules/source_map';
+
+import defaultNoteStyle from './defaultNoteStyle';
 
 export interface RenderOptions {
 	contentMaxWidth?: number;
@@ -35,7 +51,7 @@ export interface RenderOptions {
 }
 
 interface RendererRule {
-	install(context: any, ruleOptions: any): any;
+	install?(context: any, ruleOptions: any): any;
 	assets?(theme: any): any;
 	plugin?: any;
 	assetPath?: string;
@@ -57,19 +73,19 @@ interface RendererPlugins {
 
 // /!\/!\ Note: the order of rules is important!! /!\/!\
 const rules: RendererRules = {
-	fence: require('./MdToHtml/rules/fence').default,
-	sanitize_html: require('./MdToHtml/rules/sanitize_html').default,
-	image: require('./MdToHtml/rules/image').default,
-	checkbox: require('./MdToHtml/rules/checkbox').default,
-	katex: require('./MdToHtml/rules/katex').default,
-	link_open: require('./MdToHtml/rules/link_open').default,
-	link_close: require('./MdToHtml/rules/link_close').default,
-	html_image: require('./MdToHtml/rules/html_image').default,
-	highlight_keywords: require('./MdToHtml/rules/highlight_keywords').default,
-	code_inline: require('./MdToHtml/rules/code_inline').default,
-	fountain: require('./MdToHtml/rules/fountain').default,
-	mermaid: require('./MdToHtml/rules/mermaid').default,
-	source_map: require('./MdToHtml/rules/source_map').default,
+	fence: fence,
+	sanitize_html: sanitize_html,
+	image: image,
+	checkbox: checkbox,
+	katex: katex,
+	link_open: link_open,
+	link_close: link_close,
+	html_image: html_image,
+	highlight_keywords: highlight_keywords,
+	code_inline: code_inline,
+	fountain: fountain,
+	mermaid: mermaid,
+	source_map: source_map,
 };
 
 const uslug = require('@xilinota/fork-uslug');
@@ -80,7 +96,6 @@ const plugins: RendererPlugins = {
 	mark: { module: require('markdown-it-mark') },
 	footnote: { module: require('markdown-it-footnote') },
 	sub: { module: require('markdown-it-sub') },
-	sup: { module: require('markdown-it-sup') },
 	deflist: { module: require('markdown-it-deflist') },
 	abbr: { module: require('markdown-it-abbr') },
 	emoji: { module: require('markdown-it-emoji') },
@@ -89,7 +104,6 @@ const plugins: RendererPlugins = {
 	toc: { module: require('markdown-it-toc-done-right'), options: { listType: 'ul', slugify: slugify } },
 	expand_tabs: { module: require('markdown-it-expand-tabs'), options: { tabWidth: 4 } },
 };
-const defaultNoteStyle = require('./defaultNoteStyle');
 
 function slugify(s: string): string {
 	return uslug(s);
@@ -137,8 +151,8 @@ export interface Link {
 
 interface PluginContext {
 	css: any;
-	pluginAssets: any;
-	cache: any;
+	pluginAssets: PluginAssets;
+	cache: InMemoryCache;
 	userData: any;
 	currentLinks: Link[];
 }
@@ -149,7 +163,7 @@ export interface RuleOptions {
 	postMessageSyntax: string;
 	ResourceModel: any;
 	resourceBaseUrl: string;
-	resources: any; // resourceId: Resource
+	resources: ResourcesRecord; // resourceId: Resource
 
 	// Used by checkboxes to specify how it should be rendered
 	checkboxRenderingType?: number;
@@ -192,15 +206,22 @@ export interface RuleOptions {
 	platformName?: string;
 }
 
+type FsDriverBase = {
+	writeFile: Function,
+	exists: Function,
+	cacheCssToFile: Function,
+}
+
 export default class MdToHtml {
 
 	private resourceBaseUrl_: string;
 	private ResourceModel_: any;
-	private contextCache_: any;
-	private fsDriver_: any;
+	private contextCache_: InMemoryCache;
+	private fsDriver_: FsDriverBase;
+	// private fsDriver_: FsDriverBase;
 
 	private cachedOutputs_: any = {};
-	private lastCodeHighlightCacheKey_: string = null;
+	private lastCodeHighlightCacheKey_: string | undefined;
 	private cachedHighlightedCode_: any = {};
 
 	// Markdown-It plugin options (not Xilinota plugin options)
@@ -209,11 +230,9 @@ export default class MdToHtml {
 	private allProcessedAssets_: any = {};
 	private customCss_ = '';
 
-	public constructor(options: Options = null) {
-		if (!options) options = {};
-
+	public constructor(options: Options = {}) {
 		// Must include last "/"
-		this.resourceBaseUrl_ = 'resourceBaseUrl' in options ? options.resourceBaseUrl : null;
+		this.resourceBaseUrl_ = 'resourceBaseUrl' in options ? options.resourceBaseUrl ?? '' : '';
 
 		this.ResourceModel_ = options.ResourceModel;
 		this.pluginOptions_ = options.pluginOptions ? options.pluginOptions : {};
@@ -224,6 +243,8 @@ export default class MdToHtml {
 			exists: (/* path*/) => { throw new Error('exists not set'); },
 			cacheCssToFile: (/* cssStrings*/) => { throw new Error('cacheCssToFile not set'); },
 		};
+
+		// this.fsDriver_ = new FsDriverBase();
 
 		if (options.fsDriver) {
 			if (options.fsDriver.writeFile) this.fsDriver_.writeFile = options.fsDriver.writeFile;
@@ -240,11 +261,11 @@ export default class MdToHtml {
 		this.customCss_ = options.customCss || '';
 	}
 
-	private fsDriver() {
+	private fsDriver(): FsDriverBase {
 		return this.fsDriver_;
 	}
 
-	public static pluginNames() {
+	public static pluginNames(): string[] {
 		const output = [];
 		for (const n in rules) output.push(n);
 		for (const n in plugins) output.push(n);
@@ -268,7 +289,7 @@ export default class MdToHtml {
 	}
 
 	// `module` is a file that has already been `required()`
-	public loadExtraRendererRule(id: string, assetPath: string, module: any) {
+	public loadExtraRendererRule(id: string, assetPath: string, module: any): void {
 		if (this.extraRendererRules_[id]) throw new Error(`A renderer rule with this ID has already been loaded: ${id}`);
 		this.extraRendererRules_[id] = {
 			...module,
@@ -277,7 +298,7 @@ export default class MdToHtml {
 		};
 	}
 
-	private ruleByKey(key: string): RendererRule {
+	private ruleByKey(key: string): RendererRule | null {
 		if (rules[key]) return rules[key];
 		if (this.extraRendererRules_[key]) return this.extraRendererRules_[key];
 		if (key === 'highlight.js') return null;
@@ -286,7 +307,7 @@ export default class MdToHtml {
 
 	private processPluginAssets(pluginAssets: PluginAssets): RenderResult {
 		const files: RenderResultPluginAsset[] = [];
-		const cssStrings = [];
+		const cssStrings: string[] = [];
 		for (const pluginName in pluginAssets) {
 
 			const rule = this.ruleByKey(pluginName);
@@ -297,7 +318,7 @@ export default class MdToHtml {
 				if (!mime && asset.inline) throw new Error('Mime type is required for inline assets');
 
 				if (!mime) {
-					const ext = fileExtension(asset.name).toLowerCase();
+					const ext = fileExtension(asset.name ?? '').toLowerCase();
 					// For now it's only useful to support CSS and JS because that's what needs to be added
 					// by the caller with <script> or <style> tags. Everything, like fonts, etc. is loaded
 					// via CSS or some other ways.
@@ -307,7 +328,7 @@ export default class MdToHtml {
 				}
 
 				if (asset.inline) {
-					if (mime === 'text/css') {
+					if (asset.text && mime === 'text/css') {
 						cssStrings.push(asset.text);
 					} else {
 						throw new Error(`Unsupported inline mime type: ${mime}`);
@@ -322,10 +343,12 @@ export default class MdToHtml {
 					const name = `${pluginName}/${asset.name}`;
 					const assetPath = rule?.assetPath ? `${rule.assetPath}/${asset.name}` : `pluginAssets/${name}`;
 
-					files.push({ ...asset, name: name,
+					files.push({
+						...asset, name: name,
 						path: assetPath,
 						pathIsAbsolute: !!rule && !!rule.assetPathIsAbsolute,
-						mime: mime });
+						mime: mime
+					});
 				}
 			}
 		}
@@ -339,7 +362,7 @@ export default class MdToHtml {
 
 	// This return all the assets for all the plugins. Since it is called
 	// on each render, the result is cached.
-	private allProcessedAssets(rules: RendererRules, theme: any, codeTheme: string) {
+	private allProcessedAssets(rules: RendererRules, theme: any, codeTheme: string): RenderResult {
 		const cacheKey: string = theme.cacheKey + codeTheme;
 
 		if (this.allProcessedAssets_[cacheKey]) return this.allProcessedAssets_[cacheKey];
@@ -366,7 +389,7 @@ export default class MdToHtml {
 	}
 
 	// This is similar to allProcessedAssets() but used only by the Rich Text editor
-	public async allAssets(theme: any, noteStyleOptions: NoteStyleOptions = null) {
+	public async allAssets(theme: any, noteStyleOptions: NoteStyleOptions = {}) {
 		const assets: any = {};
 		for (const key in rules) {
 			if (!this.pluginEnabled(key)) continue;
@@ -386,7 +409,7 @@ export default class MdToHtml {
 
 	private async outputAssetsToExternalAssets_(output: any) {
 		for (const cssString of output.cssStrings) {
-			const filePath = await this.fsDriver().cacheCssToFile(cssString);
+			const filePath: string = await this.fsDriver().cacheCssToFile(cssString);
 			output.pluginAssets.push(filePath);
 		}
 		delete output.cssStrings;
@@ -394,25 +417,25 @@ export default class MdToHtml {
 	}
 
 	// The string we are looking for is: <p></p>\n
-	private removeMarkdownItWrappingParagraph_(html: string) {
+	private removeMarkdownItWrappingParagraph_(html: string): string {
 		if (html.length < 8) return html;
 
 		// If there are multiple <p> tags, we keep them because it's multiple lines
 		// and removing the first and last tag will result in invalid HTML.
 		if ((html.match(/<\/p>/g) || []).length > 1) return html;
 
-		if (html.substr(0, 3) !== '<p>') return html;
+		if (html.substring(0, 3) !== '<p>') return html;
 		if (html.slice(-5) !== '</p>\n') return html;
 		return html.substring(3, html.length - 5);
 	}
 
-	public clearCache() {
+	public clearCache(): void {
 		this.cachedOutputs_ = {};
 	}
 
 	private removeLastNewLine(s: string): string {
 		if (s[s.length - 1] === '\n') {
-			return s.substr(0, s.length - 1);
+			return s.substring(0, s.length - 1);
 		} else {
 			return s;
 		}
@@ -429,7 +452,7 @@ export default class MdToHtml {
 	}
 
 	// "theme" is the theme as returned by themeStyle()
-	public async render(body: string, theme: any = null, options: RenderOptions = null): Promise<RenderResult> {
+	public async render(body: string, theme: any = null, options: RenderOptions = {}): Promise<RenderResult> {
 
 		options = {
 			// In bodyOnly mode, the rendered Markdown is returned without the wrapper DIV
@@ -467,8 +490,10 @@ export default class MdToHtml {
 		const cachedOutput = this.cachedOutputs_[cacheKey];
 		if (cachedOutput) return cachedOutput;
 
-		const ruleOptions = { ...options, resourceBaseUrl: this.resourceBaseUrl_,
-			ResourceModel: this.ResourceModel_ };
+		const ruleOptions = {
+			...options, resourceBaseUrl: this.resourceBaseUrl_,
+			ResourceModel: this.ResourceModel_
+		};
 
 		const context: PluginContext = {
 			css: {},
@@ -478,7 +503,7 @@ export default class MdToHtml {
 			currentLinks: [],
 		};
 
-		const markdownIt = new MarkdownIt({
+		const markdownIt_: markdownit = markdownit({
 			breaks: !this.pluginEnabled('softbreaks'),
 			typographer: this.pluginEnabled('typographer'),
 			linkify: this.pluginEnabled('linkify'),
@@ -489,10 +514,10 @@ export default class MdToHtml {
 				// The strings includes the last \n that is part of the fence,
 				// so we remove it because we need the exact code in the source block
 				const trimmedStr = this.removeLastNewLine(str);
-				const sourceBlockHtml = `<pre class="xilinota-source" data-xilinota-language="${htmlentities(lang)}" data-xilinota-source-open="\`\`\`${htmlentities(lang)}&#10;" data-xilinota-source-close="&#10;\`\`\`">${markdownIt.utils.escapeHtml(trimmedStr)}</pre>`;
+				const sourceBlockHtml = `<pre class="xilinota-source" data-xilinota-language="${encode(lang) as string}" data-xilinota-source-open="\`\`\`${encode(lang) as string}&#10;" data-xilinota-source-close="&#10;\`\`\`">${markdownIt_.utils.escapeHtml(trimmedStr)}</pre>`;
 
 				if (this.shouldSkipHighlighting(trimmedStr, lang)) {
-					outputCodeHtml = markdownIt.utils.escapeHtml(trimmedStr);
+					outputCodeHtml = markdownIt_.utils.escapeHtml(trimmedStr);
 				} else {
 					try {
 						let hlCode = '';
@@ -512,17 +537,18 @@ export default class MdToHtml {
 
 						outputCodeHtml = hlCode;
 					} catch (error) {
-						outputCodeHtml = markdownIt.utils.escapeHtml(trimmedStr);
+						outputCodeHtml = markdownIt_.utils.escapeHtml(trimmedStr);
 					}
 				}
 
 				const html = `<div class="xilinota-editable">${sourceBlockHtml}<pre class="hljs"><code>${outputCodeHtml}</code></pre></div>`;
 
 				if (rules.fence) {
-					return {
-						wrapCode: false,
-						html: html,
-					};
+					// return {
+					// 	wrapCode: false,
+					// 	html: html,
+					// };
+					return html;
 				} else {
 					return html;
 				}
@@ -563,32 +589,32 @@ export default class MdToHtml {
 
 			const rule = allRules[key];
 
-			markdownIt.use(rule.plugin, {
+			markdownIt_.use(rule.plugin, {
 				context: context,
 				...ruleOptions,
-				...(ruleOptions.plugins[key] ? ruleOptions.plugins[key] : {}),
+				...(ruleOptions.plugins && ruleOptions.plugins[key] ? ruleOptions.plugins[key] : {}),
 			});
 		}
 
-		markdownIt.use(markdownItAnchor, { slugify: slugify });
+		markdownIt_.use(markdownItAnchor, { slugify: slugify });
 
 		for (const key in plugins) {
 			if (this.pluginEnabled(key)) {
-				markdownIt.use(plugins[key].module, plugins[key].options);
+				markdownIt_.use(plugins[key].module, plugins[key].options);
 			}
 		}
 
-		markdownIt.validateLink = validateLinks;
+		markdownIt_.validateLink = validateLinks;
 
-		if (this.pluginEnabled('linkify')) setupLinkify(markdownIt);
+		if (this.pluginEnabled('linkify')) setupLinkify(markdownIt_);
 
-		const renderedBody = markdownIt.render(body, context);
+		const renderedBody = markdownIt_.render(body, context);
 
 		let cssStrings = noteStyle(options.theme, {
 			contentMaxWidth: options.contentMaxWidth,
 		});
 
-		let output = { ...this.allProcessedAssets(allRules, options.theme, options.codeTheme) };
+		let output = { ...this.allProcessedAssets(allRules, options.theme, options.codeTheme ?? '') };
 		cssStrings = cssStrings.concat(output.cssStrings);
 
 		if (this.customCss_) cssStrings.push(this.customCss_);

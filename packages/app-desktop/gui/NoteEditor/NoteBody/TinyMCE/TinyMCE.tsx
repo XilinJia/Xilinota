@@ -14,7 +14,7 @@ import { _, closestSupportedLocale } from '@xilinota/lib/locale';
 import useContextMenu from './utils/useContextMenu';
 import { copyHtmlToClipboard } from '../../utils/clipboardUtils';
 import shim from '@xilinota/lib/shim';
-import { MarkupToHtml } from '@xilinota/renderer';
+import { MarkupLanguage, MarkupToHtml } from '@xilinota/renderer';
 import { reg } from '@xilinota/lib/registry';
 import BaseItem from '@xilinota/lib/models/BaseItem';
 import setupToolbarButtons from './utils/setupToolbarButtons';
@@ -27,10 +27,11 @@ import bridge from '../../../../services/bridge';
 import { TinyMceEditorEvents } from './utils/types';
 import type { Editor } from 'tinymce';
 import { xilinotaCommandToTinyMceCommands, TinyMceCommand } from './utils/xilinotaCommandToTinyMceCommands';
-const { clipboard } = require('electron');
+import { RenderResult } from '@xilinota/renderer/MarkupToHtml';
+import { clipboard } from 'electron';
 const supportedLocales = require('./supportedLocales');
 
-function markupRenderOptions(override: MarkupToHtmlOptions = null): MarkupToHtmlOptions {
+function markupRenderOptions(override: MarkupToHtmlOptions = {}): MarkupToHtmlOptions {
 	return {
 		plugins: {
 			checkbox: {
@@ -76,12 +77,12 @@ function findEditableContainer(node: any): any {
 let markupToHtml_ = new MarkupToHtml();
 function stripMarkup(markupLanguage: number, markup: string, options: any = null) {
 	if (!markupToHtml_) markupToHtml_ = new MarkupToHtml();
-	return	markupToHtml_.stripMarkup(markupLanguage, markup, options);
+	return markupToHtml_.stripMarkup(markupLanguage, markup, options);
 }
 
 interface LastOnChangeEventInfo {
 	content: string;
-	resourceInfos: ResourceInfos;
+	resourceInfos: ResourceInfos | null;
 	contentKey: string;
 }
 
@@ -91,24 +92,24 @@ let dispatchDidUpdateIID_: any = null;
 let changeId_ = 1;
 
 const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
-	const [editor, setEditor] = useState<Editor|null>(null);
+	const [editor, setEditor] = useState<Editor | null>(null);
 	const [scriptLoaded, setScriptLoaded] = useState(false);
 	const [editorReady, setEditorReady] = useState(false);
 	const [draggingStarted, setDraggingStarted] = useState(false);
 
-	const props_onMessage = useRef(null);
+	const props_onMessage = useRef<((event: any) => void) | null>(null);
 	props_onMessage.current = props.onMessage;
 
-	const props_onDrop = useRef(null);
+	const props_onDrop = useRef<Function | null>(null);
 	props_onDrop.current = props.onDrop;
 
-	const markupToHtml = useRef(null);
+	const markupToHtml = useRef<((markupLanguage: MarkupLanguage, markup: string, options: MarkupToHtmlOptions) => Promise<RenderResult>) | null>(null);
 	markupToHtml.current = props.markupToHtml;
 
 	const lastOnChangeEventInfo = useRef<LastOnChangeEventInfo>({
-		content: null,
+		content: '',
 		resourceInfos: null,
-		contentKey: null,
+		contentKey: '',
 	});
 
 	const rootIdRef = useRef<string>(`tinymce-${Date.now()}${Math.round(Math.random() * 10000)}`);
@@ -131,21 +132,21 @@ const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
 		}, 10);
 	};
 
-	const insertResourcesIntoContent = useCallback(async (filePaths: string[] = null, options: any = null) => {
+	const insertResourcesIntoContent = useCallback(async (filePaths: string[] = [], options: any = null) => {
 		const resourceMd = await commandAttachFileToBody('', filePaths, options);
 		if (!resourceMd) return;
 		const result = await props.markupToHtml(MarkupToHtml.MARKUP_LANGUAGE_MARKDOWN, resourceMd, markupRenderOptions({ bodyOnly: true }));
-		editor.insertContent(result.html);
+		editor?.insertContent(result.html);
 	}, [props.markupToHtml, editor]);
 
-	const insertResourcesIntoContentRef = useRef(null);
+	const insertResourcesIntoContentRef = useRef<((filePaths?: string[], options?: any) => Promise<void>) | null>(null);
 	insertResourcesIntoContentRef.current = insertResourcesIntoContent;
 
 	const onEditorContentClick = useCallback((event: any) => {
 		const nodeName = event.target ? event.target.nodeName : '';
 
 		if (nodeName === 'INPUT' && event.target.getAttribute('type') === 'checkbox') {
-			editor.fire(TinyMceEditorEvents.XilinotaChange);
+			editor?.fire(TinyMceEditorEvents.XilinotaChange);
 			dispatchDidUpdate(editor);
 		}
 
@@ -153,8 +154,8 @@ const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
 			const href = event.target.getAttribute('href');
 
 			if (href.indexOf('#') === 0) {
-				const anchorName = href.substr(1);
-				const anchor = editor.getDoc().getElementById(anchorName);
+				const anchorName = href.substring(1);
+				const anchor = editor?.getDoc().getElementById(anchorName);
 				if (anchor) {
 					anchor.scrollIntoView();
 				} else {
@@ -169,7 +170,7 @@ const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
 	useImperativeHandle(ref, () => {
 		return {
 			content: async () => {
-				if (!editorRef.current) return '';
+				if (!editorRef.current || !prop_htmlToMarkdownRef.current) return '';
 				return prop_htmlToMarkdownRef.current(props.contentMarkupLanguage, editorRef.current.getContent(), props.contentOriginalCss);
 			},
 			resetScroll: () => {
@@ -203,8 +204,10 @@ const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
 				let commandProcessed = true;
 
 				if (cmd.name === 'insertText') {
-					const result = await markupToHtml.current(MarkupToHtml.MARKUP_LANGUAGE_MARKDOWN, cmd.value, { bodyOnly: true });
-					editor.insertContent(result.html);
+					if (markupToHtml.current) {
+						const result = await markupToHtml.current(MarkupToHtml.MARKUP_LANGUAGE_MARKDOWN, cmd.value, { bodyOnly: true });
+						editor.insertContent(result.html);
+					}
 				} else if (cmd.name === 'editor.focus') {
 					editor.focus();
 				} else if (cmd.name === 'editor.execCommand') {
@@ -215,10 +218,12 @@ const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
 					editor.execCommand(cmd.value.name, cmd.value.ui, cmd.value.value, cmd.value.args);
 				} else if (cmd.name === 'dropItems') {
 					if (cmd.value.type === 'notes') {
-						const result = await markupToHtml.current(MarkupToHtml.MARKUP_LANGUAGE_MARKDOWN, cmd.value.markdownTags.join('\n'), markupRenderOptions({ bodyOnly: true }));
-						editor.insertContent(result.html);
+						if (markupToHtml.current) {
+							const result = await markupToHtml.current(MarkupToHtml.MARKUP_LANGUAGE_MARKDOWN, cmd.value.markdownTags.join('\n'), markupRenderOptions({ bodyOnly: true }));
+							editor.insertContent(result.html);
+						}
 					} else if (cmd.value.type === 'files') {
-						insertResourcesIntoContentRef.current(cmd.value.paths, { createFileURL: !!cmd.value.createFileURL });
+						if (insertResourcesIntoContentRef.current) insertResourcesIntoContentRef.current(cmd.value.paths, { createFileURL: !!cmd.value.createFileURL });
 					} else {
 						reg.logger().warn('TinyMCE: unsupported drop item: ', cmd);
 					}
@@ -273,7 +278,7 @@ const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
 				return true;
 			},
 		};
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [editor, props.contentMarkupLanguage, props.contentOriginalCss]);
 
 	// -----------------------------------------------------------------------------------------
@@ -332,7 +337,7 @@ const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
 					continue;
 				}
 
-				// eslint-disable-next-line no-console
+
 				console.info('Loading script', s.src);
 
 				await loadScript(s);
@@ -522,7 +527,7 @@ const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
 		// style and re-applying it on editorReady gives our styles precedence and prevents any flashing
 		//
 		// tl;dr: editorReady is used here because the css needs to be re-applied after TinyMCE init
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [editorReady, props.themeId]);
 
 	// -----------------------------------------------------------------------------------------
@@ -531,7 +536,7 @@ const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
 
 	useEffect(() => {
 		if (!editor) return;
-		editor.setMode(props.disabled ? 'readonly' : 'design');
+		editor.mode.set(props.disabled ? 'readonly' : 'design');
 	}, [editor, props.disabled]);
 
 	// -----------------------------------------------------------------------------------------
@@ -606,7 +611,7 @@ const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
 				},
 				setup: (editor: Editor) => {
 					editor.addCommand('xilinotaAttach', () => {
-						insertResourcesIntoContentRef.current();
+						if (insertResourcesIntoContentRef.current) insertResourcesIntoContentRef.current();
 					});
 
 					editor.ui.registry.addButton('xilinotaAttach', {
@@ -631,7 +636,9 @@ const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
 						tooltip: _('Inline Code'),
 						icon: 'sourcecode',
 						onAction: function() {
-							editor.execCommand('mceToggleFormat', false, 'code', { class: 'inline-code' });
+							// XJ: argument { class: 'inline-code' } not allowed??
+							editor.execCommand('mceToggleFormat', false, 'code');
+							// editor.execCommand('mceToggleFormat', false, 'code', { class: 'inline-code' });
 						},
 						onSetup: function(api) {
 							api.setActive(editor.formatter.match('code'));
@@ -687,7 +694,7 @@ const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
 						// https://stackoverflow.com/questions/64782955/tinymce-inline-drag-and-drop-image-upload-not-working
 						event.preventDefault();
 
-						props_onDrop.current(event);
+						if (props_onDrop.current) props_onDrop.current(event);
 					});
 
 					editor.on('ObjectResized', (event) => {
@@ -712,7 +719,7 @@ const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
 					editor.on('SetContent', () => {
 						preprocessContent();
 
-						props_onMessage.current({ channel: 'noteRenderComplete' });
+						if (props_onMessage.current) props_onMessage.current({ channel: 'noteRenderComplete' });
 					});
 				},
 			});
@@ -721,7 +728,7 @@ const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
 		};
 
 		void loadEditor();
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [scriptLoaded]);
 
 	// -----------------------------------------------------------------------------------------
@@ -751,7 +758,7 @@ const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
 				.map((a: any) => a.path),
 		);
 
-		const allJsFiles = [].concat(
+		const allJsFiles = [''].concat(
 			pluginAssets
 				.filter((a: any) => a.mime === 'application/javascript')
 				.map((a: any) => a.path),
@@ -833,16 +840,17 @@ const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
 	}
 
 	useEffect(() => {
-		if (!editor) return () => {};
+		if (!editor) return () => { };
 
 		if (resourcesStatus(props.resourceInfos) !== 'ready') {
 			editor.setContent('');
-			return () => {};
+			return () => { };
 		}
 
 		let cancelled = false;
 
 		const loadContent = async () => {
+			if (!lastOnChangeEventInfo.current.resourceInfos) return;
 			const resourcesEqual = resourceInfosEqual(lastOnChangeEventInfo.current.resourceInfos, props.resourceInfos);
 
 			if (lastOnChangeEventInfo.current.content !== props.content || !resourcesEqual) {
@@ -886,11 +894,11 @@ const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
 		return () => {
 			cancelled = true;
 		};
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [editor, props.markupToHtml, props.allAssets, props.content, props.resourceInfos, props.contentKey]);
 
 	useEffect(() => {
-		if (!editor) return () => {};
+		if (!editor) return () => { };
 
 		editor.getDoc().addEventListener('click', onEditorContentClick);
 		return () => {
@@ -902,7 +910,7 @@ const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
 	// overlay over the editor, which makes it a valid drop target. This in
 	// turn makes NoteEditor get the drop event and dispatch it.
 	useEffect(() => {
-		if (!editor) return () => {};
+		if (!editor) return () => { };
 
 		function onDragStart() {
 			setDraggingStarted(true);
@@ -933,11 +941,9 @@ const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
 	// Need to save the onChange handler to a ref to make sure
 	// we call the current one from setTimeout.
 	// https://github.com/facebook/react/issues/14010#issuecomment-433788147
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	const props_onChangeRef = useRef<Function>();
 	props_onChangeRef.current = props.onChange;
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	const prop_htmlToMarkdownRef = useRef<Function>();
 	prop_htmlToMarkdownRef.current = props.htmlToMarkdown;
 
@@ -949,16 +955,17 @@ const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
 
 		nextOnChangeEventInfo.current = null;
 
-		const contentMd = await prop_htmlToMarkdownRef.current(info.contentMarkupLanguage, info.editor.getContent(), info.contentOriginalCss);
+		if (prop_htmlToMarkdownRef.current) {
+			const contentMd = await prop_htmlToMarkdownRef.current(info.contentMarkupLanguage, info.editor.getContent(), info.contentOriginalCss);
 
-		lastOnChangeEventInfo.current.content = contentMd;
-		lastOnChangeEventInfo.current.resourceInfos = await attachedResources(contentMd);
+			lastOnChangeEventInfo.current.content = contentMd;
+			lastOnChangeEventInfo.current.resourceInfos = await attachedResources(contentMd);
 
-		props_onChangeRef.current({
-			changeId: info.changeId,
-			content: contentMd,
-		});
-
+			if (props_onChangeRef.current) props_onChangeRef.current({
+				changeId: info.changeId,
+				content: contentMd,
+			});
+		}
 		dispatchDidUpdate(info.editor);
 	}
 
@@ -969,13 +976,13 @@ const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
 		return () => {
 			void execOnChangeEvent();
 		};
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, []);
 
 	const onChangeHandlerTimeoutRef = useRef<any>(null);
 
 	useEffect(() => {
-		if (!editor) return () => {};
+		if (!editor) return () => { };
 
 		function onChangeHandler() {
 			// First this component notifies the parent that a change is going to happen.
@@ -1062,7 +1069,7 @@ const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
 			// to be processed in various ways.
 			event.preventDefault();
 
-			const pastedText = event.clipboardData.getData('text/plain');
+			const pastedText = event.clipboardData?.getData('text/plain');
 
 			// event.clipboardData.getData('text/html') wraps the
 			// content with <html><body></body></html>, which seems to
@@ -1073,7 +1080,7 @@ const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
 			// event.clopboardData.getData('text/html') returns an empty
 			// string, but the clipboard.readHTML() still returns the
 			// formatted text.
-			const pastedHtml = event.clipboardData.getData('text/html') ? clipboard.readHTML() : '';
+			const pastedHtml = event.clipboardData?.getData('text/html') ? clipboard.readHTML() : '';
 
 			// We should only process the images if there is no plain text or
 			// HTML text in the clipboard. This is because certain applications,
@@ -1084,16 +1091,16 @@ const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
 
 			if (!pastedText && !pastedHtml) {
 				const resourceMds = await getResourcesFromPasteEvent(event);
-				if (resourceMds.length) {
+				if (markupToHtml.current && resourceMds.length && editor) {
 					const result = await markupToHtml.current(MarkupToHtml.MARKUP_LANGUAGE_MARKDOWN, resourceMds.join('\n'), markupRenderOptions({ bodyOnly: true }));
 					editor.insertContent(result.html);
 				}
 			} else {
-				if (BaseItem.isMarkdownTag(pastedText)) { // Paste a link to a note
-					const result = await markupToHtml.current(MarkupToHtml.MARKUP_LANGUAGE_MARKDOWN, pastedText, markupRenderOptions({ bodyOnly: true }));
+				if (markupToHtml.current && editor && BaseItem.isMarkdownTag(pastedText)) { // Paste a link to a note
+					const result = await markupToHtml.current(MarkupToHtml.MARKUP_LANGUAGE_MARKDOWN, pastedText ?? '', markupRenderOptions({ bodyOnly: true }));
 					editor.insertContent(result.html);
 				} else { // Paste regular text
-					if (pastedHtml) { // Handles HTML
+					if (editor && pastedHtml) { // Handles HTML
 						const modifiedHtml = await processPastedHtml(pastedHtml);
 						editor.insertContent(modifiedHtml);
 					} else { // Handles plain text
@@ -1104,12 +1111,14 @@ const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
 		}
 
 		async function onCopy(event: any) {
+			if (!editor) return;
 			const copiedContent = editor.selection.getContent();
 			copyHtmlToClipboard(copiedContent);
 			event.preventDefault();
 		}
 
 		async function onCut(event: any) {
+			if (!editor) return;
 			const selectedContent = editor.selection.getContent();
 			copyHtmlToClipboard(selectedContent);
 			editor.insertContent('');
@@ -1117,9 +1126,9 @@ const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
 			onChangeHandler();
 		}
 
-		function pasteAsPlainText(text: string = null) {
-			const pastedText = text === null ? clipboard.readText() : text;
-			if (pastedText) {
+		function pasteAsPlainText(text: string = '') {
+			const pastedText = text === '' ? clipboard.readText() : text;
+			if (editor && pastedText) {
 				editor.insertContent(plainTextToHtml(pastedText));
 			}
 		}
@@ -1136,7 +1145,7 @@ const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
 			// (one by the system and the other by our code)
 			if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.code === 'KeyV') {
 				event.preventDefault();
-				pasteAsPlainText(null);
+				pasteAsPlainText('');
 			}
 		}
 
@@ -1184,7 +1193,7 @@ const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
 				console.warn('Error removing events', error);
 			}
 		};
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [props.onWillChange, props.onChange, props.contentMarkupLanguage, props.contentOriginalCss, editor]);
 
 	// -----------------------------------------------------------------------------------------
@@ -1270,7 +1279,7 @@ const TinyMCE = (props: NoteBodyEditorProps, ref: any) => {
 			{renderDisabledOverlay()}
 			{renderLeftExtraToolbarButtons()}
 			{renderRightExtraToolbarButtons()}
-			<div style={{ width: '100%', height: '100%' }} id={rootIdRef.current}/>
+			<div style={{ width: '100%', height: '100%' }} id={rootIdRef.current} />
 		</div>
 	);
 };

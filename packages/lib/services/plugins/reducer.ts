@@ -94,7 +94,7 @@ export const utils = {
 		return output;
 	},
 
-	viewInfoByViewId: function(plugins: PluginStates, viewId: string): ViewInfo {
+	viewInfoByViewId: function(plugins: PluginStates, viewId: string): ViewInfo | null {
 		for (const pluginId in plugins) {
 			const plugin = plugins[pluginId];
 			if (plugin.views[viewId]) {
@@ -183,7 +183,7 @@ const reducer = (draftRoot: Draft<any>, action: any) => {
 
 		}
 	} catch (error) {
-		error.message = `In plugin reducer: ${error.message} Action: ${JSON.stringify(action)}`;
+		if (error instanceof Error) error.message = `In plugin reducer: ${error.message} Action: ${JSON.stringify(action)}`;
 		throw error;
 	}
 };

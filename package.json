@@ -12,8 +12,8 @@
     "node": ">=16"
   },
   "scripts": {
-    "buildParallel": "yarn workspaces foreach --verbose --interlaced --parallel --jobs 2 --topological run build && yarn run tsc",
-    "buildSequential": "yarn workspaces foreach --verbose --interlaced --topological run build && yarn run tsc",
+    "buildParallel": "yarn workspaces foreach --all --verbose --interlaced --parallel --jobs 2 --topological run build && yarn run tsc",
+    "buildSequential": "yarn workspaces foreach --all --verbose --interlaced --topological run build && yarn run tsc",
     "buildApiDoc": "yarn workspace xilinota start apidoc ../../readme/api/references/rest_api.md",
     "buildCommandIndex": "node packages/tools/gulp/tasks/buildCommandIndexRun.js",
     "buildPluginDoc": "cd packages/generate-plugin-doc && yarn run buildPluginDoc_",
@@ -52,12 +52,12 @@
     "tagServerLatest": "node packages/tools/tagServerLatest.js",
     "buildServerDocker": "node packages/tools/buildServerDocker.js",
     "setupNewRelease": "node ./packages/tools/setupNewRelease",
-    "test-ci": "yarn workspaces foreach --parallel --verbose --interlaced --jobs 2 run test-ci",
-    "test": "yarn workspaces foreach --parallel --verbose --interlaced --jobs 2 run test",
-    "tsc": "yarn workspaces foreach --parallel --verbose --interlaced run tsc",
+    "test-ci": "yarn workspaces foreach --all --parallel --verbose --interlaced --jobs 2 run test-ci",
+    "test": "yarn workspaces foreach --all --parallel --verbose --interlaced --jobs 2 run test",
+    "tsc": "yarn workspaces foreach --all --parallel --verbose --interlaced run tsc",
     "updateIgnored": "node packages/tools/gulp/tasks/updateIgnoredTypeScriptBuildRun.js",
     "updatePluginTypes": "./packages/generator-xilinota/updateTypes.sh",
-    "watch": "yarn workspaces foreach --parallel --verbose --interlaced --jobs 999 run watch",
+    "watch": "yarn workspaces foreach --all --parallel --verbose --interlaced --jobs 999 run watch",
     "watchWebsite": "nodemon --verbose --watch Assets/WebsiteAssets --watch packages/tools/website --watch packages/tools/website/utils --ext md,ts,js,mustache,css,tsx,gif,png,svg --exec \"node packages/tools/website/build.js && http-server --port 8077 ../xilinota-website/docs -a localhost\""
   },
   "husky": {
@@ -66,40 +66,38 @@
     }
   },
   "devDependencies": {
-    "@seiyab/eslint-plugin-react-hooks": "4.5.1-beta.0",
-    "@typescript-eslint/eslint-plugin": "6.0.0",
-    "@typescript-eslint/parser": "6.0.0",
+    "@typescript-eslint/eslint-plugin": "6.19.1",
+    "@typescript-eslint/parser": "6.19.1",
     "@xilinota/utils": "~2.13",
-    "cspell": "5.21.2",
-    "eslint": "8.47.0",
+    "cspell": "8.3.2",
+    "eslint": "8.56.0",
     "eslint-interactive": "10.8.0",
-    "eslint-plugin-import": "2.28.1",
-    "eslint-plugin-jest": "27.2.3",
+    "eslint-plugin-import": "2.29.1",
+    "eslint-plugin-jest": "27.6.3",
     "eslint-plugin-promise": "6.1.1",
     "eslint-plugin-react": "7.33.2",
-    "execa": "5.1.1",
-    "glob": "10.3.4",
+    "eslint-plugin-react-hooks": "4.6.0",
+    "execa": "8.0.1",
+    "glob": "10.3.10",
     "gulp": "4.0.2",
-    "husky": "3.1.0",
-    "jest": "29.6.4",
-    "lerna": "^3.22.1",
-    "lint-staged": "13.3.0",
+    "husky": "^9.0.10",
+    "jest": "29.7.0",
+    "lerna": "^8.0.2",
+    "lint-staged": "15.2.0",
     "madge": "6.1.0",
-    "npm-package-json-lint": "7.0.0",
-    "typescript": "5.1.6"
+    "npm-package-json-lint": "7.1.0",
+    "typescript": "5.3.3"
   },
   "dependencies": {
     "@xilinota/react-native-alarm-notification": "workspace:^",
-    "eslint-plugin-github": "4.9.2",
+    "eslint-plugin-github": "4.10.1",
     "http-server": "14.1.1",
-    "node-gyp": "9.4.0",
-    "nodemon": "3.0.1"
+    "node-gyp": "10.0.1",
+    "nodemon": "3.0.3"
   },
-  "packageManager": "yarn@3.6.3",
+  "packageManager": "yarn@4.0.2",
   "resolutions": {
     "react-native-camera@4.2.1": "patch:react-native-camera@npm%3A4.2.1#./.yarn/patches/react-native-camera-npm-4.2.1-24b2600a7e.patch",
-    "eslint": "patch:eslint@8.47.0#./.yarn/patches/eslint-npm-8.39.0-d92bace04d.patch",
-    "app-builder-lib@24.4.0": "patch:app-builder-lib@npm%3A24.4.0#./.yarn/patches/app-builder-lib-npm-24.4.0-05322ff057.patch",
-    "react-native@0.71.10": "patch:react-native@npm%3A0.71.10#./.yarn/patches/react-native-animation-fix/react-native-npm-0.71.10-f9c32562d8.patch"
+    "app-builder-lib@24.4.0": "patch:app-builder-lib@npm%3A24.4.0#./.yarn/patches/app-builder-lib-npm-24.4.0-05322ff057.patch"
   }
 }

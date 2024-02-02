@@ -1,14 +1,13 @@
 import * as React from 'react';
-const { connect } = require('react-redux');
+import { connect } from 'react-redux';
 import { themeStyle } from '@xilinota/lib/theme';
 import { AppState } from '../app.reducer';
 
 interface Props {
-	tip: string;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
+	tip?: string;
 	onClick: Function;
 	themeId: number;
-	style: any;
+	style?: any;
 }
 
 class HelpButtonComponent extends React.Component<Props> {

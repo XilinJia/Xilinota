@@ -1,4 +1,4 @@
-function plugin(markdownIt: any) {
+function plugin(markdownIt: any): void {
 	const defaultRender =
 		markdownIt.renderer.rules.code_inline ||
 		function(tokens: any, idx: any, options: any, _env: any, self: any) {

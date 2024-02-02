@@ -1,10 +1,11 @@
-const React = require('react');
-const { TextInput, TouchableOpacity, Linking, View, StyleSheet, Text, Button, ScrollView } = require('react-native');
-const { connect } = require('react-redux');
+import React from 'react';
+import { TextInput, TouchableOpacity, Linking, View, StyleSheet, Text, Button, ScrollView } from 'react-native';
+import { connect } from 'react-redux';
 import ScreenHeader from '../ScreenHeader';
-const { themeStyle } = require('../global-style.js');
+import { themeStyle } from '../global-style';
+
 const DialogBox = require('react-native-dialogbox').default;
-const { dialogs } = require('../../utils/dialogs.js');
+import dialogs from '../../utils/dialogs';
 import EncryptionService from '@xilinota/lib/services/e2ee/EncryptionService';
 import { _ } from '@xilinota/lib/locale';
 import time from '@xilinota/lib/time';
@@ -55,8 +56,8 @@ const EncryptionConfigScreen = (props: Props) => {
 		const styles = {
 			titleText: {
 				flex: 1,
-				fontWeight: 'bold',
-				flexDirection: 'column',
+				fontWeight: 'bold' as 'bold',
+				flexDirection: 'column' as 'column',
 				fontSize: theme.fontSize,
 				paddingTop: 5,
 				paddingBottom: 5,
@@ -89,8 +90,9 @@ const EncryptionConfigScreen = (props: Props) => {
 	const renderMasterKey = (_num: number, mk: MasterKeyEntity) => {
 		const theme = themeStyle(props.themeId);
 
-		const password = inputPasswords[mk.id] ? inputPasswords[mk.id] : '';
-		const passwordOk = passwordChecks[mk.id] === true ? '✔' : '❌';
+		const mkid = mk.id ?? '';
+		const password = inputPasswords[mkid] ? inputPasswords[mkid] : '';
+		const passwordOk = passwordChecks[mkid] === true ? '✔' : '❌';
 
 		const inputStyle: any = { flex: 1, marginRight: 10, color: theme.color };
 		inputStyle.borderBottomWidth = 1;
@@ -114,11 +116,11 @@ const EncryptionConfigScreen = (props: Props) => {
 
 		return (
 			<View key={mk.id}>
-				<Text style={styles.titleText}>{_('Master Key %s', mk.id.substr(0, 6))}</Text>
-				<Text style={styles.normalText}>{_('Created: %s', time.formatMsToLocal(mk.created_time))}</Text>
+				<Text style={styles.titleText}>{_('Master Key %s', mkid.substring(0, 6))}</Text>
+				<Text style={styles.normalText}>{_('Created: %s', time.formatMsToLocal(mk.created_time??0))}</Text>
 				<View style={{ flexDirection: 'row', alignItems: 'center' }}>
 					<Text style={{ flex: 0, fontSize: theme.fontSize, marginRight: 10, color: theme.color }}>{_('Password:')}</Text>
-					{renderPasswordInput(mk.id)}
+					{renderPasswordInput(mkid)}
 				</View>
 			</View>
 		);
@@ -140,7 +142,7 @@ const EncryptionConfigScreen = (props: Props) => {
 				// await generateMasterKeyAndEnableEncryption(EncryptionService.instance(), password);
 				setPasswordPromptShow(false);
 			} catch (error) {
-				alert(error.message);
+				alert((error as Error).message);
 			}
 		};
 
@@ -231,19 +233,19 @@ const EncryptionConfigScreen = (props: Props) => {
 		const mk = props.masterKeys[i];
 		mkComps.push(renderMasterKey(i + 1, mk));
 
-		const idx = nonExistingMasterKeyIds.indexOf(mk.id);
+		const idx = nonExistingMasterKeyIds.indexOf(mk.id??'');
 		if (idx >= 0) nonExistingMasterKeyIds.splice(idx, 1);
 	}
 
 	const onToggleButtonClick = async () => {
-		if (props.encryptionEnabled) {
+		if (props.encryptionEnabled && dialogBoxRef.current) {
 			const ok = await dialogs.confirmRef(dialogBoxRef.current, _('Disabling encryption means *all* your notes and attachments are going to be re-synchronised and sent unencrypted to the sync target. Do you wish to continue?'));
 			if (!ok) return;
 
 			try {
 				await setupAndDisableEncryption(EncryptionService.instance());
 			} catch (error) {
-				alert(error.message);
+				alert((error as Error).message);
 			}
 		} else {
 			setPasswordPromptShow(true);

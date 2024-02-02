@@ -1,17 +1,19 @@
 import { useCallback } from 'react';
 
-const { ToastAndroid } = require('react-native');
-const { _ } = require('@xilinota/lib/locale.js');
+import { ToastAndroid } from 'react-native';
+import { _ } from '@xilinota/lib/locale';
 import { reg } from '@xilinota/lib/registry';
-const { dialogs } = require('../../../utils/dialogs.js');
+import dialogs from '../../../utils/dialogs';
 import Resource from '@xilinota/lib/models/Resource';
 import { copyToCache } from '../../../utils/ShareUtils';
 import isEditableResource from '../../NoteEditor/ImageEditor/isEditableResource';
-const Share = require('react-native-share').default;
+// const Share = require('react-native-share').default;
+import Share from 'react-native-share';
+import { HandleMessageCallback } from './useOnMessage';
 
 interface Callbacks {
 	onXilinotaLinkClick: (link: string)=> void;
-	onRequestEditResource: (message: string)=> void;
+	onRequestEditResource: HandleMessageCallback|undefined;
 }
 
 export default function useOnResourceLongPress(callbacks: Callbacks, dialogBoxRef: any) {
@@ -53,7 +55,7 @@ export default function useOnResourceLongPress(callbacks: Callbacks, dialogBoxRe
 					failOnCancel: false,
 				});
 			} else if (action === 'edit') {
-				onRequestEditResource(`edit:${resourceId}`);
+				if (onRequestEditResource) onRequestEditResource(`edit:${resourceId}`);
 			}
 		} catch (e) {
 			reg.logger().error('Could not handle link long press', e);

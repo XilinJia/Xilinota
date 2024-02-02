@@ -1,4 +1,5 @@
-import BaseModel from '../BaseModel';
+import BaseModel, { ModelType } from '../BaseModel';
+import { NoteEntity } from '../services/database/types';
 import Note from './Note';
 
 export interface Notification {
@@ -10,11 +11,11 @@ export interface Notification {
 }
 
 export default class Alarm extends BaseModel {
-	public static tableName() {
+	public static tableName() : string {
 		return 'alarms';
 	}
 
-	public static modelType() {
+	public static modelType() : ModelType {
 		return BaseModel.TYPE_ALARM;
 	}
 
@@ -26,15 +27,15 @@ export default class Alarm extends BaseModel {
 		return this.db().exec('DELETE FROM alarms WHERE trigger_time <= ?', [Date.now()]);
 	}
 
-	public static async alarmIdsWithoutNotes() {
+	public static async alarmIdsWithoutNotes() : Promise<string[]> {
 		// https://stackoverflow.com/a/4967229/561309
 		const alarms = await this.db().selectAll('SELECT alarms.id FROM alarms LEFT JOIN notes ON alarms.note_id = notes.id WHERE notes.id IS NULL');
 		return alarms.map((a: any) => {
-			return a.id;
+			return a.id??'';
 		});
 	}
 
-	public static async makeNotification(alarm: any, note: any = null): Promise<Notification> {
+	public static async makeNotification(alarm: any, note: NoteEntity|null = null): Promise<Notification> {
 		if (!note) {
 			note = await Note.load(alarm.note_id);
 		} else if (!note.todo_due) {
@@ -46,11 +47,11 @@ export default class Alarm extends BaseModel {
 		const output: Notification = {
 			id: alarm.id,
 			noteId: alarm.note_id,
-			date: new Date(note.todo_due),
-			title: note.title.substr(0, 128),
+			date: note && note.todo_due ? new Date(note.todo_due) : new Date(0),
+			title: note && note.title ? note.title.substring(0, 128) : '',
 		};
 
-		if (note.body) output.body = note.body.substr(0, 512);
+		if (note && note.body) output.body = note.body.substring(0, 512);
 
 		return output;
 	}

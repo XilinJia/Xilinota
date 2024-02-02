@@ -1,10 +1,11 @@
 const stringToStream = require('string-to-stream');
 // const cleanHtml = require('clean-html');
 const resourceUtils = require('./resourceUtils.js');
-const { cssValue } = require('./import-enex-md-gen');
-const htmlUtils = require('./htmlUtils').default;
-const Entities = require('html-entities').AllHtmlEntities;
-const htmlentities = new Entities().encode;
+const { cssValue } = require('./import-enex-md-gen.js');
+const htmlUtils = require('./htmlUtils.js').default;
+// const Entities = require('html-entities').AllHtmlEntities;
+// const htmlentities = new Entities().encode;
+const htmlentities = require('html-entities').encode;
 
 function addResourceTag(lines, resource, attributes) {
 	// Note: refactor to use Resource.markdownTag
@@ -175,7 +176,7 @@ const beautifyHtml = (html) => {
 	// 	try {
 	// 		cleanHtml.clean(html, { wrap: 0 }, (...cleanedHtml) => resolve(cleanedHtml));
 	// 	} catch (error) {
-	// 		console.warn(`Could not clean HTML - the "unclean" version will be used: ${error.message}: ${html.trim().substr(0, 512).replace(/[\n\r]/g, ' ')}...`);
+	// 		console.warn(`Could not clean HTML - the "unclean" version will be used: ${error.message}: ${html.trim().substring(0, 512).replace(/[\n\r]/g, ' ')}...`);
 	// 		resolve([html]);
 	// 	}
 	// });

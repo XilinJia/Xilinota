@@ -33,7 +33,7 @@ export function contentScriptsToCodeMirrorPlugin(plugins: PluginStates): ExtraCo
 }
 
 function loadContentScripts(plugins: PluginStates, scriptType: ContentScriptType): ExtraContentScript[] {
-	if (!plugins) return null;
+	if (!plugins) return [];
 
 	const output: ExtraContentScript[] = [];
 
@@ -66,7 +66,7 @@ function loadContentScripts(plugins: PluginStates, scriptType: ContentScriptType
 				// This function must not throw as doing so would crash the
 				// application, which we want to avoid for plugins. Instead log
 				// the error, and continue loading the other content scripts.
-				logger.error(error.message);
+				logger.error((error as Error).message);
 			}
 		}
 	}

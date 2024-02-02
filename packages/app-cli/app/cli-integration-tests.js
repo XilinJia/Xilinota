@@ -227,7 +227,7 @@ async function main() {
 		if (onlyThisTest && n !== onlyThisTest) continue;
 
 		await clearDatabase();
-		const testName = n.substr(4).toLowerCase();
+		const testName = n.substring(4).toLowerCase();
 		process.stdout.write(`${testName}: `);
 		await testUnits[n]();
 		console.info('');

@@ -1,7 +1,8 @@
 import { validateLinks } from '@xilinota/renderer';
+import markdownit from 'markdown-it';
+import urlUtils from './urlUtils';
+
 const stringPadding = require('string-padding');
-const urlUtils = require('./urlUtils');
-const MarkdownIt = require('markdown-it');
 
 // Taken from codemirror/addon/edit/continuelist.js
 const listRegex = /^(\s*)([*+-] \[[x ]\]\s|[*+-]\s|(\d+)([.)]\s))(\s*)/;
@@ -16,7 +17,6 @@ export enum MarkdownTableJustify {
 export interface MarkdownTableHeader {
 	name: string;
 	label: string;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	filter?: Function;
 	disableEscape?: boolean;
 	disableHtmlEscape?: boolean;
@@ -34,18 +34,18 @@ export interface MarkdownTable {
 
 const markdownUtils = {
 	// Titles for markdown links only need escaping for [ and ]
-	escapeTitleText(text: string) {
+	escapeTitleText(text: string): string {
 		return text.replace(/(\[|\])/g, '\\$1');
 	},
 
-	escapeLinkUrl(url: string) {
+	escapeLinkUrl(url: string): string {
 		url = url.replace(/\(/g, '%28');
 		url = url.replace(/\)/g, '%29');
 		url = url.replace(/ /g, '%20');
 		return url;
 	},
 
-	escapeTableCell(text: string, escapeHtml = true) {
+	escapeTableCell(text: string, escapeHtml = true): string {
 		// Disable HTML code
 		if (escapeHtml) {
 			text = text.replace(/</g, '&lt;');
@@ -63,23 +63,23 @@ const markdownUtils = {
 		return text.replace(/`/g, '``');
 	},
 
-	unescapeLinkUrl(url: string) {
+	unescapeLinkUrl(url: string): string {
 		url = url.replace(/%28/g, '(');
 		url = url.replace(/%29/g, ')');
 		url = url.replace(/%20/g, ' ');
 		return url;
 	},
 
-	prependBaseUrl(md: string, baseUrl: string) {
-		// eslint-disable-next-line no-useless-escape
+	prependBaseUrl(md: string, baseUrl: string): string {
+
 		return md.replace(/(\]\()([^\s\)]+)(.*?\))/g, (_match: any, before: string, url: string, after: string) => {
 			return before + urlUtils.prependBaseUrl(url, baseUrl) + after;
 		});
 	},
 
 	// Returns the **encoded** URLs, so to be useful they should be decoded again before use.
-	extractFileUrls(md: string, onlyType: string = null): string[] {
-		const markdownIt = new MarkdownIt();
+	extractFileUrls(md: string, onlyType: string = ''): string[] {
+		const markdownIt = markdownit();
 		markdownIt.validateLink = validateLinks; // Necessary to support file:/// links
 
 		const env = {};
@@ -115,38 +115,38 @@ const markdownUtils = {
 		return output;
 	},
 
-	replaceResourceUrl(md: string, urlToReplace: string, id: string) {
+	replaceResourceUrl(md: string, urlToReplace: string, id: string): string {
 		const linkRegex = `(?<=\\]\\()\\<?${urlToReplace}\\>?(?=.*\\))`;
 		const reg = new RegExp(linkRegex, 'g');
 		return md.replace(reg, `:/${id}`);
 	},
 
-	extractImageUrls(md: string) {
+	extractImageUrls(md: string): string[] {
 		return markdownUtils.extractFileUrls(md, 'image');
 	},
 
-	extractPdfUrls(md: string) {
+	extractPdfUrls(md: string): string[] {
 		return markdownUtils.extractFileUrls(md, 'pdf');
 	},
 
 	// The match results has 5 items
 	// Full match array is
 	// [Full match, whitespace, list token, ol line number, whitespace following token]
-	olLineNumber(line: string) {
+	olLineNumber(line: string): number {
 		const match = line.match(listRegex);
 		return match ? Number(match[3]) : 0;
 	},
 
-	extractListToken(line: string) {
+	extractListToken(line: string): string {
 		const match = line.match(listRegex);
 		return match ? match[2] : '';
 	},
 
-	isListItem(line: string) {
+	isListItem(line: string): boolean {
 		return listRegex.test(line);
 	},
 
-	isEmptyListItem(line: string) {
+	isEmptyListItem(line: string): boolean {
 		return emptyListRegex.test(line);
 	},
 
@@ -190,7 +190,7 @@ const markdownUtils = {
 		return output.join('\n');
 	},
 
-	countTableColumns(line: string) {
+	countTableColumns(line: string): number {
 		if (!line) return 0;
 
 		const trimmed = line.trim();
@@ -202,7 +202,7 @@ const markdownUtils = {
 		return pipes + 1;
 	},
 
-	matchingTableDivider(header: string, divider: string) {
+	matchingTableDivider(header: string, divider: string): boolean {
 		if (!header || !divider) return false;
 
 		const invalidChars = divider.match(/[^\s\-:|]/g);
@@ -214,7 +214,7 @@ const markdownUtils = {
 		return cols > 0 && (cols >= columns);
 	},
 
-	titleFromBody(body: string) {
+	titleFromBody(body: string): string {
 		if (!body) return '';
 		const mdLinkRegex = /!?\[([^\]]+?)\]\(.+?\)/g;
 		const emptyMdLinkRegex = /!?\[\]\((.+?)\)/g;

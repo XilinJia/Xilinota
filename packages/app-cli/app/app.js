@@ -10,7 +10,7 @@ const Setting = require('@xilinota/lib/models/Setting').default;
 const { reg } = require('@xilinota/lib/registry.js');
 const { fileExtension } = require('@xilinota/lib/path-utils');
 const { splitCommandString } = require('@xilinota/utils');
-const { splitCommandBatch } = require('@xilinota/lib/string-utils');
+import { splitCommandBatch } from '@xilinota/lib/string-utils';
 const { _ } = require('@xilinota/lib/locale');
 const fs = require('fs-extra');
 const { cliUtils } = require('./cli-utils.js');
@@ -45,7 +45,7 @@ class Application extends BaseApplication {
 		let type = BaseModel.TYPE_NOTE;
 		if (pattern.indexOf('/') === 0) {
 			type = BaseModel.TYPE_FOLDER;
-			pattern = pattern.substr(1);
+			pattern = pattern.substring(1);
 		}
 		return this.loadItem(type, pattern, options);
 	}
@@ -146,7 +146,7 @@ class Application extends BaseApplication {
 
 	commands(uiType = null) {
 		if (!this.allCommandsLoaded_) {
-			// eslint-disable-next-line github/array-foreach -- Old code before rule was applied
+			 
 			fs.readdirSync(__dirname).forEach(path => {
 				if (path.indexOf('command-') !== 0) return;
 				if (path.endsWith('.test.js')) return;
@@ -248,7 +248,7 @@ class Application extends BaseApplication {
 			showConsole: () => {},
 			maximizeConsole: () => {},
 			stdout: text => {
-				// eslint-disable-next-line no-console
+				
 				console.info(text);
 			},
 			fullScreen: () => {},
@@ -410,7 +410,7 @@ class Application extends BaseApplication {
 				if (this.showStackTraces_) {
 					console.error(error);
 				} else {
-					// eslint-disable-next-line no-console
+					
 					console.info(error.message);
 				}
 				process.exit(1);

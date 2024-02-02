@@ -6,7 +6,7 @@ import KvStore from '../KvStore';
 
 export default class SpellCheckerService {
 
-	private driver_: SpellCheckerServiceDriverBase;
+	private driver_: SpellCheckerServiceDriverBase | undefined;
 	private latestSelectedLanguages_: string[] = [];
 
 	private static instance_: SpellCheckerService;
@@ -45,7 +45,7 @@ export default class SpellCheckerService {
 		}
 
 		if (languages.length > languagesHistorySizeMax) {
-			// eslint-disable-next-line github/array-foreach -- Old code before rule was applied
+
 			this.latestSelectedLanguages_.forEach(l => {
 				if (!this.languages.includes(l) && languages.length > languagesHistorySizeMax) languages.splice(languages.indexOf(l), 1);
 			});
@@ -57,7 +57,7 @@ export default class SpellCheckerService {
 
 	public setupDefaultLanguage() {
 		if (Setting.value('spellChecker.languages').length === 0) {
-			const l = this.driver_.language;
+			const l = this.driver_!.language;
 			if (this.availableLanguages.includes(l)) {
 				this.setLanguage(l);
 			} else {
@@ -67,11 +67,11 @@ export default class SpellCheckerService {
 	}
 
 	public get availableLanguages(): string[] {
-		return this.driver_.availableLanguages;
+		return this.driver_!.availableLanguages;
 	}
 
 	private applyStateToDriver() {
-		this.driver_.setLanguages(this.enabled ? this.languages : []);
+		this.driver_!.setLanguages(this.enabled ? this.languages : []);
 	}
 
 	public setLanguage(language: string) {
@@ -100,7 +100,7 @@ export default class SpellCheckerService {
 	}
 
 	private async addToDictionary(language: string, word: string) {
-		this.driver_.addWordToSpellCheckerDictionary(language, word);
+		this.driver_?.addWordToSpellCheckerDictionary(language, word);
 	}
 
 	public contextMenuItems(misspelledWord: string, dictionarySuggestions: string[]): any[] {
@@ -123,7 +123,7 @@ export default class SpellCheckerService {
 			output.push({
 				label: `(${_('No suggestions')})`,
 				enabled: false,
-				click: () => {},
+				click: () => { },
 			});
 		}
 
@@ -154,7 +154,7 @@ export default class SpellCheckerService {
 	private changeLanguageMenuItems(selectedLanguages: string[], enabled: boolean) {
 		const languageMenuItems = [];
 
-		for (const locale of this.driver_.availableLanguages) {
+		for (const locale of this.driver_!.availableLanguages) {
 			languageMenuItems.push(this.changeLanguageMenuItem(locale, enabled, selectedLanguages.includes(locale)));
 		}
 

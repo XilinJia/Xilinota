@@ -1,20 +1,20 @@
 const URL = require('url-parse');
 
-export function isCallbackUrl(s: string) {
+export function isCallbackUrl(s: string): boolean {
 	return s.startsWith('xilinota://x-callback-url/openNote?') ||
 		s.startsWith('xilinota://x-callback-url/openFolder?') ||
 		s.startsWith('xilinota://x-callback-url/openTag?');
 }
 
-export function getNoteCallbackUrl(noteId: string) {
+export function getNoteCallbackUrl(noteId: string): string {
 	return `xilinota://x-callback-url/openNote?id=${encodeURIComponent(noteId)}`;
 }
 
-export function getFolderCallbackUrl(folderId: string) {
+export function getFolderCallbackUrl(folderId: string): string {
 	return `xilinota://x-callback-url/openFolder?id=${encodeURIComponent(folderId)}`;
 }
 
-export function getTagCallbackUrl(tagId: string) {
+export function getTagCallbackUrl(tagId: string): string {
 	return `xilinota://x-callback-url/openTag?id=${encodeURIComponent(tagId)}`;
 }
 

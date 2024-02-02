@@ -28,7 +28,7 @@ async function fetchLatestReleases() {
 
 	if (!response.ok) {
 		const responseText = await response.text();
-		throw new Error(`Cannot get latest release info: ${responseText.substr(0, 500)}`);
+		throw new Error(`Cannot get latest release info: ${responseText.substring(0, 500)}`);
 	}
 
 	return (await response.json()) as GitHubRelease[];
@@ -119,7 +119,7 @@ export default async function checkForUpdates(inBackground: boolean, parentWindo
 		}
 	} catch (error) {
 		logger.error(error);
-		if (!checkInBackground_) await bridge().showErrorMessageBox(error.message);
+		if (!checkInBackground_) await bridge().showErrorMessageBox((error as Error).message);
 	} finally {
 		onCheckEnded();
 	}

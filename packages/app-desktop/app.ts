@@ -22,16 +22,13 @@ import stateToWhenClauseContext from './services/commands/stateToWhenClauseConte
 import ResourceService from '@xilinota/lib/services/ResourceService';
 import ExternalEditWatcher from '@xilinota/lib/services/ExternalEditWatcher';
 import appReducer, { createAppDefaultState } from './app.reducer';
-const { FoldersScreenUtils } = require('@xilinota/lib/folders-screen-utils.js');
+import FoldersScreenUtils from '@xilinota/lib/folders-screen-utils';
 import Folder from '@xilinota/lib/models/Folder';
 import Tag from '@xilinota/lib/models/Tag';
 import { reg } from '@xilinota/lib/registry';
-const packageInfo = require('./packageInfo.js');
 import DecryptionWorker from '@xilinota/lib/services/DecryptionWorker';
 import ClipperServer from '@xilinota/lib/ClipperServer';
-const { webFrame } = require('electron');
-const Menu = bridge().Menu;
-const PluginManager = require('@xilinota/lib/services/PluginManager');
+import { webFrame } from 'electron';
 import RevisionService from '@xilinota/lib/services/RevisionService';
 import MigrationService from '@xilinota/lib/services/MigrationService';
 import { loadCustomCss, injectCustomStyles } from '@xilinota/lib/CssUtils';
@@ -44,8 +41,13 @@ import appCommands from './commands/index';
 import libCommands from '@xilinota/lib/commands/index';
 import { homedir } from 'os';
 import getDefaultPluginsInfo from '@xilinota/lib/services/plugins/defaultPlugins/desktopDefaultPluginsInfo';
+import PluginManager from '@xilinota/lib/services/PluginManager';
+
+const packageInfo = require('./packageInfo.js');
 const electronContextMenu = require('./services/electron-context-menu');
 // import  populateDatabase from '@xilinota/lib/services/debug/populateDatabase';
+
+const Menu = bridge().Menu;
 
 const commands = mainScreenCommands
 	.concat(noteEditorCommands)
@@ -64,7 +66,7 @@ import checkForUpdates from './checkForUpdates';
 import { AppState } from './app.reducer';
 import syncDebugLog from '@xilinota/lib/services/synchronizer/syncDebugLog';
 import eventManager from '@xilinota/lib/eventManager';
-import path = require('path');
+import path from 'path';
 import { checkPreInstalledDefaultPlugins, installDefaultPlugins, setSettingsForDefaultPlugins } from '@xilinota/lib/services/plugins/defaultPlugins/defaultPluginsUtils';
 import userFetcher, { initializeUserFetcher } from '@xilinota/lib/utils/userFetcher';
 import { parseNotesParent } from '@xilinota/lib/reducer';
@@ -74,7 +76,7 @@ const pluginClasses = [
 	require('./plugins/GotoAnything').default,
 ];
 
-const appDefaultState = createAppDefaultState(
+const appDefaultState: AppState = createAppDefaultState(
 	bridge().windowContentSize(),
 	resourceEditWatcherDefaultState,
 );
@@ -90,18 +92,19 @@ class Application extends BaseApplication {
 		this.bridge_nativeThemeUpdated = this.bridge_nativeThemeUpdated.bind(this);
 	}
 
-	public hasGui() {
+	public hasGui(): boolean {
 		return true;
 	}
 
 	public reducer(state: AppState = appDefaultState, action: any) {
 		let newState = appReducer(state, action);
 		newState = resourceEditWatcherReducer(newState, action);
-		newState = super.reducer(newState, action);
-		return newState;
+		return super.reducer(newState, action);
+		// newState = super.reducer(newState, action);
+		// return newState;
 	}
 
-	public toggleDevTools(visible: boolean) {
+	public toggleDevTools(visible: boolean): void {
 		if (visible) {
 			bridge().openDevTools();
 		} else {
@@ -155,7 +158,7 @@ class Application extends BaseApplication {
 		return result;
 	}
 
-	public handleThemeAutoDetect() {
+	public handleThemeAutoDetect(): void {
 		if (!Setting.value('themeAutoDetect')) return;
 
 		if (bridge().shouldUseDarkColors()) {
@@ -165,11 +168,11 @@ class Application extends BaseApplication {
 		}
 	}
 
-	private bridge_nativeThemeUpdated() {
+	private bridge_nativeThemeUpdated(): void {
 		this.handleThemeAutoDetect();
 	}
 
-	public updateTray() {
+	public updateTray(): void {
 		const app = bridge().electronApp();
 
 		if (app.trayShown() === Setting.value('showTrayIcon')) return;
@@ -178,7 +181,7 @@ class Application extends BaseApplication {
 			app.destroyTray();
 		} else {
 			const contextMenu = Menu.buildFromTemplate([
-				{ label: _('Open %s', app.electronApp().name), click: () => { app.window().show(); } },
+				{ label: _('Open %s', app.electronApp().name), click: () => { app.window()?.show(); } },
 				{ type: 'separator' },
 				{ label: _('Quit'), click: () => { void app.quit(); } },
 			]);
@@ -186,7 +189,7 @@ class Application extends BaseApplication {
 		}
 	}
 
-	public updateEditorFont() {
+	public updateEditorFont(): void {
 		const fontFamilies = [];
 		if (Setting.value('style.editor.fontFamily')) fontFamilies.push(`"${Setting.value('style.editor.fontFamily')}"`);
 		fontFamilies.push('Avenir, Arial, sans-serif');
@@ -201,7 +204,7 @@ class Application extends BaseApplication {
 		document.head.appendChild(styleTag);
 	}
 
-	public setupContextMenu() {
+	public setupContextMenu(): void {
 		// bridge().setupContextMenu((misspelledWord: string, dictionarySuggestions: string[]) => {
 		// 	let output = SpellCheckerService.instance().contextMenuItems(misspelledWord, dictionarySuggestions);
 		// 	console.info(misspelledWord, dictionarySuggestions);
@@ -240,7 +243,7 @@ class Application extends BaseApplication {
 		});
 	}
 
-	private async checkForLegacyTemplates() {
+	private async checkForLegacyTemplates(): Promise<void> {
 		const templatesDir = `${Setting.value('profileDir')}/templates`;
 		if (await shim.fsDriver().exists(templatesDir)) {
 			try {
@@ -260,7 +263,7 @@ class Application extends BaseApplication {
 		}
 	}
 
-	private async initPluginService() {
+	private async initPluginService(): Promise<void> {
 		if (this.initPluginServiceDone_) return;
 		this.initPluginServiceDone_ = true;
 
@@ -338,7 +341,7 @@ class Application extends BaseApplication {
 		}, 500);
 	}
 
-	public crashDetectionHandler() {
+	public crashDetectionHandler(): void {
 		// This handler conflicts with the single instance behaviour, so it's
 		// not used for now.
 		// https://discourse.xilinotaapp.org/t/pre-release-v2-8-is-now-available-updated-27-april/25158/56?u=laurent
@@ -350,16 +353,18 @@ class Application extends BaseApplication {
 		Setting.setValue('wasClosedSuccessfully', false);
 	}
 
-	protected async populateFolder() {
-		const progressbar = bridge().ProgressBarIndefinitive('Saving markdown files');
-		await LocalFile.populateFolder();
-		progressbar.setCompleted();
+	protected async populateFolder(): Promise<void> {
+		// TODO: progressbar can cause null probelm
+		// const progressbar = bridge().ProgressBarIndefinitive('Saving markdown files');
+		void LocalFile.populateFolder();
+		// progressbar?.setCompleted();
 	}
 
-	protected async syncFromSystem() {
-		const progressbar = bridge().ProgressBarIndefinitive('Syncing markdown files with system');
-		await LocalFile.syncFromSystem();
-		progressbar.setCompleted();
+	protected async syncFromSystem(): Promise<void> {
+		// TODO: progressbar can cause null probelm
+		// const progressbar = bridge().ProgressBarIndefinitive('Syncing markdown files with system');
+		void LocalFile.syncFromSystem();
+		// progressbar?.setCompleted();
 	}
 
 	public async start(argv: string[]): Promise<any> {
@@ -550,7 +555,7 @@ class Application extends BaseApplication {
 		if (Setting.value('env') === 'dev') {
 			void AlarmService.updateAllNotifications();
 		} else {
-			// eslint-disable-next-line promise/prefer-await-to-then -- Old code before rule was applied
+
 			void reg.scheduleSync(1000).then(() => {
 				// Wait for the first sync before updating the notifications, since synchronisation
 				// might change the notifications.
@@ -583,8 +588,9 @@ class Application extends BaseApplication {
 			eventManager.emit('resourceChange', event);
 		});
 
-		RevisionService.instance().runInBackground();
-
+		if (Setting.value('revisionService.enabled')) {
+			RevisionService.instance().runInBackground();
+		}
 		// Make it available to the console window - useful to call revisionService.collectRevisions()
 		if (Setting.value('env') === 'dev') {
 			(window as any).xilinota = {
@@ -661,9 +667,9 @@ class Application extends BaseApplication {
 
 }
 
-let application_: Application = null;
+let application_: Application;
 
-function app() {
+function app(): Application {
 	if (!application_) application_ = new Application();
 	return application_;
 }

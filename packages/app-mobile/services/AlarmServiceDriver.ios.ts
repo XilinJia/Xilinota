@@ -4,7 +4,7 @@ const PushNotificationIOS = require('@react-native-community/push-notification-i
 
 export default class AlarmServiceDriver {
 
-	private hasPermission_: boolean = null;
+	private hasPermission_: boolean = false;
 	private inAppNotificationHandler_: any = null;
 	private logger_: Logger;
 
@@ -56,7 +56,7 @@ export default class AlarmServiceDriver {
 			sound: 1,
 		};
 		const newPerm = await PushNotificationIOS.requestPermissions(options);
-		this.hasPermission_ = null;
+		this.hasPermission_ = false;
 		return this.hasPermissions(newPerm);
 	}
 

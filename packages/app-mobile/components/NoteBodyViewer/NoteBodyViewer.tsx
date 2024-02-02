@@ -4,7 +4,7 @@ import useSource from './hooks/useSource';
 import useOnMessage, { HandleMessageCallback, OnMarkForDownloadCallback } from './hooks/useOnMessage';
 import useOnResourceLongPress from './hooks/useOnResourceLongPress';
 
-const React = require('react');
+import React from 'react';
 import { View } from 'react-native';
 import BackButtonDialogBox from '../BackButtonDialogBox';
 import { reg } from '@xilinota/lib/registry';
@@ -23,7 +23,7 @@ interface Props {
 	onCheckboxChange?: HandleMessageCallback;
 	onRequestEditResource?: HandleMessageCallback;
 	onMarkForDownload?: OnMarkForDownloadCallback;
-	onLoadEnd?: ()=> void;
+	onLoadEnd?: () => void;
 }
 
 const webViewStyle = {
@@ -62,11 +62,11 @@ export default function NoteBodyViewer(props: Props) {
 		},
 	);
 
-	const onLoadEnd = useCallback(() => {
+	const onLoadEnd = useCallback((): void => {
 		if (props.onLoadEnd) props.onLoadEnd();
 	}, [props.onLoadEnd]);
 
-	function onError() {
+	function onError(): void {
 		reg.logger().error('WebView error');
 	}
 
@@ -99,14 +99,14 @@ export default function NoteBodyViewer(props: Props) {
 				webviewInstanceId='NoteBodyViewer'
 				themeId={props.themeId}
 				style={webViewStyle}
-				html={html}
+				html={html ?? ''}
 				injectedJavaScript={injectedJs.join('\n')}
 				mixedContentMode="always"
 				onLoadEnd={onLoadEnd}
 				onError={onError}
 				onMessage={onMessage}
 			/>
-			<BackButtonDialogBox_ ref={dialogBoxRef}/>
+			<BackButtonDialogBox_ ref={dialogBoxRef} />
 		</View>
 	);
 }

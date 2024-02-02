@@ -14,7 +14,6 @@ import { PasswordInput } from '../PasswordInput/PasswordInput';
 
 interface Props {
 	themeId: number;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	dispatch: Function;
 }
 
@@ -23,7 +22,7 @@ enum Mode {
 	Reset = 2,
 }
 
-export default function(props: Props) {
+export default function(props: Props): React.JSX.Element {
 	const [status, setStatus] = useState(MasterPasswordStatus.NotSet);
 	const [hasMasterPasswordEncryptedData, setHasMasterPasswordEncryptedData] = useState(true);
 	const [currentPassword, setCurrentPassword] = useState('');
@@ -39,7 +38,7 @@ export default function(props: Props) {
 		if ([MasterPasswordStatus.NotSet, MasterPasswordStatus.Invalid].includes(status)) return false;
 		if (mode === Mode.Reset) return false;
 		return true;
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [status]);
 
 	const onClose = useCallback(() => {
@@ -71,7 +70,7 @@ export default function(props: Props) {
 			setUpdatingPassword(true);
 			try {
 				if (mode === Mode.Set) {
-					await updateMasterPassword(showCurrentPassword ? currentPassword : null, password1);
+					await updateMasterPassword(showCurrentPassword ? currentPassword : '', password1);
 				} else if (mode === Mode.Reset) {
 					await resetMasterPassword(EncryptionService.instance(), KvStore.instance(), ShareService.instance(), password1);
 				} else {
@@ -80,13 +79,13 @@ export default function(props: Props) {
 				void reg.waitForSyncFinishedThenSync();
 				onClose();
 			} catch (error) {
-				alert(error.message);
+				alert((error as Error).message);
 			} finally {
 				setUpdatingPassword(false);
 			}
 			return;
 		}
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [currentPassword, password1, onClose, mode]);
 
 	const needToRepeatPassword = useMemo(() => {
@@ -152,7 +151,7 @@ export default function(props: Props) {
 				<div className="form-input-group">
 					<label>{'Current password'}</label>
 					<div className="current-password-wrapper">
-						<PasswordInput value={currentPassword} onChange={onCurrentPasswordChange}/>
+						<PasswordInput value={currentPassword} onChange={onCurrentPasswordChange} />
 						{renderCurrentPasswordIcon()}
 					</div>
 				</div>
@@ -174,12 +173,12 @@ export default function(props: Props) {
 						{renderCurrentPassword()}
 						<div className="form-input-group">
 							<label>{enterPasswordLabel}</label>
-							<PasswordInput value={password1} onChange={onPasswordChange1}/>
+							<PasswordInput value={password1} onChange={onPasswordChange1} />
 						</div>
 						{needToRepeatPassword && (
 							<div className="form-input-group">
 								<label>{'Re-enter password'}</label>
-								<PasswordInput value={password2} onChange={onPasswordChange2}/>
+								<PasswordInput value={password2} onChange={onPasswordChange2} />
 							</div>
 						)}
 					</div>
@@ -223,7 +222,7 @@ export default function(props: Props) {
 	function renderDialogWrapper() {
 		return (
 			<div className="dialog-root">
-				<DialogTitle title={dialogTitle}/>
+				<DialogTitle title={dialogTitle} />
 				{renderContent()}
 				<DialogButtonRow
 					themeId={props.themeId}
@@ -237,6 +236,6 @@ export default function(props: Props) {
 	}
 
 	return (
-		<Dialog onClose={onClose} className="master-password-dialog" renderContent={renderDialogWrapper}/>
+		<Dialog onClose={onClose} className="master-password-dialog" renderContent={renderDialogWrapper} />
 	);
 }

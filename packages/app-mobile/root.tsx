@@ -1,7 +1,14 @@
-const React = require('react');
+import React from 'react';
 
 import shim from '@xilinota/lib/shim';
 shim.setReact(React);
+
+import { connect, Provider } from 'react-redux';
+import DropdownAlert from 'react-native-dropdownalert';
+import { MenuProvider } from 'react-native-popup-menu';
+
+import VersionInfo from 'react-native-version-info';
+import { Keyboard, BackHandler, Animated, View, StatusBar, Platform, Dimensions } from 'react-native';
 
 import setupQuickActions from './setupQuickActions';
 import PluginAssetsLoader from './PluginAssetsLoader';
@@ -17,7 +24,7 @@ import NoteScreen from './components/screens/Note';
 import UpgradeSyncTargetScreen from './components/screens/UpgradeSyncTargetScreen';
 import Setting, { Env } from '@xilinota/lib/models/Setting';
 import PoorManIntervals from '@xilinota/lib/PoorManIntervals';
-import reducer, { NotesParent, parseNotesParent, serializeNotesParent } from '@xilinota/lib/reducer';
+import reducer, { defaultState, NotesParent, parseNotesParent, serializeNotesParent } from '@xilinota/lib/reducer';
 import ShareExtension from './utils/ShareExtension';
 import handleShared from './utils/shareHandler';
 import uuid from '@xilinota/lib/uuid_';
@@ -28,27 +35,20 @@ import SyncTargetXilinotaServer from '@xilinota/lib/SyncTargetXilinotaServer';
 import SyncTargetJoplinCloud from '@xilinota/lib/SyncTargetJoplinCloud';
 import SyncTargetOneDrive from '@xilinota/lib/SyncTargetOneDrive';
 import initProfile from '@xilinota/lib/services/profileConfig/initProfile';
-const VersionInfo = require('react-native-version-info').default;
-const { Keyboard, BackHandler, Animated, View, StatusBar, Platform, Dimensions } = require('react-native');
 import { AppState as RNAppState, EmitterSubscription, Linking, NativeEventSubscription, Appearance, AccessibilityInfo } from 'react-native';
 import getResponsiveValue from './components/getResponsiveValue';
 import NetInfo from '@react-native-community/netinfo';
-const DropdownAlert = require('react-native-dropdownalert').default;
-const AlarmServiceDriver = require('./services/AlarmServiceDriver').default;
-const SafeAreaView = require('./components/SafeAreaView');
-const { connect, Provider } = require('react-redux');
 import { Provider as PaperProvider, MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
-const { BackButtonService } = require('./services/back-button.js');
 import NavService from '@xilinota/lib/services/NavService';
-import { createStore, applyMiddleware } from 'redux';
-const reduxSharedMiddleware = require('@xilinota/lib/components/shared/reduxSharedMiddleware');
-const { shimInit } = require('./utils/shim-init-react.js');
-const { AppNav } = require('./components/app-nav.js');
+// import { createStore, applyMiddleware } from 'redux';
+// import { Reducer } from 'redux';
+import { configureStore, Dispatch } from '@reduxjs/toolkit';
+import { shimInit } from './utils/shim-init-react';
 import Note from '@xilinota/lib/models/Note';
 import LocalFile from '@xilinota/lib/models/LocalFiles';
 import Folder from '@xilinota/lib/models/Folder';
 import BaseSyncTarget from '@xilinota/lib/BaseSyncTarget';
-const { FoldersScreenUtils } = require('@xilinota/lib/folders-screen-utils.js');
+import FoldersScreenUtils from '@xilinota/lib/folders-screen-utils';
 import Resource from '@xilinota/lib/models/Resource';
 import Tag from '@xilinota/lib/models/Tag';
 import NoteTag from '@xilinota/lib/models/NoteTag';
@@ -59,35 +59,45 @@ import RevisionService from '@xilinota/lib/services/RevisionService';
 import XilinotaDatabase from '@xilinota/lib/XilinotaDatabase';
 import Database from '@xilinota/lib/database';
 import NotesScreen from './components/screens/Notes';
-const { TagsScreen } = require('./components/screens/tags.js');
 import ConfigScreen from './components/screens/ConfigScreen/ConfigScreen';
-const { FolderScreen } = require('./components/screens/folder.js');
-import LogScreen from './components/screens/LogScreen';
-const { StatusScreen } = require('./components/screens/status.js');
-const { SearchScreen } = require('./components/screens/search.js');
-const { OneDriveLoginScreen } = require('./components/screens/onedrive-login.js');
-import EncryptionConfigScreen from './components/screens/encryption-config';
-const { DropboxLoginScreen } = require('./components/screens/dropbox-login.js');
-const { MenuContext } = require('react-native-popup-menu');
-import SideMenu from './components/SideMenu';
+import AlarmServiceDriver from './services/AlarmServiceDriver';
+
 import SideMenuContent from './components/side-menu-content';
-const { SideMenuContentNote } = require('./components/side-menu-content-note.js');
-const { DatabaseDriverReactNative } = require('./utils/database-driver-react-native');
+import LogScreen from './components/screens/LogScreen';
+import EncryptionConfigScreen from './components/screens/encryption-config';
+import SideMenu from './components/SideMenu';
 import { reg } from '@xilinota/lib/registry';
-const { defaultState } = require('@xilinota/lib/reducer');
-const { FileApiDriverLocal } = require('@xilinota/lib/file-api-driver-local');
+import FileApiDriverLocal from '@xilinota/lib/file-api-driver-local';
 import ResourceFetcher from '@xilinota/lib/services/ResourceFetcher';
 import SearchEngine from '@xilinota/lib/services/searchengine/SearchEngine';
 import WelcomeUtils from '@xilinota/lib/WelcomeUtils';
-const { themeStyle } = require('./components/global-style.js');
 import SyncTargetRegistry from '@xilinota/lib/SyncTargetRegistry';
+import SyncTargetNone from '@xilinota/lib/SyncTargetNone';
+import BiometricPopup from './components/biometrics/BiometricPopup';
+import initLib from '@xilinota/lib/initLib';
+import DatabaseDriverReactNative from './utils/database-driver-react-native';
+import XilinotaSafeAreaView from './components/SafeAreaView';
+
+import reduxSharedMiddleware from '@xilinota/lib/components/shared/reduxSharedMiddleware';
+
+import BackButtonService from './services/back-button';
+
+import AppNav from './components/app-nav';
+import TagsScreen from './components/screens/tags';
+import FolderScreen from './components/screens/folder';
+import StatusScreen from './components/screens/status';
+import SearchScreen from './components/screens/search';
+import SideMenuContentNote from './components/side-menu-content-note';
+import { themeStyle } from './components/global-style';
+
+import DropboxLoginScreen from './components/screens/dropbox-login';
+import OneDriveLoginScreen from './components/screens/onedrive-login';
+
 const SyncTargetFilesystem = require('@xilinota/lib/SyncTargetFilesystem.js');
 const SyncTargetNextcloud = require('@xilinota/lib/SyncTargetNextcloud.js');
 const SyncTargetWebDAV = require('@xilinota/lib/SyncTargetWebDAV.js');
 const SyncTargetDropbox = require('@xilinota/lib/SyncTargetDropbox.js');
 const SyncTargetAmazonS3 = require('@xilinota/lib/SyncTargetAmazonS3.js');
-import BiometricPopup from './components/biometrics/BiometricPopup';
-import initLib from '@xilinota/lib/initLib';
 
 SyncTargetRegistry.addClass(SyncTargetNone);
 SyncTargetRegistry.addClass(SyncTargetOneDrive);
@@ -108,7 +118,6 @@ import setIgnoreTlsErrors from './utils/TlsUtils';
 import ShareService from '@xilinota/lib/services/share/ShareService';
 import setupNotifications from './utils/setupNotifications';
 import { loadMasterKeysFromSettings, migrateMasterPassword } from '@xilinota/lib/services/e2ee/utils';
-import SyncTargetNone from '@xilinota/lib/SyncTargetNone';
 import { setRSA } from '@xilinota/lib/services/e2ee/ppk';
 import RSA from './services/e2ee/RSA.react-native';
 import { runIntegrationTests as runRsaIntegrationTests } from '@xilinota/lib/services/e2ee/ppkTestUtils';
@@ -125,7 +134,8 @@ import { parseShareCache } from '@xilinota/lib/services/share/reducer';
 import autodetectTheme, { onSystemColorSchemeChange } from './utils/autodetectTheme';
 import runOnDeviceFsDriverTests from './utils/fs-driver/runOnDeviceTests';
 import { initUDPClient, socketIOClient } from './utils/socketio';
-// import { MenuProvider } from 'react-native-popup-menu';
+import ItemChange from '@xilinota/lib/models/ItemChange';
+// import NoteEditor from './components/NoteEditor/NoteEditor';
 
 type SideMenuPosition = 'left' | 'right';
 
@@ -142,7 +152,7 @@ const logReducerAction = function(action: any) {
 	// reg.logger().debug('Reducer action', msg.join(', '));
 };
 
-const biometricsEnabled = (sensorInfo: SensorInfo): boolean => {
+const biometricsEnabled = (sensorInfo: SensorInfo | undefined): boolean => {
 	return !!sensorInfo && sensorInfo.enabled;
 };
 
@@ -224,7 +234,7 @@ const generalMiddleware = (store: any) => (next: any) => async (action: any) => 
 
 const navHistory: any[] = [];
 
-function historyCanGoBackTo(route: any) {
+function historyCanGoBackTo(route: any): boolean {
 	if (route.routeName === 'Note') return false;
 	if (route.routeName === 'Folder') return false;
 
@@ -249,206 +259,215 @@ const appDefaultState: AppState = {
 	noteSideMenuOptions: null,
 	isOnMobileData: false,
 	disableSideMenuGestures: false,
+	smartFilterId: '',
+	themeId: 0,
 };
 
-const appReducer = (state = appDefaultState, action: any) => {
+const appReducer = (state: any = appDefaultState, action: any) => {
 	let newState = state;
 	let historyGoingBack = false;
 
 	try {
 		switch (action.type) {
 
-		case 'NAV_BACK':
-		case 'NAV_GO':
+			case 'NAV_BACK':
+			case 'NAV_GO':
 
-			if (action.type === 'NAV_BACK') {
-				if (!navHistory.length) break;
+				if (action.type === 'NAV_BACK') {
+					if (!navHistory.length) break;
 
-				let newAction = null;
-				while (navHistory.length) {
-					newAction = navHistory.pop();
-					if (newAction.routeName !== state.route.routeName) break;
+					let newAction = null;
+					while (navHistory.length) {
+						newAction = navHistory.pop();
+						if (newAction.routeName !== state.route.routeName) break;
+					}
+
+					action = newAction ? newAction : navHistory.pop();
+
+					historyGoingBack = true;
 				}
 
-				action = newAction ? newAction : navHistory.pop();
+				{
+					const currentRoute = state.route;
 
-				historyGoingBack = true;
-			}
+					if (!historyGoingBack && historyCanGoBackTo(currentRoute)) {
+						// If the route *name* is the same (even if the other parameters are different), we
+						// overwrite the last route in the history with the current one. If the route name
+						// is different, we push a new history entry.
+						if (currentRoute.routeName === action.routeName) {
+							// nothing
+						} else {
+							navHistory.push(currentRoute);
+						}
+					}
 
-			{
-				const currentRoute = state.route;
+					// HACK: whenever a new screen is loaded, all the previous screens of that type
+					// are overwritten with the new screen parameters. This is because the way notes
+					// are currently loaded is not optimal (doesn't retain history properly) so
+					// this is a simple fix without doing a big refactoring to change the way notes
+					// are loaded. Might be good enough since going back to different folders
+					// is probably not a common workflow.
+					for (let i = 0; i < navHistory.length; i++) {
+						const n = navHistory[i];
+						if (n.routeName === action.routeName) {
+							navHistory[i] = { ...action };
+						}
+					}
 
-				if (!historyGoingBack && historyCanGoBackTo(currentRoute)) {
-					// If the route *name* is the same (even if the other parameters are different), we
-					// overwrite the last route in the history with the current one. If the route name
-					// is different, we push a new history entry.
-					if (currentRoute.routeName === action.routeName) {
-						// nothing
+					newState = { ...state };
+
+					newState.selectedNoteHash = '';
+
+					if ('noteId' in action) {
+						newState.selectedNoteIds = action.noteId ? [action.noteId] : [];
+					}
+
+					if ('Virtual' in action) {
+						newState.notes = action.Virtual.notes;
+						// newState.notesParentType = action.Virtual.parent;
+					}
+
+					if ('folderId' in action) {
+						newState.selectedFolderId = action.folderId;
+						newState.notesParentType = 'Folder';
+					}
+
+					if ('tagId' in action) {
+						newState.selectedTagId = action.tagId;
+						newState.notesParentType = 'Tag';
+					}
+
+					if ('smartFilterId' in action) {
+						newState.smartFilterId = action.smartFilterId;
+						newState.notesParentType = 'SmartFilter';
+					}
+
+					if ('itemType' in action) {
+						newState.selectedItemType = action.itemType;
+					}
+
+					if ('noteHash' in action) {
+						newState.selectedNoteHash = action.noteHash;
+					}
+
+					if ('sharedData' in action) {
+						newState.sharedData = action.sharedData;
 					} else {
-						navHistory.push(currentRoute);
+						newState.sharedData = null;
 					}
-				}
 
-				// HACK: whenever a new screen is loaded, all the previous screens of that type
-				// are overwritten with the new screen parameters. This is because the way notes
-				// are currently loaded is not optimal (doesn't retain history properly) so
-				// this is a simple fix without doing a big refactoring to change the way notes
-				// are loaded. Might be good enough since going back to different folders
-				// is probably not a common workflow.
-				for (let i = 0; i < navHistory.length; i++) {
-					const n = navHistory[i];
-					if (n.routeName === action.routeName) {
-						navHistory[i] = { ...action };
+					newState.route = action;
+					newState.historyCanGoBack = !!navHistory.length;
+				}
+				break;
+
+			case 'SIDE_MENU_TOGGLE':
+
+				newState = { ...state };
+				newState.showSideMenu = !newState.showSideMenu;
+				break;
+
+			case 'SIDE_MENU_OPEN':
+
+				newState = { ...state };
+				newState.showSideMenu = true;
+				break;
+
+			case 'SIDE_MENU_CLOSE':
+
+				newState = { ...state };
+				newState.showSideMenu = false;
+				break;
+
+			case 'SIDE_MENU_OPEN_PERCENT':
+
+				newState = { ...state };
+				newState.sideMenuOpenPercent = action.value;
+				break;
+
+			case 'NOTE_SELECTION_TOGGLE':
+
+				{
+					newState = { ...state };
+
+					const noteId = action.id;
+					const newSelectedNoteIds = state.selectedNoteIds.slice();
+					const existingIndex = state.selectedNoteIds.indexOf(noteId);
+
+					if (existingIndex >= 0) {
+						newSelectedNoteIds.splice(existingIndex, 1);
+					} else {
+						newSelectedNoteIds.push(noteId);
 					}
+
+					newState.selectedNoteIds = newSelectedNoteIds;
+					newState.noteSelectionEnabled = !!newSelectedNoteIds.length;
 				}
+				break;
+
+			case 'NOTE_SELECTION_START':
+
+				if (!state.noteSelectionEnabled) {
+					newState = { ...state };
+					newState.noteSelectionEnabled = true;
+					newState.selectedNoteIds = [action.id];
+				}
+				break;
+
+			case 'NOTE_SELECTION_END':
 
 				newState = { ...state };
+				newState.noteSelectionEnabled = false;
+				newState.selectedNoteIds = [];
+				break;
 
-				newState.selectedNoteHash = '';
+			case 'NOTE_SIDE_MENU_OPTIONS_SET':
 
-				if ('noteId' in action) {
-					newState.selectedNoteIds = action.noteId ? [action.noteId] : [];
-				}
-
-				if ('Virtual' in action) {
-					newState.notes = action.Virtual.notes;
-					// newState.notesParentType = action.Virtual.parent;
-				}
-
-				if ('folderId' in action) {
-					newState.selectedFolderId = action.folderId;
-					newState.notesParentType = 'Folder';
-				}
-
-				if ('tagId' in action) {
-					newState.selectedTagId = action.tagId;
-					newState.notesParentType = 'Tag';
-				}
-
-				if ('smartFilterId' in action) {
-					newState.smartFilterId = action.smartFilterId;
-					newState.notesParentType = 'SmartFilter';
-				}
-
-				if ('itemType' in action) {
-					newState.selectedItemType = action.itemType;
-				}
-
-				if ('noteHash' in action) {
-					newState.selectedNoteHash = action.noteHash;
-				}
-
-				if ('sharedData' in action) {
-					newState.sharedData = action.sharedData;
-				} else {
-					newState.sharedData = null;
-				}
-
-				newState.route = action;
-				newState.historyCanGoBack = !!navHistory.length;
-			}
-			break;
-
-		case 'SIDE_MENU_TOGGLE':
-
-			newState = { ...state };
-			newState.showSideMenu = !newState.showSideMenu;
-			break;
-
-		case 'SIDE_MENU_OPEN':
-
-			newState = { ...state };
-			newState.showSideMenu = true;
-			break;
-
-		case 'SIDE_MENU_CLOSE':
-
-			newState = { ...state };
-			newState.showSideMenu = false;
-			break;
-
-		case 'SIDE_MENU_OPEN_PERCENT':
-
-			newState = { ...state };
-			newState.sideMenuOpenPercent = action.value;
-			break;
-
-		case 'NOTE_SELECTION_TOGGLE':
-
-			{
 				newState = { ...state };
+				newState.noteSideMenuOptions = action.options;
+				break;
 
-				const noteId = action.id;
-				const newSelectedNoteIds = state.selectedNoteIds.slice();
-				const existingIndex = state.selectedNoteIds.indexOf(noteId);
-
-				if (existingIndex >= 0) {
-					newSelectedNoteIds.splice(existingIndex, 1);
-				} else {
-					newSelectedNoteIds.push(noteId);
-				}
-
-				newState.selectedNoteIds = newSelectedNoteIds;
-				newState.noteSelectionEnabled = !!newSelectedNoteIds.length;
-			}
-			break;
-
-		case 'NOTE_SELECTION_START':
-
-			if (!state.noteSelectionEnabled) {
+			case 'SET_SIDE_MENU_TOUCH_GESTURES_DISABLED':
 				newState = { ...state };
-				newState.noteSelectionEnabled = true;
-				newState.selectedNoteIds = [action.id];
-			}
-			break;
+				newState.disableSideMenuGestures = action.disableSideMenuGestures;
+				break;
 
-		case 'NOTE_SELECTION_END':
+			case 'MOBILE_DATA_WARNING_UPDATE':
 
-			newState = { ...state };
-			newState.noteSelectionEnabled = false;
-			newState.selectedNoteIds = [];
-			break;
-
-		case 'NOTE_SIDE_MENU_OPTIONS_SET':
-
-			newState = { ...state };
-			newState.noteSideMenuOptions = action.options;
-			break;
-
-		case 'SET_SIDE_MENU_TOUCH_GESTURES_DISABLED':
-			newState = { ...state };
-			newState.disableSideMenuGestures = action.disableSideMenuGestures;
-			break;
-
-		case 'MOBILE_DATA_WARNING_UPDATE':
-
-			newState = { ...state };
-			newState.isOnMobileData = action.isOnMobileData;
-			break;
+				newState = { ...state };
+				newState.isOnMobileData = action.isOnMobileData;
+				break;
 
 		}
 	} catch (error) {
-		error.message = `In reducer: ${error.message} Action: ${JSON.stringify(action)}`;
-		throw error;
+		const err = error as Error;
+		err.message = `In reducer: ${err.message} Action: ${JSON.stringify(action)}`;
+		throw err;
 	}
 
 	return reducer(newState, action);
 };
 
-const store = createStore(appReducer, applyMiddleware(generalMiddleware));
+const store = configureStore({
+	reducer: appReducer,
+	middleware: (getDefaultMiddleware) =>
+		getDefaultMiddleware().concat(generalMiddleware),
+});
+
+// const store = createStore(appReducer, applyMiddleware(generalMiddleware));
 storeDispatch = store.dispatch;
 
-function resourceFetcher_downloadComplete(event: any) {
+function resourceFetcher_downloadComplete(event: any): void {
 	if (event.encrypted) {
 		void DecryptionWorker.instance().scheduleStart();
 	}
 }
 
-function decryptionWorker_resourceMetadataButNotBlobDecrypted() {
+function decryptionWorker_resourceMetadataButNotBlobDecrypted(): void {
 	ResourceFetcher.instance().scheduleAutoAddResources();
 }
 
-const initializeTempDir = async () => {
+const initializeTempDir = async (): Promise<string> => {
 	const tempDir = `${getProfilesRootDir()}/tmp`;
 
 	// Re-create the temporary directory.
@@ -462,8 +481,7 @@ const initializeTempDir = async () => {
 	return tempDir;
 };
 
-// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-async function initialize(dispatch: Function) {
+async function initialize(dispatch: Function): Promise<void> {
 	shimInit();
 
 	setDispatch(dispatch);
@@ -537,6 +555,7 @@ async function initialize(dispatch: Function) {
 	BaseItem.loadClass('NoteTag', NoteTag);
 	BaseItem.loadClass('MasterKey', MasterKey);
 	BaseItem.loadClass('Revision', Revision);
+	BaseItem.loadClass('Setting', Setting);
 
 	// const fsDriver = new FsDriverRN();
 	const fsDriver = shim.fsDriver();
@@ -573,7 +592,7 @@ async function initialize(dispatch: Function) {
 	BaseItem.syncShareCache = parseShareCache(Setting.value('sync.shareCache'));
 
 	if (Setting.value('firstStart')) {
-		const detectedLocale = shim.detectAndSetLocale(Setting);
+		const detectedLocale = shim.detectAndSetLocale();
 		reg.logger().info(`First start: detected locale as ${detectedLocale}`);
 
 		Setting.skipDefaultMigrations();
@@ -598,23 +617,49 @@ async function initialize(dispatch: Function) {
 	}
 
 	if (Setting.value('env') === 'dev') {
-		Setting.setValue('welcome.enabled', false);
+		Setting.setValue('welcome.enabled', true);
 	}
 
 	reg.logger().info('Going to initialize UDP client');
 	initUDPClient();
 
-	const prepResourcesDir = async () => {
-		const resourceDir = Setting.value('resourceDir');
+	const prepResourcesDir0 = async () => {
+		// TODO: for some reason, this 
+		const resourceDirName = 'resources';
+		Setting.setConstant('resourceDirName', resourceDirName);
+		const resourceDir = `${Setting.value('localFilesDir')}/${resourceDirName}`;
+		Setting.setConstant('resourceDir', resourceDir);
+
 		const resStat = await shim.fsDriver().exists(resourceDir);
 
 		const isSubProfile = Setting.value('isSubProfile');
-		const resourceDirOld = !isSubProfile ? getProfilesRootDir() : `${getProfilesRootDir()}/resources-${currentProfile.id}`;
+		const resourceDirOld = !isSubProfile ? `${getProfilesRootDir()}/resources` : `${getProfilesRootDir()}/resources-${currentProfile.id}`;
 		const resOldStat = await shim.fsDriver().exists(resourceDirOld);
-		// reg.logger().info('prepResourcesDir resourceDir resourceDirOld', resourceDir, resourceDirOld);
-
+		reg.logger().info('prepResourcesDir resourceDir resourceDirOld', resourceDir, resourceDirOld, resOldStat);
+		// const resOldStat = false;
 		if (resOldStat) {
-			await shim.fsDriver().moveAllFiles(resourceDirOld, resourceDir, ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'mp4', 'mov']);
+			// await shim.fsDriver().moveAllFiles(resourceDirOld, resourceDir, ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'mp4', 'mov']);
+			await shim.fsDriver().moveAllFiles(resourceDirOld, resourceDir);
+		} else {
+			if (!resStat) await shim.fsDriver().mkdir(resourceDir);
+		}
+	};
+
+	const prepResourcesDir = async () => {
+		const resourceDirName = 'resources';
+		Setting.setConstant('resourceDirName', resourceDirName);
+		const resourceDir = `${Setting.value('profileDir')}/${resourceDirName}`;
+		Setting.setConstant('resourceDir', resourceDir);
+
+		const resStat = await shim.fsDriver().exists(resourceDir);
+
+		const isSubProfile = Setting.value('isSubProfile');
+		const resourceDirOld = !isSubProfile ? `${getProfilesRootDir()}/resources` : `${getProfilesRootDir()}/resources-${currentProfile.id}`;
+		const resOldStat = await shim.fsDriver().exists(resourceDirOld);
+		reg.logger().info('prepResourcesDir resourceDir resourceDirOld', resourceDir, resourceDirOld, resOldStat);
+		if (resOldStat && resourceDirOld !== resourceDir) {
+			// await shim.fsDriver().moveAllFiles(resourceDirOld, resourceDir, ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'mp4', 'mov']);
+			await shim.fsDriver().moveAllFiles(resourceDirOld, resourceDir);
 		} else {
 			if (!resStat) await shim.fsDriver().mkdir(resourceDir);
 		}
@@ -628,7 +673,7 @@ async function initialize(dispatch: Function) {
 	PluginAssetsLoader.instance().setLogger(mainLogger);
 	await PluginAssetsLoader.instance().importAssets();
 
-	// eslint-disable-next-line require-atomic-updates
+
 	BaseItem.revisionService_ = RevisionService.instance();
 
 	// Note: for now we hard-code the folder sort order as we need to
@@ -652,7 +697,7 @@ async function initialize(dispatch: Function) {
 	// ----------------------------------------------------------------
 
 	EncryptionService.fsDriver_ = fsDriver;
-	// eslint-disable-next-line require-atomic-updates
+
 	BaseItem.encryptionService_ = EncryptionService.instance();
 	BaseItem.shareService_ = ShareService.instance();
 	Resource.shareService_ = ShareService.instance();
@@ -667,7 +712,7 @@ async function initialize(dispatch: Function) {
 	// / E2EE SETUP
 	// ----------------------------------------------------------------
 
-	await ShareService.instance().initialize(store, EncryptionService.instance());
+	ShareService.instance().initialize(store, EncryptionService.instance());
 
 	reg.logger().info('Loading folders...');
 
@@ -744,7 +789,7 @@ async function initialize(dispatch: Function) {
 	// start almost immediately to get the latest data.
 	// doWifiConnectionCheck set to true so initial sync
 	// doesn't happen on mobile data
-	// eslint-disable-next-line promise/prefer-await-to-then -- Old code before rule was applied
+
 	void reg.scheduleSync(100, null, true).then(() => {
 		// Wait for the first sync before updating the notifications, since synchronisation
 		// might change the notifications.
@@ -757,7 +802,15 @@ async function initialize(dispatch: Function) {
 
 	// Collect revisions more frequently on mobile because it doesn't auto-save
 	// and it cannot collect anything when the app is not active.
-	RevisionService.instance().runInBackground(1000 * 30);
+	if (Setting.value('revisionService.enabled')) {
+		RevisionService.instance().runInBackground(1000 * 30);
+	} else {
+		logger.info('maintenance: Service is disabled');
+		// We do as if we had processed all the latest changes so that they can be cleaned up
+		// later on by ItemChangeUtils.deleteProcessedChanges().
+		Setting.setValue('revisionService.lastProcessedChangeId', await ItemChange.lastChangeId());
+		await RevisionService.instance().deleteOldRevisions(Setting.value('revisionService.ttlDays') * 24 * 60 * 60 * 1000);
+	}
 
 	// ----------------------------------------------------------------------------
 	// Keep this below to test react-native-rsa-native
@@ -793,20 +846,49 @@ async function initialize(dispatch: Function) {
 	reg.logger().info('Application initialized');
 }
 
-class AppComponent extends React.Component {
+interface Props {
+	biometricsDone: boolean;
+	appState: string;
+	selectedFolderId: string;
+	noteSelectionEnabled: boolean;
+	showSideMenu: boolean;
+	historyCanGoBack: boolean;
+	themeId: number;
+	routeName: string;
+	noteSideMenuOptions: any;
+	disableSideMenuGestures: boolean;
 
-	private urlOpenListener_: EmitterSubscription|null = null;
-	private appStateChangeListener_: NativeEventSubscription|null = null;
-	private themeChangeListener_: NativeEventSubscription|null = null;
+	dispatch: Dispatch;
+
+}
+
+interface State {
+	sensorInfo: SensorInfo | undefined;
+	sideMenuWidth: number;
+	sideMenuContentOpacity: any;
+}
+class AppComponent extends React.Component<Props, State> {
+
+	private urlOpenListener_: EmitterSubscription | null = null;
+	private appStateChangeListener_: NativeEventSubscription | null = null;
+	private themeChangeListener_: NativeEventSubscription | null = null;
 	private dropdownAlert_ = (_data: any) => new Promise<any>(res => res);
+	lastSyncStarted_: any;
+	backButtonHandler_: () => Promise<boolean>;
+	onAppStateChange_: () => void;
+	handleOpenURL_: (event: any) => void;
+	handleNewShare_: () => void;
+	unsubscribeNewShareListener_: void | (() => void);
+	unsubscribeNetInfoHandler_: any;
+	unsubscribeScreenWidthChangeHandler_: EmitterSubscription | null = null;
 
-	public constructor() {
-		super();
+	public constructor(props: Props) {
+		super(props);
 
 		this.state = {
 			sideMenuContentOpacity: new Animated.Value(0),
 			sideMenuWidth: this.getSideMenuWidth(),
-			sensorInfo: null,
+			sensorInfo: undefined,
 		};
 
 		this.lastSyncStarted_ = defaultState.syncStarted;
@@ -866,6 +948,7 @@ class AppComponent extends React.Component {
 	// https://discourse.xilinotaapp.org/t/webdav-config-encryption-config-randomly-lost-on-android/11364
 	// https://discourse.xilinotaapp.org/t/android-keeps-on-resetting-my-sync-and-theme/11443
 	public async componentDidMount() {
+
 		if (this.props.appState === 'starting') {
 			this.props.dispatch({
 				type: 'APP_STATE_SET',
@@ -881,7 +964,7 @@ class AppComponent extends React.Component {
 				// This will be called right after adding the event listener
 				// so there's no need to check netinfo on startup
 				this.unsubscribeNetInfoHandler_ = NetInfo.addEventListener(({ type, details }) => {
-					const isMobile = details.isConnectionExpensive || type === 'cellular';
+					const isMobile = details?.isConnectionExpensive || type === 'cellular';
 					reg.setIsOnMobileData(isMobile);
 					this.props.dispatch({
 						type: 'MOBILE_DATA_WARNING_UPDATE',
@@ -1059,22 +1142,21 @@ class AppComponent extends React.Component {
 			xl: 280,
 			xxl: 290,
 		});
-
 		return sideMenuWidth;
 	};
 
 	public render() {
 		if (this.props.appState !== 'ready') return null;
-		const theme: Theme = themeStyle(this.props.themeId);
+		const theme: Theme = themeStyle(this.props.themeId.toString());
 
 		let sideMenuContent: ReactNode = null;
 		let menuPosition: SideMenuPosition = 'left';
 
 		if (this.props.routeName === 'Note') {
-			sideMenuContent = <SafeAreaView style={{ flex: 1, backgroundColor: theme.backgroundColor }}><SideMenuContentNote options={this.props.noteSideMenuOptions} /></SafeAreaView>;
+			sideMenuContent = <XilinotaSafeAreaView style={{ flex: 1, backgroundColor: theme.backgroundColor }}><SideMenuContentNote opacity={1} options={this.props.noteSideMenuOptions} /></XilinotaSafeAreaView>;
 			menuPosition = 'right';
 		} else {
-			sideMenuContent = <SafeAreaView style={{ flex: 1, backgroundColor: theme.backgroundColor }}><SideMenuContent /></SafeAreaView>;
+			sideMenuContent = <XilinotaSafeAreaView style={{ flex: 1, backgroundColor: theme.backgroundColor }}><SideMenuContent opacity={1} /></XilinotaSafeAreaView>;
 		}
 
 		const appNavInit = {
@@ -1109,7 +1191,7 @@ class AppComponent extends React.Component {
 				<SideMenu
 					menu={sideMenuContent}
 					edgeHitWidth={20}
-					openMenuOffset={this.state.sideMenuWidth}
+					// openMenuOffset={this.state.sideMenuWidth}
 					menuPosition={menuPosition}
 					onChange={(isOpen: boolean) => this.sideMenu_change(isOpen)}
 					disableGestures={this.props.disableSideMenuGestures}
@@ -1121,47 +1203,22 @@ class AppComponent extends React.Component {
 					}}
 				>
 					<StatusBar barStyle={statusBarStyle} />
-					{/* <MenuProvider>
-						<SafeAreaView style={{ flex: 0, backgroundColor: theme.backgroundColor2 }} />
-						<SafeAreaView style={{ flex: 1 }}>
+					<MenuProvider>
+						<XilinotaSafeAreaView style={{ flex: 0, backgroundColor: theme.backgroundColor2 }} />
+						<XilinotaSafeAreaView style={{ flex: 1 }}>
 							<View style={{ flex: 1, backgroundColor: theme.backgroundColor }}>
-								{shouldShowMainContent && <AppNav screens={appNavInit} dispatch={this.props.dispatch} />}
+								{/* dispatch not exist */}
+								{/* {shouldShowMainContent && <AppNav screens={appNavInit} dispatch={this.props.dispatch} />} */}
+								{shouldShowMainContent && <AppNav screens={appNavInit} />}
 							</View>
 							<DropdownAlert alert={(func: any) => (this.dropdownAlert_ = func)} />
-							{ !shouldShowMainContent && <BiometricPopup
+							{!shouldShowMainContent && <BiometricPopup
 								dispatch={this.props.dispatch}
 								themeId={this.props.themeId}
-								sensorInfo={this.state.sensorInfo}
-							/> }
-						</SafeAreaView>
-
-						<NoteEditor
-							themeId={Setting.THEME_ARITIM_DARK}
-							initialText='Testing...'
-							style={{}}
-							toolbarEnabled={true}
-							readOnly={false}
-							onChange={()=>{}}
-							onSelectionChange={()=>{}}
-							onUndoRedoDepthChange={()=>{}}
-							onAttach={()=>{}}
-						/>
-					</MenuProvider>, */}
-
-					<MenuContext style={{ flex: 1 }}>
-						<SafeAreaView style={{ flex: 0, backgroundColor: theme.backgroundColor2 }} />
-						<SafeAreaView style={{ flex: 1 }}>
-							<View style={{ flex: 1, backgroundColor: theme.backgroundColor }}>
-								{shouldShowMainContent && <AppNav screens={appNavInit} dispatch={this.props.dispatch} />}
-							</View>
-							<DropdownAlert alert={(func: any) => (this.dropdownAlert_ = func)} />
-							{ !shouldShowMainContent && <BiometricPopup
-								dispatch={this.props.dispatch}
-								themeId={this.props.themeId}
-								sensorInfo={this.state.sensorInfo}
-							/> }
-						</SafeAreaView>
-					</MenuContext>
+								sensorInfo={this.state.sensorInfo!}
+							/>}
+						</XilinotaSafeAreaView>
+					</MenuProvider>,
 				</SideMenu>
 			</View>
 		);

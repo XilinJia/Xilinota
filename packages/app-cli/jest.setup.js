@@ -2,7 +2,7 @@ const { afterEachCleanUp } = require('@xilinota/lib/testing/test-utils.js');
 const { shimInit } = require('@xilinota/lib/shim-init-node.js');
 const shim = require('@xilinota/lib/shim').default;
 const sharp = require('sharp');
-const nodeSqlite = require('sqlite3');
+const nodeSqlite = require('sqlite3').verbose();
 
 let keytar;
 try {

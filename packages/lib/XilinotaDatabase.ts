@@ -1,9 +1,10 @@
 import Resource from './models/Resource';
 import shim from './shim';
-import Database, { SqlQuery } from './database';
+import Database, { Row, SqlQuery } from './database';
+import XilinotaError from './XilinotaError';
 
 const { promiseChain } = require('./promise-utils.js');
-const { sprintf } = require('sprintf-js');
+import { sprintf } from 'sprintf-js';
 
 const structureSql = `
 CREATE TABLE folders (
@@ -133,8 +134,8 @@ export default class XilinotaDatabase extends Database {
 	public static TYPE_NUMERIC = 3;
 
 	private initialized_ = false;
-	private tableFields_: Record<string, TableField[]> = null;
-	private version_: number = null;
+	private tableFields_: Record<string, TableField[]> = {};
+	private version_: number = 0;
 	private tableFieldNames_: Record<string, string[]> = {};
 	private tableDescriptions_: any;
 
@@ -142,16 +143,16 @@ export default class XilinotaDatabase extends Database {
 		super(driver);
 	}
 
-	public initialized() {
+	public initialized(): boolean {
 		return this.initialized_;
 	}
 
-	public async open(options: any) {
+	public async open(options: any): Promise<void> {
 		await super.open(options);
 		return this.initialize();
 	}
 
-	public tableFieldNames(tableName: string) {
+	public tableFieldNames(tableName: string): string[] {
 		if (this.tableFieldNames_[tableName]) return this.tableFieldNames_[tableName].slice();
 
 		const tf = this.tableFields(tableName);
@@ -164,7 +165,7 @@ export default class XilinotaDatabase extends Database {
 		return output.slice();
 	}
 
-	public tableFields(tableName: string, options: any = null) {
+	public tableFields(tableName: string, options: any = null): TableField[] {
 		if (options === null) options = {};
 
 		if (!this.tableFields_) throw new Error('Fields have not been loaded yet');
@@ -180,7 +181,7 @@ export default class XilinotaDatabase extends Database {
 		return output;
 	}
 
-	public async clearForTesting() {
+	public async clearForTesting(): Promise<void> {
 		const tableNames = [
 			'notes',
 			'folders',
@@ -220,8 +221,8 @@ export default class XilinotaDatabase extends Database {
 		await this.transactionExecBatch(queries);
 	}
 
-	public createDefaultRow(tableName: string) {
-		const row: any = {};
+	public createDefaultRow(tableName: string): Row {
+		const row: Row = {};
 		const fields = this.tableFields(tableName);
 		for (let i = 0; i < fields.length; i++) {
 			const f = fields[i];
@@ -230,7 +231,7 @@ export default class XilinotaDatabase extends Database {
 		return row;
 	}
 
-	public fieldByName(tableName: string, fieldName: string) {
+	public fieldByName(tableName: string, fieldName: string): TableField {
 		const fields = this.tableFields(tableName);
 		for (const field of fields) {
 			if (field.name === fieldName) return field;
@@ -238,7 +239,7 @@ export default class XilinotaDatabase extends Database {
 		throw new Error(`No such field: ${tableName}: ${fieldName}`);
 	}
 
-	public fieldDefaultValue(tableName: string, fieldName: string) {
+	public fieldDefaultValue(tableName: string, fieldName: string): any {
 		return this.fieldByName(tableName, fieldName).default;
 	}
 
@@ -273,7 +274,7 @@ export default class XilinotaDatabase extends Database {
 
 			for (let i = 0; i < baseItems.length; i++) {
 				const n = baseItems[i];
-				const singular = n.substr(0, n.length - 1);
+				const singular = n.substring(0, n.length - 1);
 				this.tableDescriptions_[n].title = sp('The %s title.', singular);
 				this.tableDescriptions_[n].created_time = sp('When the %s was created.', singular);
 				this.tableDescriptions_[n].updated_time = sp('When the %s was last updated.', singular);
@@ -286,13 +287,13 @@ export default class XilinotaDatabase extends Database {
 		return d && d[fieldName] ? d[fieldName] : '';
 	}
 
-	public refreshTableFields(newVersion: number) {
+	public refreshTableFields(newVersion: number): Promise<void> {
 		this.logger().info('Initializing tables...');
 		const queries: SqlQuery[] = [];
 		queries.push(this.wrapQuery('DELETE FROM table_fields'));
 
 		return this.selectAll('SELECT name FROM sqlite_master WHERE type="table"')
-		// eslint-disable-next-line promise/prefer-await-to-then -- Old code before rule was applied
+
 			.then(tableRows => {
 				const chain = [];
 				for (let i = 0; i < tableRows.length; i++) {
@@ -304,14 +305,14 @@ export default class XilinotaDatabase extends Database {
 					if (tableName === 'notes_spellfix') continue;
 					if (tableName === 'search_aux') continue;
 					chain.push(() => {
-						// eslint-disable-next-line promise/prefer-await-to-then -- Old code before rule was applied
+
 						return this.selectAll(`PRAGMA table_info("${tableName}")`).then(pragmas => {
 							for (let i = 0; i < pragmas.length; i++) {
 								const item = pragmas[i];
 								// In SQLite, if the default value is a string it has double quotes around it, so remove them here
 								let defaultValue = item.dflt_value;
 								if (typeof defaultValue === 'string' && defaultValue.length >= 2 && defaultValue[0] === '"' && defaultValue[defaultValue.length - 1] === '"') {
-									defaultValue = defaultValue.substr(1, defaultValue.length - 2);
+									defaultValue = defaultValue.substring(1, defaultValue.length - 2);
 								}
 								const q = Database.insertQuery('table_fields', {
 									table_name: tableName,
@@ -327,19 +328,19 @@ export default class XilinotaDatabase extends Database {
 
 				return promiseChain(chain);
 			})
-		// eslint-disable-next-line promise/prefer-await-to-then -- Old code before rule was applied
+
 			.then(() => {
 				queries.push({ sql: 'UPDATE version SET table_fields_version = ?', params: [newVersion] });
 				return this.transactionExecBatch(queries);
 			});
 	}
 
-	public addMigrationFile(num: number) {
+	public addMigrationFile(num: number): { sql: string; params: number[]; } {
 		const timestamp = Date.now();
 		return { sql: 'INSERT INTO migrations (number, created_time, updated_time) VALUES (?, ?, ?)', params: [num, timestamp, timestamp] };
 	}
 
-	public async upgradeDatabase(fromVersion: number) {
+	public async upgradeDatabase(fromVersion: number): Promise<number> {
 		// INSTRUCTIONS TO UPGRADE THE DATABASE:
 		//
 		// 1. Add the new version number to the existingDatabaseVersions array
@@ -847,7 +848,7 @@ export default class XilinotaDatabase extends Database {
 						notindexed="source_url",
 						${tableFields}
 					);`
-				;
+					;
 
 				queries.push(this.sqlStringToLines(newVirtualTableSql)[0]);
 
@@ -960,7 +961,7 @@ export default class XilinotaDatabase extends Database {
 		return latestVersion;
 	}
 
-	public async ftsEnabled() {
+	public async ftsEnabled(): Promise<boolean> {
 		try {
 			await this.selectOne('SELECT count(*) FROM notes_fts');
 		} catch (error) {
@@ -973,7 +974,7 @@ export default class XilinotaDatabase extends Database {
 		return true;
 	}
 
-	public async fuzzySearchEnabled() {
+	public async fuzzySearchEnabled(): Promise<boolean> {
 		try {
 			await this.selectOne('SELECT count(*) FROM notes_spellfix');
 		} catch (error) {
@@ -984,11 +985,11 @@ export default class XilinotaDatabase extends Database {
 		return true;
 	}
 
-	public version() {
+	public version(): number {
 		return this.version_;
 	}
 
-	public async initialize() {
+	public async initialize(): Promise<void> {
 		this.logger().info('Checking for database schema update...');
 
 		let versionRow = null;
@@ -996,7 +997,8 @@ export default class XilinotaDatabase extends Database {
 			// Will throw if the database has not been created yet, but this is handled below
 			versionRow = await this.selectOne('SELECT * FROM version LIMIT 1');
 		} catch (error) {
-			if (error.message && error.message.indexOf('no such table: version') >= 0) {
+			this.logger().info(error);
+			if (error instanceof XilinotaError && error.message && error.message.indexOf('no such table: version') >= 0) {
 				// Ignore
 			} else {
 				this.logger().info(error);

@@ -35,7 +35,7 @@ describe('Synchronizer.tools', () => {
 
 	it('should clear local data, and re-downlaod everything from sync target', (async () => {
 		const folder = await Folder.save({ title: 'test' });
-		await Note.save({ title: 'test note', parent_id: folder.id });
+		await Note.save({ title: 'test note', parent_id: folder.id??'' });
 
 		await synchronizerStart();
 

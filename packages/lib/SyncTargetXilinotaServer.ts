@@ -6,6 +6,7 @@ import XilinotaServerApi from './XilinotaServerApi';
 import BaseSyncTarget from './BaseSyncTarget';
 import { FileApi } from './file-api';
 import Logger from '@xilinota/utils/Logger';
+import XilinotaError from './XilinotaError';
 
 const staticLogger = Logger.create('SyncTargetXilinotaServer');
 
@@ -73,13 +74,13 @@ export default class SyncTargetXilinotaServer extends BaseSyncTarget {
 		return super.fileApi();
 	}
 
-	public static async checkConfig(options: FileApiOptions, syncTargetId: number = null) {
+	public static async checkConfig(options: FileApiOptions, syncTargetId: number = -1) {
 		const output = {
 			ok: false,
 			errorMessage: '',
 		};
 
-		syncTargetId = syncTargetId === null ? SyncTargetXilinotaServer.id() : syncTargetId;
+		syncTargetId = syncTargetId === -1 ? SyncTargetXilinotaServer.id() : syncTargetId;
 
 		let fileApi = null;
 		try {
@@ -88,8 +89,10 @@ export default class SyncTargetXilinotaServer extends BaseSyncTarget {
 		} catch (error) {
 			// If there's an error it's probably an application error, but we
 			// can't proceed anyway, so exit.
-			output.errorMessage = error.message;
-			if (error.code) output.errorMessage += ` (Code ${error.code})`;
+			if (error instanceof XilinotaError) {
+				output.errorMessage = error.message;
+				if (error.code) output.errorMessage += ` (Code ${error.code})`;
+			}
 			return output;
 		}
 
@@ -123,15 +126,17 @@ export default class SyncTargetXilinotaServer extends BaseSyncTarget {
 			await fileApi.delete('testing.txt');
 			output.ok = true;
 		} catch (error) {
-			output.errorMessage = error.message;
-			if (error.code) output.errorMessage += ` (Code ${error.code})`;
+			if (error instanceof XilinotaError) {
+				output.errorMessage = error.message;
+				if (error.code) output.errorMessage += ` (Code ${error.code})`;
+			}
 		}
 
 		return output;
 	}
 
 	protected async initFileApi() {
-		return initFileApi(SyncTargetXilinotaServer.id(), this.logger(), {
+		return initFileApi(SyncTargetXilinotaServer.id(), this.logger()!, {
 			path: () => Setting.value('sync.9.path'),
 			userContentPath: () => Setting.value('sync.9.userContentPath'),
 			username: () => Setting.value('sync.9.username'),

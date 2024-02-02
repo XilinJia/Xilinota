@@ -43,10 +43,9 @@
     "access": "public"
   },
   "devDependencies": {
-    "@babel/core": "7.16.0",
-    "@types/react-native": "0.64.19",
+    "@babel/core": "7.23.7",
     "react": "18.2.0",
-    "react-native": "0.71.10"
+    "react-native": "0.73.2"
   },
   "peerDependencies": {
     "react": "*",

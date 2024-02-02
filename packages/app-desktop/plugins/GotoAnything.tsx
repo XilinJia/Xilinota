@@ -3,7 +3,7 @@ import { AppState } from '../app.reducer';
 import CommandService, { SearchResult as CommandSearchResult } from '@xilinota/lib/services/CommandService';
 import KeymapService from '@xilinota/lib/services/KeymapService';
 import shim from '@xilinota/lib/shim';
-const { connect } = require('react-redux');
+import { connect } from 'react-redux';
 import { _ } from '@xilinota/lib/locale';
 import { themeStyle } from '@xilinota/lib/theme';
 import SearchEngine from '@xilinota/lib/services/searchengine/SearchEngine';
@@ -14,7 +14,7 @@ import Folder from '@xilinota/lib/models/Folder';
 import Note from '@xilinota/lib/models/Note';
 import ItemList from '../gui/ItemList';
 import HelpButton from '../gui/HelpButton';
-const { surroundKeywords, nextWhitespaceIndex, removeDiacritics } = require('@xilinota/lib/string-utils.js');
+import { surroundKeywords, nextWhitespaceIndex, removeDiacritics } from '@xilinota/lib/string-utils';
 import { mergeOverlappingIntervals } from '@xilinota/lib/ArrayUtils';
 import markupLanguageUtils from '../utils/markupLanguageUtils';
 import focusEditorIfEditorCommand from '@xilinota/lib/services/commands/focusEditorIfEditorCommand';
@@ -37,7 +37,6 @@ interface SearchResult {
 
 interface Props {
 	themeId: number;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	dispatch: Function;
 	folders: any[];
 	showCompletedTodos: boolean;
@@ -62,13 +61,12 @@ interface CommandQuery {
 
 class GotoAnything {
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	public dispatch: Function;
+	public dispatch: Function | undefined;
 	public static Dialog: any;
 	public static manifest: any;
 
 	public onTrigger(event: any) {
-		this.dispatch({
+		this.dispatch?.({
 			type: 'PLUGINLEGACY_DIALOG_SET',
 			open: true,
 			pluginName: PLUGIN_NAME,
@@ -84,7 +82,7 @@ class Dialog extends React.PureComponent<Props, State> {
 	private inputRef: any;
 	private itemListRef: any;
 	private listUpdateIID_: any;
-	private markupToHtml_: MarkupToHtml;
+	private markupToHtml_: MarkupToHtml | undefined;
 	private userCallback_: any = null;
 
 	public constructor(props: Props) {
@@ -97,7 +95,7 @@ class Dialog extends React.PureComponent<Props, State> {
 		this.state = {
 			query: startString,
 			results: [],
-			selectedItemId: null,
+			selectedItemId: '',
 			keywords: [],
 			listType: BaseModel.TYPE_NOTE,
 			showHelp: false,
@@ -165,13 +163,17 @@ class Dialog extends React.PureComponent<Props, State> {
 			userSelect: 'none',
 		};
 
-		const rowTitleStyle = { ...rowTextStyle, fontSize: rowTextStyle.fontSize * 1.4,
+		const rowTitleStyle = {
+			...rowTextStyle, fontSize: rowTextStyle.fontSize * 1.4,
 			marginBottom: this.state.resultsInBody ? 6 : 4,
-			color: theme.colorFaded };
+			color: theme.colorFaded
+		};
 
-		const rowFragmentsStyle = { ...rowTextStyle, fontSize: rowTextStyle.fontSize * 1.2,
+		const rowFragmentsStyle = {
+			...rowTextStyle, fontSize: rowTextStyle.fontSize * 1.2,
 			marginBottom: this.state.resultsInBody ? 8 : 6,
-			color: theme.colorFaded };
+			color: theme.colorFaded
+		};
 
 		this.styles_[styleKey].rowSelected = { ...this.styles_[styleKey].row, backgroundColor: theme.selectedColor };
 		this.styles_[styleKey].rowPath = rowTextStyle;
@@ -273,7 +275,7 @@ class Dialog extends React.PureComponent<Props, State> {
 			let commandArgs: string[] = [];
 
 			if (this.state.query.indexOf(':') === 0) { // COMMANDS
-				const commandQuery = this.parseCommandQuery(this.state.query.substr(1));
+				const commandQuery = this.parseCommandQuery(this.state.query.substring(1));
 
 				listType = BaseModel.TYPE_COMMAND;
 				keywords = [commandQuery.name];
@@ -285,19 +287,19 @@ class Dialog extends React.PureComponent<Props, State> {
 					return {
 						id: result.commandName,
 						title: result.title,
-						parent_id: null,
+						parent_id: '',
 						fields: [],
 						type: BaseModel.TYPE_COMMAND,
 					};
 				});
 			} else if (this.state.query.indexOf('#') === 0) { // TAGS
 				listType = BaseModel.TYPE_TAG;
-				searchQuery = `*${this.state.query.split(' ')[0].substr(1).trim()}*`;
-				results = await Tag.searchAllWithNotes({ titlePattern: searchQuery });
+				searchQuery = `*${this.state.query.split(' ')[0].substring(1).trim()}*`;
+				results = await Tag.searchAllWithNotes({ titlePattern: searchQuery }) as SearchResult[];
 			} else if (this.state.query.indexOf('@') === 0) { // FOLDERS
 				listType = BaseModel.TYPE_FOLDER;
-				searchQuery = `*${this.state.query.split(' ')[0].substr(1).trim()}*`;
-				results = await Folder.search({ titlePattern: searchQuery });
+				searchQuery = `*${this.state.query.split(' ')[0].substring(1).trim()}*`;
+				results = (await Folder.search({ titlePattern: searchQuery })) as SearchResult[];
 
 				for (let i = 0; i < results.length; i++) {
 					const row = results[i];
@@ -307,7 +309,7 @@ class Dialog extends React.PureComponent<Props, State> {
 			} else { // Note TITLE or BODY
 				listType = BaseModel.TYPE_NOTE;
 				searchQuery = gotoAnythingStyleQuery(this.state.query);
-				results = await SearchEngine.instance().search(searchQuery);
+				results = ((await SearchEngine.instance().search(searchQuery)) ?? []) as SearchResult[];
 
 				resultsInBody = !!results.find((row: any) => row.fields.includes('body'));
 
@@ -347,8 +349,10 @@ class Dialog extends React.PureComponent<Props, State> {
 									for (const match of removeDiacritics(body).matchAll(new RegExp(valueRegex, 'ig'))) {
 										// Populate 'indices' with [begin index, end index] of each note fragment
 										// Begins at the regex matching index, ends at the next whitespace after seeking 15 characters to the right
-										indices.push([match.index, nextWhitespaceIndex(body, match.index + match[0].length + 15)]);
-										if (indices.length > 20) break;
+										if (match.index) {
+											indices.push([match.index, nextWhitespaceIndex(body, match.index + match[0].length + 15)]);
+											if (indices.length > 20) break;
+										}
 									}
 								}
 
@@ -381,7 +385,7 @@ class Dialog extends React.PureComponent<Props, State> {
 				listType: listType,
 				results: results,
 				keywords: keywords ? keywords : await this.keywords(searchQuery),
-				selectedItemId: results.length === 0 ? null : results[0].id,
+				selectedItemId: results.length === 0 ? '' : results[0].id,
 				resultsInBody: resultsInBody,
 				commandArgs: commandArgs,
 			});
@@ -491,7 +495,7 @@ class Dialog extends React.PureComponent<Props, State> {
 		const fragmentComp = !fragmentsHtml ? null : <div style={style.rowFragments} dangerouslySetInnerHTML={{ __html: (fragmentsHtml) }}></div>;
 
 		return (
-			<div key={item.id} className={isSelected ? 'selected' : null} style={rowStyle} onClick={this.listItem_onClick} data-id={item.id} data-parent-id={item.parent_id} data-type={item.type}>
+			<div key={item.id} className={isSelected ? 'selected' : undefined} style={rowStyle} onClick={this.listItem_onClick} data-id={item.id} data-parent-id={item.parent_id} data-type={item.type}>
 				<div style={style.rowTitle} dangerouslySetInnerHTML={{ __html: titleHtml }}></div>
 				{fragmentComp}
 				{pathComp}
@@ -499,9 +503,9 @@ class Dialog extends React.PureComponent<Props, State> {
 		);
 	}
 
-	public selectedItemIndex(results: any[] = undefined, itemId: string = undefined) {
-		if (typeof results === 'undefined') results = this.state.results;
-		if (typeof itemId === 'undefined') itemId = this.state.selectedItemId;
+	public selectedItemIndex(results: any[] = [], itemId: string = '') {
+		if (results.length === 0) results = this.state.results;
+		if (itemId === '') itemId = this.state.selectedItemId;
 		for (let i = 0; i < results.length; i++) {
 			const r = results[i];
 			if (r.id === itemId) return i;

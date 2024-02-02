@@ -1,5 +1,5 @@
-const Entities = require('html-entities').AllHtmlEntities;
-const htmlentities = new Entities().encode;
+import { encode } from 'html-entities';
+
 import { fileUriToPath } from '@xilinota/utils/url';
 const htmlparser2 = require('@xilinota/fork-htmlparser2');
 
@@ -45,7 +45,7 @@ export const attributesHtml = (attr: Record<string, string>) => {
 		if (!attr[n]) {
 			output.push(n);
 		} else {
-			output.push(`${n}="${htmlentities(attr[n])}"`);
+			output.push(`${n}="${encode(attr[n])}"`);
 		}
 	}
 
@@ -58,7 +58,6 @@ export const isSelfClosingTag = (tagName: string) => {
 
 class HtmlUtils {
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public processImageTags(html: string, callback: Function) {
 		if (!html) return '';
 
@@ -84,7 +83,6 @@ class HtmlUtils {
 		});
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public processAnchorTags(html: string, callback: Function) {
 		if (!html) return '';
 
@@ -182,7 +180,7 @@ class HtmlUtils {
 		return false;
 	}
 
-	public sanitizeHtml(html: string, options: SanitizeHtmlOptions = null) {
+	public sanitizeHtml(html: string, options: SanitizeHtmlOptions = {}) {
 		options = {
 			// If true, adds a "jop-noMdConv" class to all the tags.
 			// It can be used afterwards to restore HTML tags in Markdown.
@@ -258,7 +256,7 @@ class HtmlUtils {
 				for (const attrName in attrs) {
 					if (!attrs.hasOwnProperty(attrName)) continue;
 					if (attrName.length <= 2) continue;
-					if (attrName.substr(0, 2) !== 'on') continue;
+					if (attrName.substring(0, 2) !== 'on') continue;
 					delete attrs[attrName];
 				}
 
@@ -266,7 +264,7 @@ class HtmlUtils {
 				// particular we want to exclude `javascript:` URLs. This
 				// applies to A tags, and also AREA ones but to be safe we don't
 				// filter on the tag name and process all HREF attributes.
-				if ('href' in attrs && !this.isAcceptedUrl(attrs['href'], options.allowedFilePrefixes)) {
+				if ('href' in attrs && options.allowedFilePrefixes && !this.isAcceptedUrl(attrs['href'], options.allowedFilePrefixes)) {
 					attrs['href'] = '#';
 				}
 
@@ -315,7 +313,7 @@ class HtmlUtils {
 					// content not being encoded (see sanitize_13.md)
 					output.push(decodedText.replace(/</g, '&lt;'));
 				} else {
-					output.push(htmlentities(decodedText));
+					output.push(encode(decodedText));
 				}
 			},
 

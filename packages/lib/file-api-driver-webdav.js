@@ -104,9 +104,9 @@ class FileApiDriverWebDav {
 	hrefToRelativePath_(href, baseUrl, relativeBaseUrl) {
 		let output = '';
 		if (href.indexOf(baseUrl) === 0) {
-			output = href.substr(baseUrl.length);
+			output = href.substring(baseUrl.length);
 		} else if (href.indexOf(relativeBaseUrl) === 0) {
-			output = href.substr(relativeBaseUrl.length);
+			output = href.substring(relativeBaseUrl.length);
 		} else {
 			throw new Error(`href ${href} not in baseUrl ${baseUrl} nor relativeBaseUrl ${relativeBaseUrl}`);
 		}
@@ -123,7 +123,7 @@ class FileApiDriverWebDav {
 			const href = this.api().stringFromJson(resource, ['d:href', 0]);
 			const path = this.hrefToRelativePath_(href, baseUrl, relativeBaseUrl);
 			// if (href.indexOf(relativeBaseUrl) !== 0) throw new Error('Path "' + href + '" not inside base URL: ' + relativeBaseUrl);
-			// const path = rtrimSlashes(ltrimSlashes(href.substr(relativeBaseUrl.length)));
+			// const path = rtrimSlashes(ltrimSlashes(href.substring(relativeBaseUrl.length)));
 			if (path === '') continue; // The list of resources includes the root dir too, which we don't want
 			const stat = this.statFromResource_(resources[i], path);
 			output.push(stat);
@@ -139,11 +139,11 @@ class FileApiDriverWebDav {
 
 		const stats = this.statsFromResources_(resources).map((stat) => {
 			if (path && stat.path.indexOf(`${path}/`) === 0) {
-				const s = stat.path.substr(path.length + 1);
+				const s = stat.path.substring(path.length + 1);
 				if (s.split('/').length === 1) {
 					return {
 						...stat,
-						path: stat.path.substr(path.length + 1),
+						path: stat.path.substring(path.length + 1),
 					};
 				}
 			}

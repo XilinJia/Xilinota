@@ -3,13 +3,13 @@ import shim from '@xilinota/lib/shim';
 import { themeStyle } from '@xilinota/lib/theme';
 import EditLinkDialog from './EditLinkDialog';
 import { defaultSearchState, SearchPanel } from './SearchPanel';
-import ExtendedWebView from '../ExtendedWebView';
+import ExtendedWebView, { WebViewControl } from '../ExtendedWebView';
 
 import * as React from 'react';
 import { forwardRef, RefObject, useImperativeHandle } from 'react';
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { LayoutChangeEvent, View, ViewStyle } from 'react-native';
-const { editorFont } = require('../global-style');
+import { editorFont } from '../global-style';
 
 import { EditorControl, EditorSettings, SelectionRange } from './types';
 import { _ } from '@xilinota/lib/locale';
@@ -19,10 +19,10 @@ import { EditorCommandType, EditorKeymap, EditorLanguageType, PluginData, Search
 import supportsCommand from '@xilinota/editor/CodeMirror/editorCommands/supportsCommand';
 import SelectionFormatting, { defaultSelectionFormatting } from '@xilinota/editor/SelectionFormatting';
 
-type ChangeEventHandler = (event: ChangeEvent)=> void;
-type UndoRedoDepthChangeHandler = (event: UndoRedoDepthChangeEvent)=> void;
-type SelectionChangeEventHandler = (event: SelectionRangeChangeEvent)=> void;
-type OnAttachCallback = ()=> void;
+type ChangeEventHandler = (event: ChangeEvent) => void;
+type UndoRedoDepthChangeHandler = (event: UndoRedoDepthChangeEvent) => void;
+type SelectionChangeEventHandler = (event: SelectionRangeChangeEvent) => void;
+type OnAttachCallback = () => void;
 
 interface Props {
 	themeId: number;
@@ -39,7 +39,7 @@ interface Props {
 	onAttach: OnAttachCallback;
 }
 
-function fontFamilyFromSettings() {
+function fontFamilyFromSettings(): string {
 	const font = editorFont(Setting.value('style.editor.fontFamily'));
 	return font ? `${font}, sans-serif` : 'sans-serif';
 }
@@ -120,9 +120,9 @@ function editorTheme(themeId: number) {
 	};
 }
 
-type OnInjectJSCallback = (js: string)=> void;
-type OnSetVisibleCallback = (visible: boolean)=> void;
-type OnSearchStateChangeCallback = (state: SearchState)=> void;
+type OnInjectJSCallback = (js: string) => void;
+type OnSetVisibleCallback = (visible: boolean) => void;
+type OnSearchStateChangeCallback = (state: SearchState) => void;
 const useEditorControl = (
 	injectJS: OnInjectJSCallback, setLinkDialogVisible: OnSetVisibleCallback,
 	setSearchState: OnSearchStateChangeCallback,
@@ -252,15 +252,25 @@ const useEditorControl = (
 				},
 
 				showSearch() {
+					if (!searchStateRef.current) return;
+					const curState = searchStateRef.current;
 					setSearchState({
-						...searchStateRef.current,
-						dialogVisible: true,
+						caseSensitive: curState.caseSensitive ?? false,
+						useRegex: curState.useRegex ?? false,
+						dialogVisible: curState.dialogVisible ?? true,
+						searchText: curState.searchText ?? '',
+						replaceText: curState.replaceText ?? ''
 					});
 				},
 				hideSearch() {
+					if (!searchStateRef.current) return;
+					const curState = searchStateRef.current;
 					setSearchState({
-						...searchStateRef.current,
-						dialogVisible: false,
+						caseSensitive: curState.caseSensitive ?? false,
+						useRegex: curState.useRegex ?? false,
+						dialogVisible: curState.dialogVisible ?? false,
+						searchText: curState.searchText ?? '',
+						replaceText: curState.replaceText ?? ''
 					});
 				},
 
@@ -268,12 +278,22 @@ const useEditorControl = (
 			},
 		};
 
+		// const nonNullProps = Object.entries(searchStateRef.current).reduce(
+		// 	(acc, [key, value]) => {
+		// 		if (value !== null && value !== undefined) {
+		// 			acc[key] = value;
+		// 		}
+		// 		return acc;
+		// 	},
+		// 	{}
+		// );
+
 		return control;
 	}, [injectJS, searchStateRef, setLinkDialogVisible, setSearchState]);
 };
 
-function NoteEditor(props: Props, ref: any) {
-	const webviewRef = useRef(null);
+function NoteEditor(props: Props, ref: any): React.JSX.Element {
+	const webviewRef = useRef<WebViewControl>({ injectJS: (_: string) => { } });
 
 	const setInitialSelectionJS = props.initialSelection ? `
 		cm.select(${props.initialSelection.start}, ${props.initialSelection.end});
@@ -324,6 +344,7 @@ function NoteEditor(props: Props, ref: any) {
 			);
 		};
 
+		console.log('in injectedJavaScript');
 		if (!window.cm) {
 			// This variable is not used within this script
 			// but is called using "injectJavaScript" from
@@ -337,6 +358,7 @@ function NoteEditor(props: Props, ref: any) {
 				const initialText = ${JSON.stringify(props.initialText)};
 				const settings = ${JSON.stringify(editorSettings)};
 
+				console.log('initialText', initialText);
 				cm = codeMirrorBundle.initCodeMirror(parentElement, initialText, settings);
 				${setInitialSelectionJS}
 
@@ -366,11 +388,11 @@ function NoteEditor(props: Props, ref: any) {
 	}, [searchState]);
 
 	// Runs [js] in the context of the CodeMirror frame.
-	const injectJS = (js: string) => {
-		webviewRef.current.injectJS(js);
+	const injectJS = (js: string): void => {
+		webviewRef.current?.injectJS(js);
 	};
 
-	const editorControl = useEditorControl(
+	const editorControl: EditorControl = useEditorControl(
 		injectJS, setLinkDialogVisible, setSearchState, searchStateRef,
 	);
 
@@ -378,7 +400,7 @@ function NoteEditor(props: Props, ref: any) {
 		return editorControl;
 	});
 
-	const onMessage = useCallback((event: any) => {
+	const onMessage = useCallback((event: any): void => {
 		const data = event.nativeEvent.data;
 
 		if (data.indexOf('error:') === 0) {
@@ -388,46 +410,45 @@ function NoteEditor(props: Props, ref: any) {
 
 		const msg = JSON.parse(data);
 
-		// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 		const handlers: Record<string, Function> = {
 			onLog: (event: any) => {
-				// eslint-disable-next-line no-console
+
 				console.info('CodeMirror:', ...event.value);
 			},
 
 			onEditorEvent: (event: EditorEvent) => {
 				let exhaustivenessCheck: never;
 				switch (event.kind) {
-				case EditorEventType.Change:
-					props.onChange(event);
-					break;
-				case EditorEventType.UndoRedoDepthChange:
-					props.onUndoRedoDepthChange(event);
-					break;
-				case EditorEventType.SelectionRangeChange:
-					props.onSelectionChange(event);
-					break;
-				case EditorEventType.SelectionFormattingChange:
-					setSelectionState(event.formatting);
-					break;
-				case EditorEventType.EditLink:
-					editorControl.showLinkDialog();
-					break;
-				case EditorEventType.UpdateSearchDialog:
-					setSearchState(event.searchState);
+					case EditorEventType.Change:
+						props.onChange(event);
+						break;
+					case EditorEventType.UndoRedoDepthChange:
+						props.onUndoRedoDepthChange(event);
+						break;
+					case EditorEventType.SelectionRangeChange:
+						props.onSelectionChange(event);
+						break;
+					case EditorEventType.SelectionFormattingChange:
+						setSelectionState(event.formatting);
+						break;
+					case EditorEventType.EditLink:
+						editorControl.showLinkDialog();
+						break;
+					case EditorEventType.UpdateSearchDialog:
+						setSearchState(event.searchState);
 
-					if (event.searchState.dialogVisible) {
-						editorControl.searchControl.showSearch();
-					} else {
-						editorControl.searchControl.hideSearch();
-					}
-					break;
-				case EditorEventType.Scroll:
-					// Not handled
-					break;
-				default:
-					exhaustivenessCheck = event;
-					return exhaustivenessCheck;
+						if (event.searchState.dialogVisible) {
+							editorControl.searchControl.showSearch();
+						} else {
+							editorControl.searchControl.hideSearch();
+						}
+						break;
+					case EditorEventType.Scroll:
+						// Not handled
+						break;
+					default:
+						exhaustivenessCheck = event;
+						return exhaustivenessCheck;
 				}
 				return;
 			},
@@ -436,8 +457,7 @@ function NoteEditor(props: Props, ref: any) {
 		if (handlers[msg.name]) {
 			handlers[msg.name](msg.data);
 		} else {
-			// eslint-disable-next-line no-console
-			console.info('Unsupported CodeMirror message:', msg);
+			console.warn('Unsupported CodeMirror message:', msg);
 		}
 	}, [props.onSelectionChange, props.onUndoRedoDepthChange, props.onChange, editorControl]);
 
@@ -448,7 +468,7 @@ function NoteEditor(props: Props, ref: any) {
 	const [hasSpaceForToolbar, setHasSpaceForToolbar] = useState(true);
 	const toolbarEnabled = props.toolbarEnabled && hasSpaceForToolbar;
 
-	const onContainerLayout = useCallback((event: LayoutChangeEvent) => {
+	const onContainerLayout = useCallback((event: LayoutChangeEvent): void => {
 		const containerHeight = event.nativeEvent.layout.height;
 
 		if (containerHeight < 140) {

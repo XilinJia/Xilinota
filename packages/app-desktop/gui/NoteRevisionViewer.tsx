@@ -13,22 +13,21 @@ import bridge from '../services/bridge';
 import markupLanguageUtils from '../utils/markupLanguageUtils';
 import { NoteEntity, RevisionEntity } from '@xilinota/lib/services/database/types';
 import { AppState } from '../app.reducer';
-const urlUtils = require('@xilinota/lib/urlUtils');
-const ReactTooltip = require('react-tooltip');
-const { urlDecode } = require('@xilinota/lib/string-utils');
-const { connect } = require('react-redux');
-import shared from '@xilinota/lib/components/shared/note-screen-shared';
+import urlUtils from '@xilinota/lib/urlUtils';
+import { Tooltip } from 'react-tooltip';
+import { urlDecode } from '@xilinota/lib/string-utils';
+import { connect } from 'react-redux';
+import Shared from '@xilinota/lib/components/shared/note-screen-shared';
 
 interface Props {
 	themeId: number;
 	noteId: string;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	onBack: Function;
 	customCss: string;
 }
 
 interface State {
-	note: NoteEntity;
+	note: NoteEntity | null;
 	revisions: RevisionEntity[];
 	currentRevId: string;
 	restoring: boolean;
@@ -37,8 +36,7 @@ interface State {
 class NoteRevisionViewerComponent extends React.PureComponent<Props, State> {
 
 	private viewerRef_: any;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	private helpButton_onClick: Function;
+	private helpButton_onClick: Function = () => { };
 
 	public constructor(props: Props) {
 		super(props);
@@ -59,7 +57,16 @@ class NoteRevisionViewerComponent extends React.PureComponent<Props, State> {
 		this.webview_ipcMessage = this.webview_ipcMessage.bind(this);
 	}
 
-	public style() {
+	public style(): {
+		root: {
+			backgroundColor: any;
+			display: string;
+			flex: number;
+			flexDirection: string;
+		};
+		titleInput: any;
+		revisionList: any;
+	} {
 		const theme = themeStyle(this.props.themeId);
 
 		const style = {
@@ -76,7 +83,7 @@ class NoteRevisionViewerComponent extends React.PureComponent<Props, State> {
 		return style;
 	}
 
-	private async viewer_domReady() {
+	private async viewer_domReady(): Promise<void> {
 		// this.viewerRef_.current.openDevTools();
 
 		const revisions = await Revision.allByType(BaseModel.TYPE_NOTE, this.props.noteId);
@@ -84,7 +91,7 @@ class NoteRevisionViewerComponent extends React.PureComponent<Props, State> {
 		this.setState(
 			{
 				revisions: revisions,
-				currentRevId: revisions.length ? revisions[revisions.length - 1].id : '',
+				currentRevId: revisions.length ? revisions[revisions.length - 1].id ?? '' : '',
 			},
 			() => {
 				void this.reloadNote();
@@ -92,7 +99,7 @@ class NoteRevisionViewerComponent extends React.PureComponent<Props, State> {
 		);
 	}
 
-	private async importButton_onClick() {
+	private async importButton_onClick(): Promise<void> {
 		if (!this.state.note) return;
 		this.setState({ restoring: true });
 		await RevisionService.instance().importRevisionNote(this.state.note);
@@ -100,11 +107,11 @@ class NoteRevisionViewerComponent extends React.PureComponent<Props, State> {
 		alert(RevisionService.instance().restoreSuccessMessage(this.state.note));
 	}
 
-	private backButton_click() {
+	private backButton_click(): void {
 		if (this.props.onBack) this.props.onBack();
 	}
 
-	private revisionList_onChange(event: any) {
+	private revisionList_onChange(event: { target: { value: any; }; }): void {
 		const value = event.target.value;
 
 		if (!value) {
@@ -121,7 +128,7 @@ class NoteRevisionViewerComponent extends React.PureComponent<Props, State> {
 		}
 	}
 
-	public async reloadNote() {
+	public async reloadNote(): Promise<void> {
 		let noteBody = '';
 		let markupLanguage = MarkupToHtml.MARKUP_LANGUAGE_MARKDOWN;
 		if (!this.state.revisions.length || !this.state.currentRevId) {
@@ -131,8 +138,8 @@ class NoteRevisionViewerComponent extends React.PureComponent<Props, State> {
 			const revIndex = BaseModel.modelIndexById(this.state.revisions, this.state.currentRevId);
 			const note = await RevisionService.instance().revisionNote(this.state.revisions, revIndex);
 			if (!note) return;
-			noteBody = note.body;
-			markupLanguage = note.markup_language;
+			noteBody = note.body ?? '';
+			markupLanguage = note.markup_language ?? 0;
 			this.setState({ note: note });
 		}
 
@@ -145,7 +152,7 @@ class NoteRevisionViewerComponent extends React.PureComponent<Props, State> {
 
 		const result = await markupToHtml.render(markupLanguage, noteBody, theme, {
 			codeTheme: theme.codeThemeCss,
-			resources: await shared.attachedResources(noteBody),
+			resources: await Shared.attachedResources(noteBody),
 			postMessageSyntax: 'ipcProxySendToHost',
 		});
 
@@ -155,7 +162,7 @@ class NoteRevisionViewerComponent extends React.PureComponent<Props, State> {
 		});
 	}
 
-	private async webview_ipcMessage(event: any) {
+	private async webview_ipcMessage(event: { channel: any; }): Promise<void> {
 		// For the revision view, we only suppport a minimal subset of the IPC messages.
 		// For example, we don't need interactive checkboxes or sync between viewer and editor view.
 		// We try to get most links work though, except for internal (xilinota://) links.
@@ -181,11 +188,11 @@ class NoteRevisionViewerComponent extends React.PureComponent<Props, State> {
 			}
 		} catch (error) {
 			console.warn(error);
-			bridge().showErrorMessageBox(error.message);
+			bridge().showErrorMessageBox((error as Error).message);
 		}
 	}
 
-	public render() {
+	public render(): React.JSX.Element {
 		const theme = themeStyle(this.props.themeId);
 		const style = this.style();
 
@@ -196,8 +203,8 @@ class NoteRevisionViewerComponent extends React.PureComponent<Props, State> {
 			const stats = Revision.revisionPatchStatsText(rev);
 
 			revisionListItems.push(
-				<option key={rev.id} value={rev.id}>
-					{`${time.formatMsToLocal(rev.item_updated_time)} (${stats})`}
+				<option key={rev.id} value={rev.id ?? ''}>
+					{`${time.formatMsToLocal(rev.item_updated_time ?? 0)} (${stats})`}
 				</option>,
 			);
 		}
@@ -217,7 +224,8 @@ class NoteRevisionViewerComponent extends React.PureComponent<Props, State> {
 				<button disabled={!this.state.revisions.length || this.state.restoring} onClick={this.importButton_onClick} style={{ ...theme.buttonStyle, marginLeft: 10, height: theme.inputStyle.height }}>
 					{restoreButtonTitle}
 				</button>
-				<HelpButton tip={helpMessage} id="noteRevisionHelpButton" onClick={this.helpButton_onClick} />
+				{/* <HelpButton tip={helpMessage} id="noteRevisionHelpButton" onClick={this.helpButton_onClick} /> */}
+				<HelpButton tip={helpMessage} onClick={this.helpButton_onClick} />
 			</div>
 		);
 
@@ -227,7 +235,7 @@ class NoteRevisionViewerComponent extends React.PureComponent<Props, State> {
 			<div style={style.root as any}>
 				{titleInput}
 				{viewer}
-				<ReactTooltip place="bottom" delayShow={300} className="help-tooltip" />
+				<Tooltip place="bottom" delayShow={300} className="help-tooltip" />
 			</div>
 		);
 	}

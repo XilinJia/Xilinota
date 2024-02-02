@@ -1,21 +1,20 @@
-/* eslint no-useless-escape: 0*/
 
-const { _ } = require('./locale');
+import { _ } from './locale';
 
-export function dirname(path: string) {
+export function dirname(path: string): string {
 	if (!path) throw new Error('Path is empty');
 	const s = path.split(/\/|\\/);
 	s.pop();
 	return s.join('/');
 }
 
-export function basename(path: string) {
+export function basename(path: string): string {
 	if (!path) throw new Error('Path is empty');
 	const s = path.split(/\/|\\/);
 	return s[s.length - 1];
 }
 
-export function filename(path: string, includeDir = false) {
+export function filename(path: string, includeDir = false): string {
 	if (!path) throw new Error('Path is empty');
 	const output = includeDir ? path : basename(path);
 	if (output.indexOf('.') < 0) return output;
@@ -25,7 +24,7 @@ export function filename(path: string, includeDir = false) {
 	return splitted.join('.');
 }
 
-export function fileExtension(path: string) {
+export function fileExtension(path: string): string {
 	if (!path) throw new Error('Path is empty');
 
 	const output = path.split('.');
@@ -33,13 +32,13 @@ export function fileExtension(path: string) {
 	return output[output.length - 1];
 }
 
-export function isHidden(path: string) {
+export function isHidden(path: string): boolean {
 	const b = basename(path);
 	if (!b.length) throw new Error(`Path empty or not a valid path: ${path}`);
 	return b[0] === '.';
 }
 
-export function safeFileExtension(e: string, maxLength: number = null) {
+export function safeFileExtension(e: string, maxLength: number | null = null): string {
 	// In theory the file extension can have any length but in practice Xilinota
 	// expects a fixed length, so we limit it to 20 which should cover most cases.
 	// Note that it means that a file extension longer than 20 will break
@@ -47,15 +46,15 @@ export function safeFileExtension(e: string, maxLength: number = null) {
 	// https://discourse.xilinotaapp.org/t/troubles-with-webarchive-files-on-ios/10447
 	if (maxLength === null) maxLength = 20;
 	if (!e || !e.replace) return '';
-	return e.replace(/[^a-zA-Z0-9]/g, '').substr(0, maxLength);
+	return e.replace(/[^a-zA-Z0-9]/g, '').substring(0, maxLength);
 }
 
-export function safeFilename(e: string, maxLength: number = null, allowSpaces = false) {
+export function safeFilename(e: string, maxLength: number | null = null, allowSpaces = false): string {
 	if (maxLength === null) maxLength = 32;
 	if (!e || !e.replace) return '';
 	const regex = allowSpaces ? /[^a-zA-Z0-9\-_\(\)\. ]/g : /[^a-zA-Z0-9\-_\(\)\.]/g;
 	const output = e.replace(regex, '_');
-	return output.substr(0, maxLength);
+	return output.substring(0, maxLength);
 }
 
 let friendlySafeFilename_blackListChars = '/\n\r<>:\'"\\|?*#';
@@ -73,7 +72,7 @@ const friendlySafeFilename_blackListNames = ['.', '..', 'CON', 'PRN', 'AUX', 'NU
 // Markdown, etc.) - it still needs to be encoded by the calling code according
 // to the context.
 
-export function friendlySafeFilename(e: string, maxLength: number = null, preserveExtension = false) {
+export function friendlySafeFilename(e: string, maxLength: number | null = null, preserveExtension = false): string {
 	// Although Windows supports paths up to 255 characters, but that includes the filename and its
 	// parent directory path. Also there's generally no good reason for dir or file names
 	// to be so long, so keep it at 50, which should prevent various errors.
@@ -107,7 +106,7 @@ export function friendlySafeFilename(e: string, maxLength: number = null, preser
 	while (output.length) {
 		const c = output[output.length - 1];
 		if (c === ' ' || c === '.') {
-			output = output.substr(0, output.length - 1);
+			output = output.substring(0, output.length - 1);
 		} else {
 			break;
 		}
@@ -116,7 +115,7 @@ export function friendlySafeFilename(e: string, maxLength: number = null, preser
 	while (output.length) {
 		const c = output[0];
 		if (c === ' ') {
-			output = output.substr(1, output.length - 1);
+			output = output.substring(1, output.length - 1);
 		} else {
 			break;
 		}
@@ -124,10 +123,10 @@ export function friendlySafeFilename(e: string, maxLength: number = null, preser
 
 	if (!output) return _('Untitled') + fileExt;
 
-	return output.substr(0, maxLength) + fileExt;
+	return output.substring(0, maxLength) + fileExt;
 }
 
-export function toFileProtocolPath(filePathEncode: string, os: string = null) {
+export function toFileProtocolPath(filePathEncode: string, os: string | null = null): string {
 	if (os === null) os = process.platform;
 
 	if (os === 'win32') {
@@ -140,21 +139,21 @@ export function toFileProtocolPath(filePathEncode: string, os: string = null) {
 	return `file://${filePathEncode.replace(/\'/g, '%27')}`; // escape '(single quote) with unicode, to prevent crashing the html view
 }
 
-export function toSystemSlashes(path: string, os: string = null) {
+export function toSystemSlashes(path: string, os: string | null = null): string {
 	if (os === null) os = process.platform;
 	if (os === 'win32') return path.replace(/\//g, '\\');
 	return path.replace(/\\/g, '/');
 }
 
-export function toForwardSlashes(path: string) {
+export function toForwardSlashes(path: string): string {
 	return toSystemSlashes(path, 'linux');
 }
 
-export function rtrimSlashes(path: string) {
+export function rtrimSlashes(path: string): string {
 	return path.replace(/[\/\\]+$/, '');
 }
 
-export function ltrimSlashes(path: string) {
+export function ltrimSlashes(path: string): string {
 	return path.replace(/^\/+/, '');
 }
 
@@ -162,23 +161,23 @@ export function trimSlashes(path: string): string {
 	return ltrimSlashes(rtrimSlashes(path));
 }
 
-export function quotePath(path: string) {
+export function quotePath(path: string): string {
 	if (!path) return '';
 	if (path.indexOf('"') < 0 && path.indexOf(' ') < 0) return path;
 	path = path.replace(/"/, '\\"');
 	return `"${path}"`;
 }
 
-export function unquotePath(path: string) {
+export function unquotePath(path: string): string {
 	if (!path.length) return '';
 	if (path.length && path[0] === '"') {
-		path = path.substr(1, path.length - 2);
+		path = path.substring(1, path.length - 2);
 	}
 	path = path.replace(/\\"/, '"');
 	return path;
 }
 
-export function extractExecutablePath(cmd: string) {
+export function extractExecutablePath(cmd: string): string {
 	if (!cmd.length) return '';
 
 	const quoteType = ['"', '\''].indexOf(cmd[0]) >= 0 ? cmd[0] : '';

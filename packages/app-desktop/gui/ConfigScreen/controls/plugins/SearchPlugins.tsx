@@ -25,7 +25,6 @@ interface Props {
 	onSearchQueryChange(event: OnChangeEvent): void;
 	pluginSettings: PluginSettings;
 	onPluginSettingsChange(event: any): void;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	renderDescription: Function;
 	maxWidth: number;
 	repoApi(): RepositoryApi;
@@ -45,23 +44,23 @@ export default function(props: Props) {
 	const [manifests, setManifests] = useState<PluginManifest[]>([]);
 	const asyncSearchQueue = useRef(new AsyncActionQueue(10));
 	const [installingPluginsIds, setInstallingPluginIds] = useState<Record<string, boolean>>({});
-	const [searchResultCount, setSearchResultCount] = useState(null);
+	const [searchResultCount, setSearchResultCount] = useState(0);
 
 	const onInstall = useOnInstallHandler(setInstallingPluginIds, props.pluginSettings, props.repoApi, props.onPluginSettingsChange, false);
 
 	useEffect(() => {
-		setSearchResultCount(null);
+		setSearchResultCount(0);
 		asyncSearchQueue.current.push(async () => {
 			if (!props.searchQuery) {
 				setManifests([]);
-				setSearchResultCount(null);
+				setSearchResultCount(0);
 			} else {
 				const r = await props.repoApi().search(props.searchQuery);
 				setManifests(sortManifestResults(r));
 				setSearchResultCount(r.length);
 			}
 		});
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [props.searchQuery]);
 
 	const onChange = useCallback((event: OnChangeEvent) => {
@@ -72,7 +71,7 @@ export default function(props: Props) {
 	const onSearchButtonClick = useCallback(() => {
 		setSearchStarted(false);
 		props.onSearchQueryChange({ value: '' });
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, []);
 
 	function installState(pluginId: string): InstallState {
@@ -84,7 +83,7 @@ export default function(props: Props) {
 
 	function renderResults(query: string, manifests: PluginManifest[]) {
 		if (query && !manifests.length) {
-			if (searchResultCount === null) return ''; // Search in progress
+			if (searchResultCount === 0) return ''; // Search in progress
 			return props.renderDescription(props.themeId, _('No results'));
 		} else {
 			const output = [];

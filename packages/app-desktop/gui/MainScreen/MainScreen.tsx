@@ -21,7 +21,7 @@ import { AppState } from '../../app.reducer';
 import { saveLayout, loadLayout } from '../ResizableLayout/utils/persist';
 import Setting from '@xilinota/lib/models/Setting';
 import shouldShowMissingPasswordWarning from '@xilinota/lib/components/shared/config/shouldShowMissingPasswordWarning';
-import produce from 'immer';
+import { produce } from 'immer';
 import shim from '@xilinota/lib/shim';
 import bridge from '../../services/bridge';
 import time from '@xilinota/lib/time';
@@ -42,11 +42,11 @@ import { MasterKeyEntity } from '@xilinota/lib/services/e2ee/types';
 import commands from './commands/index';
 import invitationRespond from '../../services/share/invitationRespond';
 import restart from '../../services/restart';
-const { connect } = require('react-redux');
+import { connect } from 'react-redux';
 import PromptDialog from '../PromptDialog';
 import NotePropertiesDialog from '../NotePropertiesDialog';
-const PluginManager = require('@xilinota/lib/services/PluginManager');
-const ipcRenderer = require('electron').ipcRenderer;
+import PluginManager from '@xilinota/lib/services/PluginManager';
+import { ipcRenderer } from 'electron';
 
 interface LayerModalState {
 	visible: boolean;
@@ -58,7 +58,6 @@ interface Props {
 	pluginHtmlContents: PluginHtmlContents;
 	pluginsLoaded: boolean;
 	hasNotesBeingSaved: boolean;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	dispatch: Function;
 	mainLayout: LayoutItem;
 	style: any;
@@ -123,11 +122,10 @@ const defaultLayout: LayoutItem = {
 class MainScreenComponent extends React.Component<Props, State> {
 
 	private waitForNotesSavedIID_: any;
-	private isPrinting_: boolean;
-	private styleKey_: string;
+	private isPrinting_: boolean = false;
+	private styleKey_: string = '';
 	private styles_: any;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	private promptOnClose_: Function;
+	private promptOnClose_: Function | undefined;
 
 	public constructor(props: Props) {
 		super(props);
@@ -178,13 +176,13 @@ class MainScreenComponent extends React.Component<Props, State> {
 		}
 	}
 
-	private openCallbackUrl(url: string) {
+	private openCallbackUrl(url: string): void {
 		if (!isCallbackUrl(url)) throw new Error(`Invalid callback URL: ${url}`);
 		const { command, params } = parseCallbackUrl(url);
 		void CommandService.instance().execute(command.toString(), params.id);
 	}
 
-	private updateLayoutPluginViews(layout: LayoutItem, plugins: PluginStates) {
+	private updateLayoutPluginViews(layout: LayoutItem, plugins: PluginStates): LayoutItem {
 		const infos = pluginUtils.viewInfosByType(plugins, 'webview');
 
 		let newLayout = produce(layout, (draftLayout: LayoutItem) => {
@@ -194,7 +192,7 @@ class MainScreenComponent extends React.Component<Props, State> {
 				const viewId = info.view.id;
 				const existingItem = findItemByKey(draftLayout, viewId);
 
-				if (!existingItem) {
+				if (draftLayout.children && !existingItem) {
 					draftLayout.children.push({
 						key: viewId,
 						context: {
@@ -209,7 +207,7 @@ class MainScreenComponent extends React.Component<Props, State> {
 		// active.
 		const pluginIds = Object.keys(plugins);
 		const itemsToRemove: string[] = [];
-		iterateItems(newLayout, (_itemIndex: number, item: LayoutItem, _parent: LayoutItem) => {
+		iterateItems(newLayout, (_itemIndex: number, item: LayoutItem, _parent: LayoutItem | null) => {
 			if (item.context && item.context.pluginId && !pluginIds.includes(item.context.pluginId)) {
 				itemsToRemove.push(item.key);
 			}
@@ -235,7 +233,7 @@ class MainScreenComponent extends React.Component<Props, State> {
 		let output = null;
 
 		try {
-			output = loadLayout(Object.keys(userLayout).length ? userLayout : null, defaultLayout, rootLayoutSize);
+			output = loadLayout(Object.keys(userLayout).length ? userLayout : null, rootLayoutSize, defaultLayout);
 
 			// For unclear reasons, layout items sometimes end up witout a key.
 			// In that case, we can't do anything with them, so remove them
@@ -251,17 +249,17 @@ class MainScreenComponent extends React.Component<Props, State> {
 		} catch (error) {
 			console.warn('Could not load layout - restoring default layout:', error);
 			console.warn('Layout was:', userLayout);
-			output = loadLayout(null, defaultLayout, rootLayoutSize);
+			output = loadLayout(null, rootLayoutSize, defaultLayout);
 		}
 
 		return this.updateLayoutPluginViews(output, plugins);
 	}
 
-	private window_resize() {
+	private window_resize(): void {
 		this.updateRootLayoutSize();
 	}
 
-	public setupAppCloseHandling() {
+	public setupAppCloseHandling(): void {
 		this.waitForNotesSavedIID_ = null;
 
 		// This event is dispached from the main process when the app is about
@@ -296,39 +294,41 @@ class MainScreenComponent extends React.Component<Props, State> {
 		});
 	}
 
-	private notePropertiesDialog_close() {
+	private notePropertiesDialog_close(): void {
 		this.setState({ notePropertiesDialogOptions: {} });
 	}
 
-	private noteContentPropertiesDialog_close() {
+	private noteContentPropertiesDialog_close(): void {
 		this.setState({ noteContentPropertiesDialogOptions: {} });
 	}
 
-	private shareNoteDialog_close() {
+	private shareNoteDialog_close(): void {
 		this.setState({ shareNoteDialogOptions: {} });
 	}
 
-	private shareFolderDialog_close() {
+	private shareFolderDialog_close(): void {
 		this.setState({ shareFolderDialogOptions: { visible: false, folderId: '' } });
 	}
 
-	public updateMainLayout(layout: LayoutItem) {
+	public updateMainLayout(layout: LayoutItem): void {
 		this.props.dispatch({
 			type: 'MAIN_LAYOUT_SET',
 			value: layout,
 		});
 	}
 
-	public updateRootLayoutSize() {
+	public updateRootLayoutSize(): void {
 		this.updateMainLayout(produce(this.props.mainLayout, (draft: any) => {
 			const s = this.rootLayoutSize();
 			// TODO: sometimes draft is null?
+			if (!draft) draft = {};
+
 			draft.width = s.width;
 			draft.height = s.height;
 		}));
 	}
 
-	public componentDidUpdate(prevProps: Props, prevState: State) {
+	public componentDidUpdate(prevProps: Props, prevState: State): void {
 		if (prevProps.style.width !== this.props.style.width ||
 			prevProps.style.height !== this.props.style.height ||
 			this.messageBoxVisible(prevProps) !== this.messageBoxVisible(this.props)
@@ -391,35 +391,35 @@ class MainScreenComponent extends React.Component<Props, State> {
 		}
 	}
 
-	public layoutModeListenerKeyDown(event: any) {
+	public layoutModeListenerKeyDown(event: any): void {
 		if (event.key !== 'Escape') return;
 		if (!this.props.layoutMoveMode) return;
 		void CommandService.instance().execute('toggleLayoutMoveMode');
 	}
 
-	public componentDidMount() {
+	public componentDidMount(): void {
 		window.addEventListener('keydown', this.layoutModeListenerKeyDown);
 	}
 
-	public componentWillUnmount() {
+	public componentWillUnmount(): void {
 		this.unregisterCommands();
 
 		window.removeEventListener('resize', this.window_resize);
 		window.removeEventListener('keydown', this.layoutModeListenerKeyDown);
 	}
 
-	public async waitForNoteToSaved(noteId: string) {
+	public async waitForNoteToSaved(noteId: string): Promise<void> {
 		while (noteId && this.props.editorNoteStatuses[noteId] === 'saving') {
-			// eslint-disable-next-line no-console
+
 			console.info('Waiting for note to be saved...', this.props.editorNoteStatuses);
 			await time.msleep(100);
 		}
 	}
 
-	public async printTo_(target: string, options: any) {
+	public async printTo_(target: string, options: any): Promise<void> {
 		// Concurrent print calls are disallowed to avoid incorrect settings being restored upon completion
 		if (this.isPrinting_) {
-			// eslint-disable-next-line no-console
+
 			console.info(`Printing ${options.path} to ${target} disallowed, already printing.`);
 			return;
 		}
@@ -438,10 +438,10 @@ class MainScreenComponent extends React.Component<Props, State> {
 					customCss: this.props.customCss,
 					plugins: this.props.plugins,
 				});
-				await shim.fsDriver().writeFile(options.path, pdfData, 'buffer');
+				if (pdfData) await shim.fsDriver().writeFile(options.path, pdfData, 'buffer');
 			} catch (error) {
 				console.error(error);
-				bridge().showErrorMessageBox(error.message);
+				bridge().showErrorMessageBox((error as Error).message);
 			}
 		} else if (target === 'printer') {
 			try {
@@ -451,25 +451,28 @@ class MainScreenComponent extends React.Component<Props, State> {
 				});
 			} catch (error) {
 				console.error(error);
-				bridge().showErrorMessageBox(error.message);
+				bridge().showErrorMessageBox((error as Error).message);
 			}
 		}
 		this.isPrinting_ = false;
 	}
 
-	public rootLayoutSize() {
+	public rootLayoutSize(): {
+		width: number;
+		height: number;
+	} {
 		return {
 			width: window.innerWidth,
 			height: this.rowHeight(),
 		};
 	}
 
-	public rowHeight() {
+	public rowHeight(): number {
 		if (!this.props) return 0;
 		return this.props.style.height - (this.messageBoxVisible() ? this.messageBoxHeight() : 0);
 	}
 
-	public messageBoxHeight() {
+	public messageBoxHeight(): number {
 		return 50;
 	}
 
@@ -523,8 +526,7 @@ class MainScreenComponent extends React.Component<Props, State> {
 		return this.styles_;
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	private renderNotificationMessage(message: string, callForAction: string, callForActionHandler: Function, callForAction2: string = null, callForActionHandler2: Function = null) {
+	private renderNotificationMessage(message: string, callForAction: string, callForActionHandler: Function, callForAction2: string = '', callForActionHandler2: Function | null = null): React.JSX.Element {
 		const theme = themeStyle(this.props.themeId);
 		const urlStyle: any = { color: theme.colorWarnUrl, textDecoration: 'underline' };
 
@@ -535,7 +537,7 @@ class MainScreenComponent extends React.Component<Props, State> {
 		);
 
 		const cfa2 = !callForAction2 ? null : (
-			<a href="#" style={urlStyle} onClick={() => callForActionHandler2()}>
+			<a href="#" style={urlStyle} onClick={() => { if (callForActionHandler2) callForActionHandler2(); }}>
 				{callForAction2}
 			</a>
 		);
@@ -548,7 +550,7 @@ class MainScreenComponent extends React.Component<Props, State> {
 		);
 	}
 
-	public renderNotification(theme: any, styles: any) {
+	public renderNotification(theme: any, styles: any): React.JSX.Element | null {
 		if (!this.messageBoxVisible()) return null;
 
 		const onViewStatusScreen = () => {
@@ -647,15 +649,18 @@ class MainScreenComponent extends React.Component<Props, State> {
 			);
 		} else if (this.showShareInvitationNotification(this.props)) {
 			const invitation = this.props.shareInvitations.find(inv => inv.status === 0);
-			const sharer = invitation.share.user;
-
-			msg = this.renderNotificationMessage(
-				_('%s (%s) would like to share a notebook with you.', sharer.full_name, sharer.email),
-				_('Accept'),
-				() => onInvitationRespond(invitation.id, invitation.share.folder_id, invitation.master_key, true),
-				_('Reject'),
-				() => onInvitationRespond(invitation.id, invitation.share.folder_id, invitation.master_key, false),
-			);
+			if (invitation) {
+				const sharer = invitation.share.user;
+				if (sharer) {
+					msg = this.renderNotificationMessage(
+						_('%s (%s) would like to share a notebook with you.', sharer.full_name, sharer.email),
+						_('Accept'),
+						() => onInvitationRespond(invitation.id, invitation.share.folder_id, invitation.master_key, true),
+						_('Reject'),
+						() => onInvitationRespond(invitation.id, invitation.share.folder_id, invitation.master_key, false),
+					);
+				}
+			}
 		} else if (this.props.hasDisabledSyncItems) {
 			msg = this.renderNotificationMessage(
 				_('Some items cannot be synchronised.'),
@@ -683,33 +688,33 @@ class MainScreenComponent extends React.Component<Props, State> {
 		);
 	}
 
-	public messageBoxVisible(props: Props = null) {
+	public messageBoxVisible(props: Props | null = null): boolean {
 		if (!props) props = this.props;
 		return props.hasDisabledSyncItems || props.showMissingMasterKeyMessage || props.hasMissingSyncCredentials || props.showNeedUpgradingMasterKeyMessage || props.showShouldReencryptMessage || props.hasDisabledEncryptionItems || this.props.shouldUpgradeSyncTarget || props.isSafeMode || this.showShareInvitationNotification(props) || this.props.needApiAuth || this.props.showInstallTemplatesPlugin;
 	}
 
-	public registerCommands() {
+	public registerCommands(): void {
 		for (const command of commands) {
 			CommandService.instance().registerRuntime(command.declaration.name, command.runtime(this));
 		}
 	}
 
-	public unregisterCommands() {
+	public unregisterCommands(): void {
 		for (const command of commands) {
 			CommandService.instance().unregisterRuntime(command.declaration.name);
 		}
 	}
 
-	private resizableLayout_resize(event: any) {
+	private resizableLayout_resize(event: any): void {
 		this.updateMainLayout(event.layout);
 	}
 
-	private resizableLayout_moveButtonClick(event: MoveButtonClickEvent) {
+	private resizableLayout_moveButtonClick(event: MoveButtonClickEvent): void {
 		const newLayout = move(this.props.mainLayout, event.itemKey, event.direction);
 		this.updateMainLayout(newLayout);
 	}
 
-	private resizableLayout_renderItem(key: string, event: any) {
+	private resizableLayout_renderItem(key: string, event: any): React.JSX.Element | null | void {
 		// Key should never be undefined but somehow it can happen, also not
 		// clear how. For now in this case render nothing so that the app
 		// doesn't crash.
@@ -860,7 +865,7 @@ class MainScreenComponent extends React.Component<Props, State> {
 		const shareNoteDialogOptions = this.state.shareNoteDialogOptions;
 		const shareFolderDialogOptions = this.state.shareFolderDialogOptions;
 
-		const layoutComp = this.props.mainLayout ? (
+		const layoutComp = (
 			<ResizableLayout
 				height={styles.rowHeight}
 				layout={this.props.mainLayout}
@@ -870,7 +875,7 @@ class MainScreenComponent extends React.Component<Props, State> {
 				moveMode={this.props.layoutMoveMode}
 				moveModeMessage={_('Use the arrows to move the layout items. Press "Escape" to exit.')}
 			/>
-		) : null;
+		);
 
 		return (
 			<div style={style}>

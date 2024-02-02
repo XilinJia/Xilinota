@@ -75,7 +75,7 @@ const main = async () => {
 
 				const topPost = await getForumTopPostByExternalId(externalId);
 
-				await updatePost(topPost.id, {
+				if (topPost) await updatePost(topPost.id, {
 					title: topicTitle,
 					raw: `${topPost.raw}\n\n${postBody}`,
 					edit_reason: 'Auto-updated by script',

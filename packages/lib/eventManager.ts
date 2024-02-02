@@ -1,13 +1,12 @@
-const fastDeepEqual = require('fast-deep-equal');
-
-const events = require('events');
+import fastDeepEqual from 'fast-deep-equal';
+import events from 'events';
 
 export class EventManager {
 
 	private emitter_: any;
-	private appStatePrevious_: any;
-	private appStateWatchedProps_: string[];
-	private appStateListeners_: any;
+	private appStatePrevious_: Record<string, any> = {};
+	private appStateWatchedProps_: string[] = [];
+	private appStateListeners_: Record<string, Function[]> = {};
 
 	public constructor() {
 		this.reset();
@@ -21,7 +20,6 @@ export class EventManager {
 		this.appStateListeners_ = {};
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public on(eventName: string, callback: Function) {
 		return this.emitter_.on(eventName, callback);
 	}
@@ -30,22 +28,18 @@ export class EventManager {
 		return this.emitter_.emit(eventName, object);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public removeListener(eventName: string, callback: Function) {
 		return this.emitter_.removeListener(eventName, callback);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public off(eventName: string, callback: Function) {
 		return this.removeListener(eventName, callback);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public filterOn(filterName: string, callback: Function) {
 		return this.emitter_.on(`filter:${filterName}`, callback);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public filterOff(filterName: string, callback: Function) {
 		return this.removeListener(`filter:${filterName}`, callback);
 	}
@@ -72,7 +66,6 @@ export class EventManager {
 		return output;
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public appStateOn(propName: string, callback: Function) {
 		if (!this.appStateListeners_[propName]) {
 			this.appStateListeners_[propName] = [];
@@ -82,7 +75,6 @@ export class EventManager {
 		this.appStateListeners_[propName].push(callback);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public appStateOff(propName: string, callback: Function) {
 		if (!this.appStateListeners_[propName]) {
 			throw new Error('EventManager: Trying to unregister a state prop watch for a non-watched prop (1)');

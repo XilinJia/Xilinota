@@ -64,7 +64,7 @@ function collapseWhitespace (options) {
 
       if ((!prevText || / $/.test(prevText.data)) &&
           !keepLeadingWs && text[0] === ' ') {
-        text = text.substr(1)
+        text = text.substring(1)
       }
 
       var textIsOnlySpaces = containsOnlySpaces(text);

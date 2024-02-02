@@ -2,6 +2,7 @@ import { utils, CommandRuntime, CommandDeclaration, CommandContext } from '@xili
 import { _ } from '@xilinota/lib/locale';
 import Setting from '@xilinota/lib/models/Setting';
 import Note from '@xilinota/lib/models/Note';
+import { NoteEntity } from '@xilinota/lib/services/database/types';
 
 export const declaration: CommandDeclaration = {
 	name: 'newNote',
@@ -17,7 +18,7 @@ export const runtime = (): CommandRuntime => {
 
 			const defaultValues = Note.previewFieldsWithDefaultValues({ includeTimestamps: false });
 
-			let newNote = {
+			let newNote: NoteEntity = {
 				...defaultValues, parent_id: folderId,
 				is_todo: isTodo ? 1 : 0,
 				body: body,
@@ -25,7 +26,7 @@ export const runtime = (): CommandRuntime => {
 
 			newNote = await Note.save(newNote, { provisional: true });
 
-			void Note.updateGeolocation(newNote.id);
+			if (newNote.id) void Note.updateGeolocation(newNote.id);
 
 			utils.store.dispatch({
 				type: 'NOTE_SELECT',

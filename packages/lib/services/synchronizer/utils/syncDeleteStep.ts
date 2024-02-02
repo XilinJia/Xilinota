@@ -6,6 +6,7 @@ import Resource from '../../../models/Resource';
 import time from '../../../time';
 import resourceRemotePath from './resourceRemotePath';
 import { ApiCallFunction, LogSyncOperationFunction } from './types';
+import XilinotaError from '../../../XilinotaError';
 
 export default async (syncTargetId: number, cancelling: boolean, logSyncOperation: LogSyncOperationFunction, apiCall: ApiCallFunction, dispatch: Dispatch) => {
 	const deletedItems = await BaseItem.deletedItems(syncTargetId);
@@ -20,13 +21,13 @@ export default async (syncTargetId: number, cancelling: boolean, logSyncOperatio
 			await apiCall('delete', path);
 
 			if (isResource) {
-				const remoteContentPath = resourceRemotePath(item.item_id);
+				const remoteContentPath = item.item_id ? resourceRemotePath(item.item_id) : '';
 				await apiCall('delete', remoteContentPath);
 			}
 
-			logSyncOperation('deleteRemote', null, { id: item.item_id }, 'local has been deleted');
+			if (item.item_id) logSyncOperation('deleteRemote', null, { id: item.item_id }, 'local has been deleted');
 		} catch (error) {
-			if (error.code === 'isReadOnly') {
+			if (error instanceof XilinotaError && error.code === 'isReadOnly') {
 				let remoteContent = await apiCall('get', path);
 
 				if (remoteContent) {
@@ -49,6 +50,6 @@ export default async (syncTargetId: number, cancelling: boolean, logSyncOperatio
 			}
 		}
 
-		await BaseItem.remoteDeletedItem(syncTargetId, item.item_id);
+		if (item.item_id) await BaseItem.remoteDeletedItem(syncTargetId, item.item_id);
 	}
 };

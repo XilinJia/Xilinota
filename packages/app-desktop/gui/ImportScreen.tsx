@@ -5,7 +5,7 @@ import { _ } from '@xilinota/lib/locale';
 import { filename, basename } from '@xilinota/lib/path-utils';
 import importEnex from '@xilinota/lib/import-enex';
 import { AppState } from '../app.reducer';
-const { connect } = require('react-redux');
+import { connect } from 'react-redux';
 
 interface Props {
 	filePath: string;
@@ -103,7 +103,7 @@ class ImportScreenComponent extends React.Component<Props, State> {
 
 		const folder = await Folder.save({ title: folderTitle });
 
-		await importEnex(folder.id, filePath, options);
+		if (folder.id) await importEnex(folder.id, filePath, options);
 
 		this.addMessage('done', _('The notes have been imported: %s', lastProgress));
 		this.setState({ doImport: false });

@@ -13,7 +13,7 @@ import { _ } from '@xilinota/lib/locale';
 import bridge from '../../../../../services/bridge';
 import shim from '@xilinota/lib/shim';
 import { MarkupToHtml } from '@xilinota/renderer';
-const { clipboard } = require('electron');
+import { clipboard } from 'electron';
 import { reg } from '@xilinota/lib/registry';
 import ErrorBoundary from '../../../../ErrorBoundary';
 import { MarkupToHtmlOptions } from '../../../utils/useMarkupToHtml';
@@ -43,24 +43,24 @@ function defaultRenderedBody(): RenderedBody {
 	};
 }
 
-function markupRenderOptions(override: MarkupToHtmlOptions = null): MarkupToHtmlOptions {
+function markupRenderOptions(override: MarkupToHtmlOptions = {}): MarkupToHtmlOptions {
 	return { ...override };
 }
 
-const CodeMirror = (props: NoteBodyEditorProps, ref: ForwardedRef<NoteBodyEditorRef>) => {
+const CodeMirror = (props: NoteBodyEditorProps, ref: ForwardedRef<NoteBodyEditorRef>): React.JSX.Element => {
 	const styles = useStyles(props);
 
 	const [renderedBody, setRenderedBody] = useState<RenderedBody>(defaultRenderedBody()); // Viewer content
-	const [renderedBodyContentKey, setRenderedBodyContentKey] = useState<string>(null);
+	const [renderedBodyContentKey, setRenderedBodyContentKey] = useState<string>('');
 
 	const [webviewReady, setWebviewReady] = useState(false);
 
-	const editorRef = useRef<CodeMirrorControl>(null);
+	const editorRef = useRef<CodeMirrorControl | null>(null);
 	const rootRef = useRef(null);
-	const webviewRef = useRef(null);
+	const webviewRef = useRef<any>(null);	// TODO: what type can this be?
 
-	type OnChangeCallback = (event: OnChangeEvent)=> void;
-	const props_onChangeRef = useRef<OnChangeCallback>(null);
+	type OnChangeCallback = (event: OnChangeEvent) => void;
+	const props_onChangeRef = useRef<OnChangeCallback | null>(null);
 	props_onChangeRef.current = props.onChange;
 
 	const [selectionRange, setSelectionRange] = useState({ from: 0, to: 0 });
@@ -71,13 +71,13 @@ const CodeMirror = (props: NoteBodyEditorProps, ref: ForwardedRef<NoteBodyEditor
 
 	usePluginServiceRegistration(ref);
 
-	const codeMirror_change = useCallback((newBody: string) => {
-		if (newBody !== props.content) {
-			props_onChangeRef.current({ changeId: null, content: newBody });
+	const codeMirror_change = useCallback((newBody: string): void => {
+		if (props_onChangeRef.current && newBody !== props.content) {
+			props_onChangeRef.current({ changeId: 0, content: newBody });
 		}
 	}, [props.content]);
 
-	const onEditorPaste = useCallback(async (event: any = null) => {
+	const onEditorPaste = useCallback(async (event: any = null): Promise<void> => {
 		const resourceMds = await getResourcesFromPasteEvent(event);
 		if (!resourceMds.length) return;
 		if (editorRef.current) {
@@ -85,7 +85,7 @@ const CodeMirror = (props: NoteBodyEditorProps, ref: ForwardedRef<NoteBodyEditor
 		}
 	}, []);
 
-	const editorCutText = useCallback(() => {
+	const editorCutText = useCallback((): void => {
 		if (editorRef.current) {
 			const selections = editorRef.current.getSelections();
 			if (selections.length > 0 && selections[0]) {
@@ -108,7 +108,7 @@ const CodeMirror = (props: NoteBodyEditorProps, ref: ForwardedRef<NoteBodyEditor
 		}
 	}, []);
 
-	const editorCopyText = useCallback(() => {
+	const editorCopyText = useCallback((): void => {
 		if (editorRef.current) {
 			const selections = editorRef.current.getSelections();
 
@@ -125,14 +125,14 @@ const CodeMirror = (props: NoteBodyEditorProps, ref: ForwardedRef<NoteBodyEditor
 		}
 	}, []);
 
-	const editorPasteText = useCallback(async () => {
+	const editorPasteText = useCallback(async (): Promise<void> => {
 		if (editorRef.current) {
 			const modifiedMd = await Note.replaceResourceExternalToInternalLinks(clipboard.readText(), { useAbsolutePaths: true });
 			editorRef.current.insertText(modifiedMd);
 		}
 	}, []);
 
-	const editorPaste = useCallback(() => {
+	const editorPaste = useCallback((): void => {
 		const clipboardText = clipboard.readText();
 
 		if (clipboardText) {
@@ -173,7 +173,7 @@ const CodeMirror = (props: NoteBodyEditorProps, ref: ForwardedRef<NoteBodyEditor
 				}
 			},
 			supportsCommand: (name: string) => {
-				return name in commands || editorRef.current.supportsCommand(name);
+				return name in commands || (editorRef.current ? editorRef.current.supportsCommand(name) : false);
 			},
 			execCommand: async (cmd: EditorCommand) => {
 				if (!editorRef.current) return false;
@@ -196,7 +196,7 @@ const CodeMirror = (props: NoteBodyEditorProps, ref: ForwardedRef<NoteBodyEditor
 		};
 	}, [props.content, commands, resetScroll, setEditorPercentScroll, setViewerPercentScroll]);
 
-	const webview_domReady = useCallback(() => {
+	const webview_domReady = useCallback((): void => {
 		setWebviewReady(true);
 	}, []);
 
@@ -341,7 +341,7 @@ const CodeMirror = (props: NoteBodyEditorProps, ref: ForwardedRef<NoteBodyEditor
 		editorClassName: 'cm-editor',
 	});
 
-	const onEditorEvent = useCallback((event: EditorEvent) => {
+	const onEditorEvent = useCallback((event: EditorEvent): void => {
 		if (event.kind === EditorEventType.Scroll) {
 			editor_scroll();
 		} else if (event.kind === EditorEventType.Change) {
@@ -388,7 +388,7 @@ const CodeMirror = (props: NoteBodyEditorProps, ref: ForwardedRef<NoteBodyEditor
 		}
 	}, [props.content]);
 
-	const renderEditor = () => {
+	const renderEditor = (): React.JSX.Element => {
 		return (
 			<div style={cellEditorStyle}>
 				<Editor
@@ -405,7 +405,7 @@ const CodeMirror = (props: NoteBodyEditorProps, ref: ForwardedRef<NoteBodyEditor
 		);
 	};
 
-	const renderViewer = () => {
+	const renderViewer = (): React.JSX.Element => {
 		return (
 			<div style={cellViewerStyle}>
 				<NoteTextViewer
@@ -424,7 +424,7 @@ const CodeMirror = (props: NoteBodyEditorProps, ref: ForwardedRef<NoteBodyEditor
 		<ErrorBoundary message="The text editor encountered a fatal error and could not continue. The error might be due to a plugin, so please try to disable some of them and try again.">
 			<div style={styles.root} ref={rootRef}>
 				<div style={styles.rowToolbar}>
-					<Toolbar themeId={props.themeId}/>
+					<Toolbar themeId={props.themeId} />
 					{props.noteToolbar}
 				</div>
 				<div style={styles.rowEditorViewer}>

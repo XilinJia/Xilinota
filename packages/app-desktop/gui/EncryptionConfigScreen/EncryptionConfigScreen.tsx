@@ -1,4 +1,4 @@
-const React = require('react');
+import React from 'react';
 import EncryptionService from '@xilinota/lib/services/e2ee/EncryptionService';
 import { themeStyle } from '@xilinota/lib/theme';
 import { _ } from '@xilinota/lib/locale';
@@ -28,7 +28,7 @@ interface Props {
 	shouldReencrypt: boolean;
 	activeMasterKeyId: string;
 	masterPassword: string;
-	ppk: PublicPrivateKeyPair;
+	ppk: PublicPrivateKeyPair|null;
 }
 
 const EncryptionConfigScreen = (props: Props) => {
@@ -44,7 +44,7 @@ const EncryptionConfigScreen = (props: Props) => {
 	const needMasterPassword = useNeedMasterPassword(passwordChecks, props.masterKeys);
 
 	const onUpgradeMasterKey = useCallback(async (mk: MasterKeyEntity) => {
-		const password = determineKeyPassword(mk.id, masterPasswordKeys, props.masterPassword, props.passwords);
+		const password = determineKeyPassword(mk.id??'', masterPasswordKeys, props.masterPassword, props.passwords);
 		const result = await upgradeMasterKey(mk, password);
 		alert(result);
 	}, [props.passwords, masterPasswordKeys, props.masterPassword]);
@@ -101,10 +101,10 @@ const EncryptionConfigScreen = (props: Props) => {
 			borderColor: theme.colorError,
 		};
 
-		const password = inputPasswords[mk.id] ? inputPasswords[mk.id] : '';
+		const password = inputPasswords[mk.id??''] ? inputPasswords[mk.id??''] : '';
 		const isActive = props.activeMasterKeyId === mk.id;
 		const activeIcon = isActive ? '✔' : '';
-		const passwordOk = passwordChecks[mk.id] === true ? '✔' : '❌';
+		const passwordOk = passwordChecks[mk.id??''] === true ? '✔' : '❌';
 
 		const renderPasswordInput = (masterKeyId: string) => {
 			if (masterPasswordKeys[masterKeyId] || !passwordChecks['master']) {
@@ -136,8 +136,8 @@ const EncryptionConfigScreen = (props: Props) => {
 			<tr key={mk.id}>
 				<td style={theme.textStyle}>{activeIcon}</td>
 				<td style={theme.textStyle}>{mk.id}<br/>{_('Source: ')}{mk.source_application}</td>
-				<td style={theme.textStyle}>{_('Created: ')}{time.formatMsToLocal(mk.created_time)}<br/>{_('Updated: ')}{time.formatMsToLocal(mk.updated_time)}</td>
-				{renderPasswordInput(mk.id)}
+				<td style={theme.textStyle}>{_('Created: ')}{time.formatMsToLocal(mk.created_time??0)}<br/>{_('Updated: ')}{time.formatMsToLocal(mk.updated_time??0)}</td>
+				{renderPasswordInput(mk.id??'')}
 				<td style={theme.textStyle}>{passwordOk}</td>
 				<td style={theme.textStyle}>
 					<button style={theme.buttonStyle} onClick={() => onToggleEnabledClick(mk)}>{masterKeyEnabled(mk) ? _('Disable') : _('Enable')}</button>
@@ -212,7 +212,7 @@ const EncryptionConfigScreen = (props: Props) => {
 		try {
 			await toggleAndSetupEncryption(EncryptionService.instance(), newEnabled, masterKey, newPassword);
 		} catch (error) {
-			await dialogs.alert(error.message);
+			await dialogs.alert((error as Error).message);
 		}
 	}, [props.masterPassword]);
 
@@ -298,7 +298,7 @@ const EncryptionConfigScreen = (props: Props) => {
 
 		for (let i = 0; i < props.masterKeys.length; i++) {
 			const mk = props.masterKeys[i];
-			const idx = nonExistingMasterKeyIds.indexOf(mk.id);
+			const idx = nonExistingMasterKeyIds.indexOf(mk.id??'');
 			if (idx >= 0) nonExistingMasterKeyIds.splice(idx, 1);
 		}
 

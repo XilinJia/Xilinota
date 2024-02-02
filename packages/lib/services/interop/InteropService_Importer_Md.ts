@@ -10,7 +10,7 @@ import shim from '../../shim';
 import markdownUtils from '../../markdownUtils';
 import htmlUtils from '../../htmlUtils';
 import { unique } from '../../ArrayUtils';
-const { pregQuote } = require('../../string-utils-common');
+import { pregQuote } from '../../string-utils';
 import { MarkupToHtml } from '@xilinota/renderer';
 
 export default class InteropService_Importer_Md extends InteropService_Importer_Base {
@@ -57,7 +57,7 @@ export default class InteropService_Importer_Md extends InteropService_Importer_
 				}
 				const folderTitle = await Folder.findUniqueItemTitle(basename(stat.path));
 				const folder = await Folder.save({ title: folderTitle, parent_id: parentFolderId });
-				await this.importDirectory(`${dirPath}/${basename(stat.path)}`, folder.id);
+				if (folder.id) await this.importDirectory(`${dirPath}/${basename(stat.path)}`, folder.id);
 			} else if (supportedFileExtension.indexOf(fileExtension(stat.path).toLowerCase()) >= 0) {
 				await this.importFile(`${dirPath}/${stat.path}`, parentFolderId);
 			}
@@ -115,11 +115,11 @@ export default class InteropService_Importer_Md extends InteropService_Importer_
 					if (!this.importedNotes[resolvedPath]) {
 						await this.importFile(resolvedPath, parentFolderId);
 					}
-
-					id = this.importedNotes[resolvedPath].id;
+					const impid = this.importedNotes[resolvedPath].id
+					if (impid) id = impid;
 				} else {
 					const resource = await shim.createResourceFromPath(pathWithExtension);
-					id = resource.id;
+					if (resource.id) id = resource.id;
 				}
 
 				// The first is a normal link, the second is supports the <link> and [](<link with spaces>) syntax
@@ -156,9 +156,9 @@ export default class InteropService_Importer_Md extends InteropService_Importer_
 			title: title,
 			body: body,
 			updated_time: stat.mtime.getTime(),
-			created_time: stat.birthtime.getTime(),
+			created_time: stat.birthtime,
 			user_updated_time: stat.mtime.getTime(),
-			user_created_time: stat.birthtime.getTime(),
+			user_created_time: stat.birthtime,
 			markup_language: ext === 'html' ? MarkupToHtml.MARKUP_LANGUAGE_HTML : MarkupToHtml.MARKUP_LANGUAGE_MARKDOWN,
 		};
 		this.importedNotes[resolvedPath] = await Note.save(note, { autoTimestamp: false });

@@ -1,5 +1,6 @@
 const gulp = require('gulp');
-const execa = require('execa');
+// const execa = require('execa');
+
 const { stdout } = require('process');
 
 const execCommand = async (executableName, args, options = null) => {
@@ -21,11 +22,16 @@ const execCommand = async (executableName, args, options = null) => {
 		stdout.write(`> ${executableName} ${args.join(' ')}\n`);
 	}
 
-	const promise = execa(executableName, args);
-	if (options.showStdout && promise.stdout) promise.stdout.pipe(process.stdout);
-	if (options.showStderr && promise.stderr) promise.stderr.pipe(process.stderr);
-	const result = await promise;
-	return result.stdout.trim();
+	try {
+		const execa = await import('execa');
+		const promise = execa(executableName, args);
+		if (options.showStdout && promise.stdout) promise.stdout.pipe(process.stdout);
+		if (options.showStderr && promise.stderr) promise.stderr.pipe(process.stderr);
+		const result = await promise;
+		return result.stdout.trim();
+	} catch (error) {
+		console.error('Error importing "execa":', error);
+	}
 };
 
 

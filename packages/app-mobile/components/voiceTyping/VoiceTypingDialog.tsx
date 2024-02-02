@@ -9,8 +9,8 @@ import { modelIsDownloaded } from '../../services/voiceTyping/vosk.android';
 
 interface Props {
 	locale: string;
-	onDismiss: ()=> void;
-	onText: (text: string)=> void;
+	onDismiss: () => void;
+	onText: (text: string) => void;
 }
 
 enum RecorderState {
@@ -21,20 +21,20 @@ enum RecorderState {
 	Downloading = 5,
 }
 
-const useVosk = (locale: string): [Error | null, boolean, Vosk|null] => {
-	const [vosk, setVosk] = useState<Vosk>(null);
-	const [error, setError] = useState<Error>(null);
-	const [mustDownloadModel, setMustDownloadModel] = useState<boolean | null>(null);
+const useVosk = (locale: string): [Error | undefined, boolean, Vosk] => {
+	const [vosk, setVosk] = useState<Vosk>();
+	const [error, setError] = useState<Error>();
+	const [mustDownloadModel, setMustDownloadModel] = useState<boolean>();
 
 	useAsyncEffect(async (event: AsyncEffectEvent) => {
-		if (mustDownloadModel === null) return;
+		if (!mustDownloadModel) return;
 
 		try {
 			const v = await getVosk(locale);
 			if (event.cancelled) return;
 			setVosk(v);
 		} catch (error) {
-			setError(error);
+			setError(error as Error);
 		} finally {
 			setMustDownloadModel(false);
 		}
@@ -44,11 +44,11 @@ const useVosk = (locale: string): [Error | null, boolean, Vosk|null] => {
 		setMustDownloadModel(!(await modelIsDownloaded(locale)));
 	}, [locale]);
 
-	return [error, mustDownloadModel, vosk];
+	return [error, mustDownloadModel ?? false, vosk];
 };
 
 export default (props: Props) => {
-	const [recorder, setRecorder] = useState<Recorder>(null);
+	const [recorder, setRecorder] = useState<Recorder>();
 	const [recorderState, setRecorderState] = useState<RecorderState>(RecorderState.Loading);
 	const [voskError, mustDownloadModel, vosk] = useVosk(props.locale);
 
@@ -82,13 +82,12 @@ export default (props: Props) => {
 	}, [recorder, props.onDismiss]);
 
 	const renderContent = () => {
-		// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 		const components: Record<RecorderState, Function> = {
 			[RecorderState.Loading]: () => _('Loading...'),
 			[RecorderState.Recording]: () => _('Please record your voice...'),
 			[RecorderState.Processing]: () => _('Converting speech to text...'),
 			[RecorderState.Downloading]: () => _('Downloading %s language files...', languageName(props.locale)),
-			[RecorderState.Error]: () => _('Error: %s', voskError.message),
+			[RecorderState.Error]: () => _('Error: %s', voskError?.message),
 		};
 
 		return components[recorderState]();

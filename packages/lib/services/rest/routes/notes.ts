@@ -16,16 +16,16 @@ import Tag from '../../../models/Tag';
 import Resource from '../../../models/Resource';
 import htmlUtils from '../../../htmlUtils';
 import markupLanguageUtils from '../../../markupLanguageUtils';
-const mimeUtils = require('../../../mime-utils.js').mime;
-const md5 = require('md5');
+import mimeUtils from '../../../mime-utils';
+import md5 from 'md5';
 import HtmlToMd from '../../../HtmlToMd';
-const urlUtils = require('../../../urlUtils.js');
+import urlUtils from '../../../urlUtils';
 import * as ArrayUtils from '../../../ArrayUtils';
 import Logger from '@xilinota/utils/Logger';
-const { mimeTypeFromHeaders } = require('../../../net-utils');
-const { fileExtension, safeFileExtension, safeFilename, filename } = require('../../../path-utils');
-const { MarkupToHtml } = require('@xilinota/renderer');
-const { ErrorNotFound } = require('../utils/errors');
+import { mimeTypeFromHeaders } from '../../../net-utils';
+import { fileExtension, safeFileExtension, safeFilename, filename } from '../../../path-utils';
+import { MarkupToHtml } from '@xilinota/renderer';
+import { ErrorNotFound } from '../utils/errors';
 import { fileUriToPath } from '@xilinota/utils/url';
 
 const logger = Logger.create('routes/notes');
@@ -177,7 +177,7 @@ async function downloadMediaFile(url: string /* , allowFileProtocolImages */) {
 
 	const name = isDataUrl ? md5(`${Math.random()}_${Date.now()}`) : filename(url);
 	let fileExt = isDataUrl ? mimeUtils.toFileExtension(mimeUtils.fromDataUrl(url)) : safeFileExtension(fileExtension(url).toLowerCase());
-	if (!mimeUtils.fromFileExtension(fileExt)) fileExt = ''; // If the file extension is unknown - clear it.
+	if (!fileExt || !mimeUtils.fromFileExtension(fileExt)) fileExt = ''; // If the file extension is unknown - clear it.
 	if (fileExt) fileExt = `.${fileExt}`;
 
 	// Append a UUID because simply checking if the file exists is not enough since
@@ -277,7 +277,7 @@ function replaceUrlsByResources(markupLanguage: number, md: string, urls: any, i
 		//
 		//     /(!?\[.*?\]\()([^\s\)]+)(.*?\))/g
 		//
-		// eslint-disable-next-line no-useless-escape
+
 		return md.replace(/(!?\[.*?\]\()([^\s\)]+)(.*?\))/g, (_match: any, before: string, url: string, after: string) => {
 			let type = 'link';
 			if (before.startsWith('[embedded_pdf]')) {
@@ -337,14 +337,14 @@ async function attachImageFromDataUrl(note: any, imageDataUrl: string, cropRect:
 	return await shim.attachFileToNote(note, tempFilePath);
 }
 
-export default async function(request: Request, id: string = null, link: string = null) {
+export default async function(request: Request, id: string = '', link: string = '') {
 	if (request.method === 'GET') {
 		if (link && link === 'tags') {
 			return collectionToPaginatedResults(ModelType.Tag, await Tag.tagsByNoteId(id), request);
 		} else if (link && link === 'resources') {
 			const note = await Note.load(id);
 			if (!note) throw new ErrorNotFound();
-			const resourceIds = await Note.linkedResourceIds(note.body);
+			const resourceIds = await Note.linkedResourceIds(note.body ?? '');
 			const output = [];
 			const loadOptions = defaultLoadOptions(request, BaseModel.TYPE_RESOURCE);
 			for (const resourceId of resourceIds) {
@@ -414,7 +414,7 @@ export default async function(request: Request, id: string = null, link: string 
 		if (!note) throw new ErrorNotFound();
 
 		const saveOptions = {
-			...defaultSaveOptions('PUT', note.id),
+			...defaultSaveOptions('PUT', note.id ?? ''),
 			autoTimestamp: false, // No auto-timestamp because user may have provided them
 			userSideValidation: true,
 		};

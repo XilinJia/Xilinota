@@ -1,6 +1,7 @@
 import { CommandRuntime, CommandDeclaration, CommandContext } from '@xilinota/lib/services/CommandService';
 import { _ } from '@xilinota/lib/locale';
-const PluginManager = require('@xilinota/lib/services/PluginManager');
+import PluginManager from '@xilinota/lib/services/PluginManager';
+import { MenuItem } from '@xilinota/lib/services/commands/MenuUtils';
 
 export enum UiType {
 	GotoAnything = 'gotoAnything',
@@ -13,7 +14,7 @@ export const declaration: CommandDeclaration = {
 	label: () => _('Goto Anything...'),
 };
 
-function menuItemById(id: string) {
+function menuItemById(id: string): MenuItem | undefined {
 	return PluginManager.instance().menuItems().find((i: any) => i.id === id);
 }
 
@@ -25,17 +26,18 @@ export const runtime = (): CommandRuntime => {
 	return {
 		execute: async (_context: CommandContext, uiType: UiType = UiType.GotoAnything) => {
 			if (uiType === UiType.GotoAnything) {
-				menuItemById('gotoAnything').click();
+				menuItemById('gotoAnything')?.click?.();
 			} else if (uiType === UiType.CommandPalette) {
-				menuItemById('commandPalette').click();
+				menuItemById('commandPalette')?.click?.();
 			} else if (uiType === UiType.ControlledApi) {
-				// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 				return new Promise((resolve: Function, reject: Function) => {
 					const menuItem = PluginManager.instance().menuItems().find((i: any) => i.id === 'controlledApi');
-					menuItem.userData = {
-						callback: { resolve, reject },
-					};
-					menuItem.click();
+					if (menuItem) {
+						(menuItem as any).userData = {
+							callback: { resolve, reject },
+						};
+						menuItem.click?.();
+					}
 				});
 			}
 			return null;

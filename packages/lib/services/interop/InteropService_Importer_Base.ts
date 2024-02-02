@@ -4,6 +4,7 @@ import { ImportExportResult } from './types';
 
 import Setting from '../../models/Setting';
 import shim from '../../shim';
+import md5 from 'md5';
 
 export default class InteropService_Importer_Base {
 
@@ -24,11 +25,10 @@ export default class InteropService_Importer_Base {
 		this.options_ = options;
 	}
 
-	public async exec(_result: ImportExportResult): Promise<ImportExportResult> { return null; }
+	public async exec(_result: ImportExportResult): Promise<ImportExportResult> { throw ('importer base exec not implemented'); }
 
 	protected async temporaryDirectory_(createIt: boolean) {
-		const md5 = require('md5');
-		const tempDir = `${Setting.value('tempDir')}/${md5(Math.random() + Date.now())}`;
+		const tempDir = `${Setting.value('tempDir')}/${md5(Math.random().toString() + Date.now())}`;
 		if (createIt) await shim.fsDriver().mkdir(tempDir);
 		return tempDir;
 	}

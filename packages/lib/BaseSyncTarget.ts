@@ -7,12 +7,11 @@ import ShareService from './services/share/ShareService';
 
 export default class BaseSyncTarget {
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public static dispatch: Function = () => { };
 
-	private synchronizer_: Synchronizer = null;
+	private synchronizer_: Synchronizer | undefined;
 	private initState_: any = null;
-	private logger_: Logger = null;
+	private logger_: Logger | undefined;
 	private options_: any;
 	private db_: any;
 	protected fileApi_: any;
@@ -70,7 +69,7 @@ export default class BaseSyncTarget {
 	}
 
 	public authRouteName(): string {
-		return null;
+		return '';
 	}
 
 	public static id() {
@@ -117,7 +116,7 @@ export default class BaseSyncTarget {
 				const iid = shim.setInterval(() => {
 					if (this.initState_ === 'ready') {
 						shim.clearInterval(iid);
-						resolve(this.synchronizer_);
+						resolve(this.synchronizer_!);
 					}
 					if (this.initState_ === 'error') {
 						shim.clearInterval(iid);
@@ -130,7 +129,7 @@ export default class BaseSyncTarget {
 
 			try {
 				this.synchronizer_ = await this.initSynchronizer();
-				this.synchronizer_.setLogger(this.logger());
+				this.synchronizer_.setLogger(this.logger()!);	// logger should have been set in registry?
 				this.synchronizer_.setEncryptionService(EncryptionService.instance());
 				this.synchronizer_.setResourceService(ResourceService.instance());
 				this.synchronizer_.setShareService(ShareService.instance());

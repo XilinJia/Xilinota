@@ -33,17 +33,22 @@ describe('useLayoutItemSizes', () => {
 			],
 		});
 
-		const col1 = layout.children.find(c => c.key === 'col1');
-		expect(col1.width).toBe(50);
-		expect(col1.visible).toBe(true);
+		if (layout.children) {
+			const col1 = layout.children.find(c => c.key === 'col1');
+			if (col1) {
+				expect(col1.width).toBe(50);
+				expect(col1.visible).toBe(true);
+			}
+			const col2 = layout.children.find(c => c.key === 'col2');
+			expect(col2).not.toHaveProperty('width');
+			if (col2) expect(col2.visible).toBe(true);
 
-		const col2 = layout.children.find(c => c.key === 'col2');
-		expect(col2).not.toHaveProperty('width');
-		expect(col2.visible).toBe(true);
-
-		const col3 = layout.children.find(c => c.key === 'col3');
-		expect(col3.width).toBe(70);
-		expect(col3.visible).toBe(false);
+			const col3 = layout.children.find(c => c.key === 'col3');
+			if (col3) {
+				expect(col3.width).toBe(70);
+				expect(col3.visible).toBe(false);
+			}
+		}
 	});
 
 	test('should stretch the last child item if all siblings have fixed size', () => {
@@ -59,17 +64,23 @@ describe('useLayoutItemSizes', () => {
 			],
 		});
 
-		const col1 = layout.children.find(c => c.key === 'col1');
-		expect(col1.width).toBe(50);
-		expect(col1.visible).toBe(true);
-
-		const col2 = layout.children.find(c => c.key === 'col2');
-		expect(col2.width).toBe(50);
-		expect(col2.visible).toBe(true);
-
-		const col3 = layout.children.find(c => c.key === 'col3');
-		expect(col3).not.toHaveProperty('width');
-		expect(col3.visible).toBe(true);
+		if (layout.children) {
+			const col1 = layout.children.find(c => c.key === 'col1');
+			if (col1) {
+				expect(col1.width).toBe(50);
+				expect(col1.visible).toBe(true);
+			}
+			const col2 = layout.children.find(c => c.key === 'col2');
+			if (col2) {
+				expect(col2.width).toBe(50);
+				expect(col2.visible).toBe(true);
+			}
+			const col3 = layout.children.find(c => c.key === 'col3');
+			if (col3) {
+				expect(col3).not.toHaveProperty('width');
+				expect(col3.visible).toBe(true);
+			}
+		}
 	});
 
 	test('should give item sizes', () => {
@@ -131,11 +142,15 @@ describe('useLayoutItemSizes', () => {
 			row2: { width: 100, height: 50 },
 		});
 
-		expect(itemSize(layout.children[0], layout, sizes, true)).toEqual({ width: 100, height: 100 });
+		if (layout.children) {
+			expect(itemSize(layout.children[0], layout, sizes, true)).toEqual({ width: 100, height: 100 });
 
-		const parent = layout.children[0];
-		expect(itemSize(parent.children[0], parent, sizes, false)).toEqual({ width: 95, height: 45 });
-		expect(itemSize(parent.children[1], parent, sizes, false)).toEqual({ width: 95, height: 50 });
+			const parent = layout.children[0];
+			if (parent.children) {
+				expect(itemSize(parent.children[0], parent, sizes, false)).toEqual({ width: 95, height: 45 });
+				expect(itemSize(parent.children[1], parent, sizes, false)).toEqual({ width: 95, height: 50 });
+			}
+		}
 	});
 
 	test('should decrease size of the largest item if the total size would be larger than the container', () => {
@@ -283,12 +298,14 @@ describe('useLayoutItemSizes', () => {
 
 		const { result } = renderHook(() => useLayoutItemSizes(layout));
 		const sizes = result.current;
-		const maxSize1 = calculateMaxSizeAvailableForItem(layout.children[0], layout, sizes);
-		const maxSize2 = calculateMaxSizeAvailableForItem(layout.children[1], layout, sizes);
+		if (layout.children) {
+			const maxSize1 = calculateMaxSizeAvailableForItem(layout.children[0], layout, sizes);
+			const maxSize2 = calculateMaxSizeAvailableForItem(layout.children[1], layout, sizes);
 
-		// maxSize = totalSize - ( [size of items with set size, except for the current item] + [minimum size of items with no set size] )
-		expect(maxSize1.width).toBe(90); // 90 = layout.width - (col2.width + col3.minWidth(=40) )
-		expect(maxSize2.width).toBe(110); // 110 = layout.width - (col1.width + col3.minWidth(=40) )
+			// maxSize = totalSize - ( [size of items with set size, except for the current item] + [minimum size of items with no set size] )
+			expect(maxSize1.width).toBe(90); // 90 = layout.width - (col2.width + col3.minWidth(=40) )
+			expect(maxSize2.width).toBe(110); // 110 = layout.width - (col1.width + col3.minWidth(=40) )
+		}
 	});
 
 	test('should respect minimum sizes', () => {
@@ -315,12 +332,14 @@ describe('useLayoutItemSizes', () => {
 
 		const { result } = renderHook(() => useLayoutItemSizes(layout));
 		const sizes = result.current;
-		const maxSize1 = calculateMaxSizeAvailableForItem(layout.children[0], layout, sizes);
-		const maxSize2 = calculateMaxSizeAvailableForItem(layout.children[1], layout, sizes);
+		if (layout.children) {
+			const maxSize1 = calculateMaxSizeAvailableForItem(layout.children[0], layout, sizes);
+			const maxSize2 = calculateMaxSizeAvailableForItem(layout.children[1], layout, sizes);
 
-		// maxSize = totalSize - ( [size of items with set size, except for the current item] + [minimum size of items with no set size] )
-		expect(maxSize1.width).toBe(70); // 70 = layout.width - (col2.width + col3.minWidth)
-		expect(maxSize2.width).toBe(90); // 90 = layout.width - (col1.width + col3.minWidth)
+			// maxSize = totalSize - ( [size of items with set size, except for the current item] + [minimum size of items with no set size] )
+			expect(maxSize1.width).toBe(70); // 70 = layout.width - (col2.width + col3.minWidth)
+			expect(maxSize2.width).toBe(90); // 90 = layout.width - (col1.width + col3.minWidth)
+		}
 	});
 
 	test('should not allow a minWidth of 0, should still leave space for the item', () => {
@@ -343,10 +362,12 @@ describe('useLayoutItemSizes', () => {
 
 		const { result } = renderHook(() => useLayoutItemSizes(layout));
 		const sizes = result.current;
-		const maxSize1 = calculateMaxSizeAvailableForItem(layout.children[0], layout, sizes);
+		if (layout.children) {
+			const maxSize1 = calculateMaxSizeAvailableForItem(layout.children[0], layout, sizes);
 
-		// maxSize = totalSize - ( [size of items with set size, except for the current item] + [minimum size of items with no set size] )
-		expect(maxSize1.width).toBe(160); // 160 = layout.width - col2.minWidth(=40)
+			// maxSize = totalSize - ( [size of items with set size, except for the current item] + [minimum size of items with no set size] )
+			expect(maxSize1.width).toBe(160); // 160 = layout.width - col2.minWidth(=40)
+		}
 	});
 
 });

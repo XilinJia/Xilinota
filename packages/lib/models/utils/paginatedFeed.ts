@@ -14,8 +14,8 @@ export interface WhereQuery {
 
 // Note: this method might return more fields than was requested as it will
 // also return fields that are necessary for pagination.
-export default async function(db: any, tableName: string, pagination: Pagination, whereQuery: WhereQuery = null, fields: string[] = null): Promise<ModelFeedPage> {
-	fields = fields ? fields.slice() : ['id'];
+export default async function(db: any, tableName: string, pagination: Pagination, whereQuery: WhereQuery|null = null, fields: string[] = []): Promise<ModelFeedPage> {
+	fields = fields.length ? fields.slice() : ['id'];
 
 	const where = whereQuery ? [whereQuery.sql] : [];
 	const sqlParams = whereQuery && whereQuery.params ? whereQuery.params.slice() : [];

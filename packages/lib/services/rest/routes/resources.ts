@@ -11,7 +11,7 @@ import defaultLoadOptions from '../utils/defaultLoadOptions';
 import Resource from '../../../models/Resource';
 import Note from '../../../models/Note';
 
-export default async function(request: Request, id: string = null, link: string = null) {
+export default async function(request: Request, id: string = '', link: string = '') {
 	// fieldName: "data"
 	// headers: Object
 	// originalFilename: "test.jpg"

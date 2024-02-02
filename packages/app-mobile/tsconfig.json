@@ -1,5 +1,8 @@
 {
-	"extends": "../../tsconfig.json",
+	"extends": [
+		"../../tsconfig.json",
+		"@react-native/typescript-config/tsconfig.json",
+	],
 	"include": [
 		"*.ts",
 		"**/*.ts",
@@ -7,7 +10,6 @@
 		"**/*.tsx",
 	],
 	"exclude": [
-		//Files that don't need transpilation
 		"node_modules",
 		"**/node_modules",
 		"**/*.test.ts",
@@ -16,6 +18,20 @@
 		"tools/*.ts",
 	],
 	"compilerOptions": {
+		"target": "esnext",
+		"module": "es2015",
+		"noEmit": false,
+		"allowImportingTsExtensions": false,
+		"sourceMap": true,
+		"diagnostics": true,
+		"esModuleInterop": true,
+		"ignoreDeprecations": "5.0",
+		"lib": [
+			"es2015",
+			"es2020.string",
+			"dom",
+			"dom.iterable"
+		],
 		"paths": {
 			"react": [
 				"./node_modules/@types/react"

@@ -1,7 +1,7 @@
 import ViewController, { EmitMessageEvent } from './ViewController';
 import shim from '../../shim';
 import { ButtonSpec, DialogResult, ViewHandle } from './api/types';
-const { toSystemSlashes } = require('../../path-utils');
+import { toSystemSlashes } from '../../path-utils';
 import PostMessageService, { MessageParticipant } from '../PostMessageService';
 
 export enum ContainerType {
@@ -14,9 +14,7 @@ export interface Options {
 }
 
 interface CloseResponse {
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	resolve: Function;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	reject: Function;
 }
 
@@ -43,9 +41,8 @@ function findItemByKey(layout: any, key: string): any {
 export default class WebviewController extends ViewController {
 
 	private baseDir_: string;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	private messageListener_: Function = null;
-	private closeResponse_: CloseResponse = null;
+	private messageListener_: Function | undefined;
+	private closeResponse_: CloseResponse | undefined;
 
 	public constructor(handle: ViewHandle, pluginId: string, store: any, baseDir: string, containerType: ContainerType) {
 		super(handle, pluginId, store);
@@ -114,7 +111,7 @@ export default class WebviewController extends ViewController {
 		void PostMessageService.instance().postMessage({
 			pluginId: this.pluginId,
 			viewId: this.handle,
-			contentScriptId: null,
+			contentScriptId: '',
 			from: MessageParticipant.Plugin,
 			to: MessageParticipant.UserWebview,
 			id: messageId,
@@ -168,7 +165,6 @@ export default class WebviewController extends ViewController {
 
 		this.setStoreProp('opened', true);
 
-		// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 		return new Promise((resolve: Function, reject: Function) => {
 			this.closeResponse_ = { resolve, reject };
 		});
@@ -185,7 +181,7 @@ export default class WebviewController extends ViewController {
 
 	public closeWithResponse(result: DialogResult) {
 		this.close();
-		this.closeResponse_.resolve(result);
+		this.closeResponse_?.resolve(result);
 	}
 
 	public get buttons(): ButtonSpec[] {

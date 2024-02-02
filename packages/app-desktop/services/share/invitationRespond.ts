@@ -17,7 +17,7 @@ export default async function(shareUserId: string, folderId: string, masterKey: 
 		await ShareService.instance().respondInvitation(shareUserId, masterKey, accept);
 	} catch (error) {
 		logger.error(error);
-		alert(_('Could not respond to the invitation. Please try again, or check with the notebook owner if they are still sharing it.\n\nThe error was: "%s"', error.message));
+		alert(_('Could not respond to the invitation. Please try again, or check with the notebook owner if they are still sharing it.\n\nThe error was: "%s"', (error as Error).message));
 	}
 
 	// This is to handle an edge case that can happen if:

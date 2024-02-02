@@ -1,14 +1,23 @@
 import time from './time';
 import Setting from './models/Setting';
 import { filename, fileExtension } from './path-utils';
-const md5 = require('md5');
+import md5 from 'md5';
 
+type DocumentFileDetail = {};
 export interface Stat {
 	birthtime: number;
-	mtime: number;
+	// updated_time: number;
+	mtime: Date;
+	// isDir: boolean;
 	isDirectory(): boolean;
 	path: string;
 	size: number;
+
+	uri: string;
+	name: string;
+	type: 'directory' | 'file' | '';
+	lastModified: number;
+	mime: string;
 }
 
 export interface ReadDirStatsOptions {
@@ -17,7 +26,19 @@ export interface ReadDirStatsOptions {
 
 export default class FsDriverBase {
 
-	public async stat(_path: string): Promise<Stat> {
+	public homeDir: string = '';
+
+	constructor() { }
+
+	public async getHomeDir(): Promise<string> {
+		throw new Error('Not implemented');
+	}
+
+	public appendFileSync(_path_: string, _string: string): void {
+		throw new Error('Not implemented');
+	}
+
+	public async stat(_path: string): Promise<Stat | null> {
 		throw new Error('Not implemented');
 	}
 
@@ -29,7 +50,11 @@ export default class FsDriverBase {
 		throw new Error('Not implemented');
 	}
 
-	public async copy(_source: string, _dest: string) {
+	public async copy(_source: string, _dest: string): Promise<void> {
+		throw new Error('Not implemented');
+	}
+
+	public async link(_source: string, _dest: string): Promise<void> {
 		throw new Error('Not implemented');
 	}
 
@@ -37,20 +62,36 @@ export default class FsDriverBase {
 		throw new Error('Not implemented');
 	}
 
-	public async mkdir(_path: string) {
+	public async mkdir(_path: string): Promise<void> {
 		throw new Error('Not implemented');
 	}
 
-	public async unlink(_path: string) {
+	public async unlink(_path: string): Promise<void> {
 		throw new Error('Not implemented');
 	}
 
-	public async move(_source: string, _dest: string) {
+	public async move(_source: string, _dest: string): Promise<void> {
+		throw new Error('Not implemented');
+	}
+
+	public async moveAllFiles(_sourcePath: string, _destinationPath: string, _mediaExtensions: string[] = []): Promise<void> {
 		throw new Error('Not implemented');
 	}
 
 	public async readFileChunk(_handle: any, _length: number, _encoding = 'base64'): Promise<string> {
 		throw new Error('Not implemented');
+	}
+
+	public resolve(path_: string): string {
+		throw new Error(`Not implemented: resolve(): ${path_}`);
+	}
+
+	public resolveRelativePathWithinDir(_baseDir: string, relativePath: string): string {
+		throw new Error(`Not implemented: resolveRelativePathWithinDir(): ${relativePath}`);
+	}
+
+	public async md5File(path: string): Promise<string> {
+		throw new Error(`Not implemented: md5File(): ${path}`);
 	}
 
 	public async open(_path: string, _mode: any): Promise<any> {
@@ -61,7 +102,11 @@ export default class FsDriverBase {
 		throw new Error('Not implemented');
 	}
 
-	public async readDirStats(_path: string, _options: ReadDirStatsOptions = null): Promise<Stat[]> {
+	public async readDirStats(_path: string, _options: ReadDirStatsOptions | null = null): Promise<Stat[]> {
+		throw new Error('Not implemented');
+	}
+
+	public async ls_R(_directoryPath: string): Promise<string[]> {
 		throw new Error('Not implemented');
 	}
 
@@ -77,7 +122,11 @@ export default class FsDriverBase {
 		throw new Error('Not implemented');
 	}
 
-	public async isDirectory(path: string) {
+	public async rename(_source: string, _dest: string): Promise<void> {
+		throw new Error('Not implemented');
+	}
+
+	public async isDirectory(path: string): Promise<boolean> {
 		const stat = await this.stat(path);
 		return !stat ? false : stat.isDirectory();
 	}
@@ -100,10 +149,7 @@ export default class FsDriverBase {
 		return output;
 	}
 
-	public async findUniqueFilename(name: string, reservedNames: string[] = null, markdownSafe = false): Promise<string> {
-		if (reservedNames === null) {
-			reservedNames = [];
-		}
+	public async findUniqueFilename(name: string, reservedNames: string[] = [], markdownSafe = false): Promise<string> {
 		let counter = 1;
 
 		const nameNoExt = filename(name, true);
@@ -128,7 +174,7 @@ export default class FsDriverBase {
 		}
 	}
 
-	public async removeAllThatStartWith(dirPath: string, filenameStart: string) {
+	public async removeAllThatStartWith(dirPath: string, filenameStart: string): Promise<void> {
 		if (!filenameStart || !dirPath) throw new Error('dirPath and filenameStart cannot be empty');
 
 		const stats = await this.readDirStats(dirPath);
@@ -140,7 +186,7 @@ export default class FsDriverBase {
 		}
 	}
 
-	public async waitTillExists(path: string, timeout = 10000) {
+	public async waitTillExists(path: string, timeout = 10000): Promise<boolean> {
 		const startTime = Date.now();
 
 		while (true) {
@@ -153,7 +199,7 @@ export default class FsDriverBase {
 
 	// TODO: move out of here and make it part of xilinota-renderer
 	// or assign to option using .bind(fsDriver())
-	public async cacheCssToFile(cssStrings: string[]) {
+	public async cacheCssToFile(cssStrings: string[]): Promise<{ path: string; mime: string; }> {
 		const cssString = Array.isArray(cssStrings) ? cssStrings.join('\n') : cssStrings;
 		const cssFilePath = `${Setting.value('tempDir')}/${md5(escape(cssString))}.css`;
 		if (!(await this.exists(cssFilePath))) {
@@ -174,4 +220,27 @@ export default class FsDriverBase {
 		throw new Error('Not implemented');
 	}
 
+	public async setTimestamp(_path: string, _timestampDate: any): Promise<void> {
+		throw new Error('Not implemented');
+	}
+
+	public async rmdir(_path: string): Promise<void> {
+		throw new Error('Not implemented');
+	}
+
+	public async getExternalDirectoryPath(): Promise<string | undefined> {
+		throw new Error('Not implemented');
+	}
+
+	public async getExternalDirectoryPathTag(_tag: string): Promise<string | undefined> {
+		throw new Error('Not implemented');
+	}
+
+	public isUsingAndroidSAF(): boolean {
+		throw new Error('Not implemented');
+	}
+
+	public async pickDocument(_options: {}): Promise<any[] | null> {
+		throw new Error('Not implemented');
+	}
 }

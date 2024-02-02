@@ -95,7 +95,7 @@ export default class JoplinImaging {
 		return image.data.getSize();
 	}
 
-	public async resize(handle: Handle, options: ResizeOptions = null) {
+	public async resize(handle: Handle, options: ResizeOptions = {}) {
 		const image = this.imageByHandle(handle);
 		const resizedImage = image.data.resize(options);
 		return this.cacheImage(resizedImage);

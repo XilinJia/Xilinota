@@ -23,7 +23,7 @@ export async function readmeFileTitleAndBody(sourcePath: string): Promise<Readme
 			};
 		}
 	} catch (error) {
-		error.message = `On ${sourcePath}: ${error.message}`;
+		if (error instanceof Error) error.message = `On ${sourcePath}: ${error.message}`;
 		throw error;
 	}
 }

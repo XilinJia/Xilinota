@@ -5,7 +5,7 @@ import markupLanguageUtils from '../../../utils/markupLanguageUtils';
 import Setting from '@xilinota/lib/models/Setting';
 import shim from '@xilinota/lib/shim';
 
-const { themeStyle } = require('@xilinota/lib/theme');
+import { themeStyle } from '@xilinota/lib/theme';
 import Note from '@xilinota/lib/models/Note';
 
 interface HookDependencies {
@@ -35,10 +35,10 @@ export default function useMarkupToHtml(deps: HookDependencies) {
 			resourceBaseUrl: `file://${Setting.value('resourceDir')}/`,
 			customCss: customCss || '',
 		});
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+		
 	}, [plugins, customCss]);
 
-	return useCallback(async (markupLanguage: number, md: string, options: MarkupToHtmlOptions = null): Promise<any> => {
+	return useCallback(async (markupLanguage: number, md: string, options: MarkupToHtmlOptions = {}): Promise<any> => {
 		options = {
 			replaceResourceInternalToExternalLinks: false,
 			resourceInfos: {},
@@ -54,7 +54,7 @@ export default function useMarkupToHtml(deps: HookDependencies) {
 		if (options.replaceResourceInternalToExternalLinks) {
 			md = await Note.replaceResourceInternalToExternalLinks(md, { useAbsolutePaths: true });
 		} else {
-			resources = options.resourceInfos;
+			resources = options.resourceInfos??{};
 		}
 
 		delete options.replaceResourceInternalToExternalLinks;
@@ -67,6 +67,6 @@ export default function useMarkupToHtml(deps: HookDependencies) {
 			codeHighlightCacheKey: 'useMarkupToHtml', ...options });
 
 		return result;
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+		
 	}, [themeId, customCss, markupToHtml]);
 }

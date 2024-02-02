@@ -1,4 +1,4 @@
-import BaseModel from '../BaseModel';
+import BaseModel, { ModelType } from '../BaseModel';
 import migration42 from '../migrations/42';
 
 const migrationScripts: Record<number, any> = {
@@ -10,15 +10,15 @@ const migrationScripts: Record<number, any> = {
 };
 
 export default class Migration extends BaseModel {
-	public static tableName() {
+	public static tableName() : string {
 		return 'migrations';
 	}
 
-	public static modelType() {
+	public static modelType() : ModelType {
 		return BaseModel.TYPE_MIGRATION;
 	}
 
-	public static migrationsToDo() {
+	public static migrationsToDo() : Promise<any[]> {
 		return this.modelSelectAll('SELECT * FROM migrations ORDER BY number ASC');
 	}
 

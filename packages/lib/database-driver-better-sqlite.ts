@@ -1,4 +1,4 @@
-// This is a driver for better-sqlite3. It may be interesting to use it instead
+// TODO: This is a driver for better-sqlite3. It may be interesting to use it instead
 // of node-sqlite because it breaks all the time when we try to compile any app.
 // The performance improvement probably won't matter.
 //
@@ -9,44 +9,46 @@
 //
 // https://github.com/JoshuaWise/better-sqlite3/blob/master/docs/compilation.md
 
-const Database = require('better-sqlite3');
+import Database from 'better-sqlite3';
+import DatabaseDriverBase from './database-driver-base';
+import { Row } from './database';
 
 interface Options {
 	name: string;
 }
 
-export default class DatabaseDriverBetterSqlite {
+export default class DatabaseDriverBetterSqlite extends DatabaseDriverBase {
 
-	private db_: any = null;
+	private db_: Database.Database | null = null;
 
-	public open(options: Options) {
+	public open(options: Options): any {
 		this.db_ = new Database(options.name);
 	}
 
-	public sqliteErrorToJsError(error: any, sql: string = null, params: any[] = null) {
-		console.error(error.toString(), ' ---- ', sql, params);
+	// public sqliteErrorToJsError(error: any, sql: string = '', params: any[] = []) {
+	// 	console.error(error.toString(), ' ---- ', sql, params);
 
-		const msg = [error.toString()];
-		if (sql) msg.push(sql);
-		if (params) msg.push(params);
-		const output: any = new Error(msg.join(': '));
-		if (error.code) output.code = error.code;
-		return output;
+	// 	const msg = [error.toString()];
+	// 	if (sql) msg.push(sql);
+	// 	if (params) msg.push(params);
+	// 	const output: any = new Error(msg.join(': '));
+	// 	if (error.code) output.code = error.code;
+	// 	return output;
+	// }
+
+	public async selectOne(sql: string, params: any = []): Promise<Row | null> {
+		return this.db_?.prepare(sql).get(params ? params : []) as Row | null;
 	}
 
-	public async selectOne(sql: string, params: any[] = null) {
-		return this.db_.prepare(sql).get(params ? params : []);
+	public async selectAll(sql: string, params: any = []): Promise<Row[]> {
+		return this.db_?.prepare(sql).all(params ? params : []) as Row[];
 	}
 
-	public async selectAll(sql: string, params: any[] = null) {
-		return this.db_.prepare(sql).all(params ? params : []);
+	public async exec(sql: string, params: any[] = []): Promise<any> {
+		return this.db_?.prepare(sql).run(params ? params : []);
 	}
 
-	public async exec(sql: string, params: any[] = null) {
-		return this.db_.prepare(sql).run(params ? params : []);
-	}
-
-	public lastInsertId() {
-		throw new Error('NOT IMPLEMENTED');
-	}
+	// public lastInsertId() {
+	// 	throw new Error('NOT IMPLEMENTED');
+	// }
 }

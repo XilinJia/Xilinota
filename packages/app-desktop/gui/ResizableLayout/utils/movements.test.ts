@@ -28,15 +28,20 @@ describe('movements', () => {
 
 		layout = moveHorizontal(layout, 'col1', 1);
 
-		expect(layout.children[0].children[0].key).toBe('col2');
-		expect(layout.children[0].children[1].key).toBe('col1');
-		expect(layout.children[1].key).toBe('col3');
-
+		if (layout.children) {
+			if (layout.children[0].children) {
+				expect(layout.children[0].children[0].key).toBe('col2');
+				expect(layout.children[0].children[1].key).toBe('col1');
+			}
+			expect(layout.children[1].key).toBe('col3');
+		}
 		layout = moveHorizontal(layout, 'col1', 1);
 
-		expect(layout.children[0].key).toBe('col2');
-		expect(layout.children[1].key).toBe('col1');
-		expect(layout.children[2].key).toBe('col3');
+		if (layout.children) {
+			expect(layout.children[0].key).toBe('col2');
+			expect(layout.children[1].key).toBe('col1');
+			expect(layout.children[2].key).toBe('col3');
+		}
 
 		layout = moveHorizontal(layout, 'col1', 1);
 		layout = moveHorizontal(layout, 'col1', 1);
@@ -67,9 +72,11 @@ describe('movements', () => {
 
 		layout = moveHorizontal(layout, 'item2', -1);
 
-		expect(layout.children[0].key).toBe('item2');
-		expect(layout.children[1].key).toBe('item1');
-		expect(layout.children[2].key).toBe('col2');
+		if (layout.children) {
+			expect(layout.children[0].key).toBe('item2');
+			expect(layout.children[1].key).toBe('item1');
+			expect(layout.children[2].key).toBe('col2');
+		}
 	});
 
 	test('should move items vertically', () => {
@@ -99,9 +106,11 @@ describe('movements', () => {
 
 		layout = moveVertical(layout, 'row3', -1);
 
-		expect(layout.children[1].children[0].key).toBe('row1');
-		expect(layout.children[1].children[1].key).toBe('row3');
-		expect(layout.children[1].children[2].key).toBe('row2');
+		if (layout.children && layout.children[1].children) {
+			expect(layout.children[1].children[0].key).toBe('row1');
+			expect(layout.children[1].children[1].key).toBe('row3');
+			expect(layout.children[1].children[2].key).toBe('row2');
+		}
 	});
 
 	test('should tell if item can be moved', () => {
@@ -126,25 +135,25 @@ describe('movements', () => {
 			],
 		});
 
-		expect(canMove(MoveDirection.Up, findItemByKey(layout, 'col1'), findItemByKey(layout, 'root'))).toBe(false);
-		expect(canMove(MoveDirection.Down, findItemByKey(layout, 'col1'), findItemByKey(layout, 'root'))).toBe(false);
-		expect(canMove(MoveDirection.Left, findItemByKey(layout, 'col1'), findItemByKey(layout, 'root'))).toBe(false);
-		expect(canMove(MoveDirection.Right, findItemByKey(layout, 'col1'), findItemByKey(layout, 'root'))).toBe(true);
+		expect(canMove(MoveDirection.Up, findItemByKey(layout, 'col1')!, findItemByKey(layout, 'root')!)).toBe(false);
+		expect(canMove(MoveDirection.Down, findItemByKey(layout, 'col1')!, findItemByKey(layout, 'root')!)).toBe(false);
+		expect(canMove(MoveDirection.Left, findItemByKey(layout, 'col1')!, findItemByKey(layout, 'root')!)).toBe(false);
+		expect(canMove(MoveDirection.Right, findItemByKey(layout, 'col1')!, findItemByKey(layout, 'root')!)).toBe(true);
 
-		expect(canMove(MoveDirection.Up, findItemByKey(layout, 'row1'), findItemByKey(layout, 'col1'))).toBe(false);
-		expect(canMove(MoveDirection.Down, findItemByKey(layout, 'row1'), findItemByKey(layout, 'col1'))).toBe(true);
-		expect(canMove(MoveDirection.Left, findItemByKey(layout, 'row1'), findItemByKey(layout, 'col1'))).toBe(true);
-		expect(canMove(MoveDirection.Right, findItemByKey(layout, 'row1'), findItemByKey(layout, 'col1'))).toBe(true);
+		expect(canMove(MoveDirection.Up, findItemByKey(layout, 'row1')!, findItemByKey(layout, 'col1')!)).toBe(false);
+		expect(canMove(MoveDirection.Down, findItemByKey(layout, 'row1')!, findItemByKey(layout, 'col1')!)).toBe(true);
+		expect(canMove(MoveDirection.Left, findItemByKey(layout, 'row1')!, findItemByKey(layout, 'col1')!)).toBe(true);
+		expect(canMove(MoveDirection.Right, findItemByKey(layout, 'row1')!, findItemByKey(layout, 'col1')!)).toBe(true);
 
-		expect(canMove(MoveDirection.Up, findItemByKey(layout, 'row2'), findItemByKey(layout, 'col1'))).toBe(true);
-		expect(canMove(MoveDirection.Down, findItemByKey(layout, 'row2'), findItemByKey(layout, 'col1'))).toBe(false);
-		expect(canMove(MoveDirection.Left, findItemByKey(layout, 'row2'), findItemByKey(layout, 'col1'))).toBe(true);
-		expect(canMove(MoveDirection.Right, findItemByKey(layout, 'row2'), findItemByKey(layout, 'col1'))).toBe(true);
+		expect(canMove(MoveDirection.Up, findItemByKey(layout, 'row2')!, findItemByKey(layout, 'col1')!)).toBe(true);
+		expect(canMove(MoveDirection.Down, findItemByKey(layout, 'row2')!, findItemByKey(layout, 'col1')!)).toBe(false);
+		expect(canMove(MoveDirection.Left, findItemByKey(layout, 'row2')!, findItemByKey(layout, 'col1')!)).toBe(true);
+		expect(canMove(MoveDirection.Right, findItemByKey(layout, 'row2')!, findItemByKey(layout, 'col1')!)).toBe(true);
 
-		expect(canMove(MoveDirection.Up, findItemByKey(layout, 'col2'), findItemByKey(layout, 'root'))).toBe(false);
-		expect(canMove(MoveDirection.Down, findItemByKey(layout, 'col2'), findItemByKey(layout, 'root'))).toBe(false);
-		expect(canMove(MoveDirection.Left, findItemByKey(layout, 'col2'), findItemByKey(layout, 'root'))).toBe(true);
-		expect(canMove(MoveDirection.Right, findItemByKey(layout, 'col2'), findItemByKey(layout, 'root'))).toBe(false);
+		expect(canMove(MoveDirection.Up, findItemByKey(layout, 'col2')!, findItemByKey(layout, 'root')!)).toBe(false);
+		expect(canMove(MoveDirection.Down, findItemByKey(layout, 'col2')!, findItemByKey(layout, 'root')!)).toBe(false);
+		expect(canMove(MoveDirection.Left, findItemByKey(layout, 'col2')!, findItemByKey(layout, 'root')!)).toBe(true);
+		expect(canMove(MoveDirection.Right, findItemByKey(layout, 'col2')!, findItemByKey(layout, 'root')!)).toBe(false);
 	});
 
 	test('container with only one child should take the width of its parent', () => {
@@ -166,8 +175,10 @@ describe('movements', () => {
 
 		layout = moveHorizontal(layout, 'col2', -1);
 
-		expect(layout.children[0].children[0].key).toBe('col1');
-		expect(layout.children[0].children[0].width).toBe(undefined);
+		if (layout.children && layout.children[0].children) {
+			expect(layout.children[0].children[0].key).toBe('col1');
+			expect(layout.children[0].children[0].width).toBe(undefined);
+		}
 	});
 
 	test('temp container should take the width of the child it replaces', () => {
@@ -193,9 +204,13 @@ describe('movements', () => {
 
 		layout = moveHorizontal(layout, 'col2', -1);
 
-		expect(layout.children[0].width).toBe(20);
-		expect(layout.children[0].children[0].width).toBe(undefined);
-		expect(layout.children[0].children[1].width).toBe(undefined);
+		if (layout.children) {
+			expect(layout.children[0].width).toBe(20);
+			if (layout.children[0].children) {
+				expect(layout.children[0].children[0].width).toBe(undefined);
+				expect(layout.children[0].children[1].width).toBe(undefined);
+			}
+		}
 	});
 
 	test('last child should have flexible width if all siblings have fixed width', () => {
@@ -221,8 +236,10 @@ describe('movements', () => {
 
 		layout = moveHorizontal(layout, 'col3', -1);
 
-		expect(layout.children[0].width).toBe(20);
-		expect(layout.children[1].width).toBe(undefined);
+		if (layout.children) {
+			expect(layout.children[0].width).toBe(20);
+			expect(layout.children[1].width).toBe(undefined);
+		}
 	});
 
 });

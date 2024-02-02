@@ -1,5 +1,5 @@
 import { compileWithFrontMatter, stripOffFrontMatter } from './frontMatter';
-const moment = require('moment');
+import moment from 'moment';
 
 const testCases: any[][] = [
 

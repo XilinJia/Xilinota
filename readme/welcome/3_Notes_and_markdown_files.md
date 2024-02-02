@@ -20,7 +20,7 @@ You can create, update, move, delete notes or notebooks in Xilinota and the file
 
 #### Resources
 
-Since version 2.14.0, the full resources folder is now relocated from the original config directory to the profile's home directory (e.g. "/home/loginname/Documents/Xilinotas/default/.resources"). The relocation of the directory is handled automatically when directory "resources" exists in the original config directory. Same as usual, this directory contains all resource files of notes associated with the profile.
+Since version 2.14.0 of the desktop apps, the full resources folder is now relocated from the original config directory to the profile's home directory (e.g. "/home/loginname/Documents/Xilinotas/default/.resources"). The relocation of the directory is handled automatically when directory "resources" exists in the original config directory. Same as usual, this directory contains all resource files of notes associated with the profile.
 
 In the directory of every notebook, there is a sub-directory ".resources" that contains all resources related to notes in the notebook. The resources files in this sub-directory are <mark>hard-links</mark> (on desktop) or <mark>copies</mark> (on mobile for now) to the ones in the full resources folder.  Markdown file shown in external viewer now shows the related resources.  Resource files are automatically populated when the "Xilinotas" directory first gets populated and are saved on note updates when resources are added to a note.  Resources now follow the associated note, i.e., when you move/remove note (within Xilinota), the related resource files will be similarly handled.
 

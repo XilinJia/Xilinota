@@ -104,8 +104,8 @@ class DropboxApi {
 	}
 
 	async exec(method, path = '', body = null, headers = null, options = null) {
-		if (headers === null) headers = {};
-		if (options === null) options = {};
+		if (!headers) headers = {};
+		if (!options) options = {};
 		if (!options.target) options.target = 'string';
 
 		const authToken = this.authToken();
@@ -174,7 +174,7 @@ class DropboxApi {
 
 					// Gives a shorter response for error messages. Useful for cases where a full HTML page is accidentally loaded instead of
 					// JSON. That way the error message will still show there's a problem but without filling up the log or screen.
-					const shortResponseText = (`${responseText}`).substr(0, 1024);
+					const shortResponseText = (`${responseText}`).substring(0, 1024);
 					const error = new XilinotaError(`${method} ${path}: ${message} (${response.status}): ${shortResponseText}`, code);
 					error.httpStatus = response.status;
 					return error;

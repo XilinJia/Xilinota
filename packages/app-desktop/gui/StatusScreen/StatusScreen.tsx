@@ -3,19 +3,18 @@ import { useState, useEffect } from 'react';
 import ButtonBar from '../ConfigScreen/ButtonBar';
 import { _ } from '@xilinota/lib/locale';
 
-const { connect } = require('react-redux');
+import { connect } from 'react-redux';
 import Setting from '@xilinota/lib/models/Setting';
-const { themeStyle } = require('@xilinota/lib/theme');
+import { themeStyle } from '@xilinota/lib/theme';
 import ReportService from '@xilinota/lib/services/ReportService';
 import Button, { ButtonLevel } from '../Button/Button';
 import bridge from '../../services/bridge';
-const fs = require('fs-extra');
+import fs from 'fs-extra';
 import styled from 'styled-components';
 
 interface Props {
-	themeId: string;
+	themeId: number;
 	style: any;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	dispatch: Function;
 }
 
@@ -34,7 +33,7 @@ async function exportDebugReportClick() {
 	if (!filePath) return;
 
 	const service = new ReportService();
-	const csv = await service.basicItemList({ format: 'csv' });
+	const csv = await service.basicItemList({ format: 'csv' }) as string;
 	await fs.writeFileSync(filePath, csv);
 }
 
@@ -52,7 +51,8 @@ function StatusScreen(props: Props) {
 	}, []);
 
 	const theme = themeStyle(props.themeId);
-	const style = { ...props.style,
+	const style = {
+		...props.style,
 		display: 'flex',
 		flexDirection: 'column',
 	};
@@ -62,8 +62,10 @@ function StatusScreen(props: Props) {
 
 	const containerPadding = theme.configScreenPadding;
 
-	const containerStyle = { ...theme.containerStyle, padding: containerPadding,
-		flex: 1 };
+	const containerStyle = {
+		...theme.containerStyle, padding: containerPadding,
+		flex: 1
+	};
 
 	function renderSectionTitleHtml(key: string, title: string) {
 		return (
@@ -174,7 +176,7 @@ function StatusScreen(props: Props) {
 					{_('Advanced tools')}
 				</h2>
 				<StyledAdvancedToolItem>
-					<Button level={ButtonLevel.Primary} title={_('Export debug report')} onClick={() => exportDebugReportClick()}/>
+					<Button level={ButtonLevel.Primary} title={_('Export debug report')} onClick={() => exportDebugReportClick()} />
 				</StyledAdvancedToolItem>
 			</div>
 		);

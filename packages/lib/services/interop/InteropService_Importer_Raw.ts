@@ -8,9 +8,9 @@ import Folder from '../../models/Folder';
 import NoteTag from '../../models/NoteTag';
 import Note from '../../models/Note';
 import Tag from '../../models/Tag';
-const { sprintf } = require('sprintf-js');
+import { sprintf } from 'sprintf-js';
 import shim from '../../shim';
-const { fileExtension } = require('../../path-utils');
+import { fileExtension } from '../../path-utils';
 import uuid from '../../uuid_';
 
 export default class InteropService_Importer_Raw extends InteropService_Importer_Base {
@@ -49,7 +49,7 @@ export default class InteropService_Importer_Raw extends InteropService_Importer
 		const defaultFolder = async () => {
 			if (defaultFolder_) return defaultFolder_;
 			const folderTitle = await Folder.findUniqueItemTitle(this.options_.defaultFolderTitle ? this.options_.defaultFolderTitle : 'Imported', '');
-			// eslint-disable-next-line require-atomic-updates
+
 			defaultFolder_ = await Folder.save({ title: folderTitle });
 			return defaultFolder_;
 		};
@@ -66,7 +66,7 @@ export default class InteropService_Importer_Raw extends InteropService_Importer
 					itemIdMap[itemParentId] = destinationFolderId;
 				} else if (!itemParentExists) {
 					const parentFolder = await defaultFolder();
-					// eslint-disable-next-line require-atomic-updates
+
 					itemIdMap[itemParentId] = parentFolder.id;
 				} else {
 					itemIdMap[itemParentId] = uuid.create();

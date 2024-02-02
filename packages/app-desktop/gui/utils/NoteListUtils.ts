@@ -11,7 +11,7 @@ import bridge from '../../services/bridge';
 import BaseModel from '@xilinota/lib/BaseModel';
 import Note from '@xilinota/lib/models/Note';
 import Setting from '@xilinota/lib/models/Setting';
-const { clipboard } = require('electron');
+import { clipboard } from 'electron';
 import { Dispatch } from 'redux';
 import { PeerSocket } from '@xilinota/lib/models/Peers';
 
@@ -39,7 +39,8 @@ export default class NoteListUtils {
 
 		let hasEncrypted = false;
 		for (let i = 0; i < notes.length; i++) {
-			if (notes[i].encryption_applied) hasEncrypted = true;
+			const n = notes[i];
+			if (n && n.encryption_applied) hasEncrypted = true;
 		}
 
 		const menu = new Menu();
@@ -78,6 +79,7 @@ export default class NoteListUtils {
 				const switchNoteType = async (noteIds: string[], type: string) => {
 					for (let i = 0; i < noteIds.length; i++) {
 						const note = await Note.load(noteIds[i]);
+						if (!note) continue;
 						const newNote = Note.changeNoteType(note, type);
 						if (newNote === note) continue;
 						await Note.save(newNote, { userSideValidation: true });

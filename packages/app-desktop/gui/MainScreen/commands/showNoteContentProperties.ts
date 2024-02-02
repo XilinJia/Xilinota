@@ -10,8 +10,9 @@ export const declaration: CommandDeclaration = {
 
 export const runtime = (comp: any): CommandRuntime => {
 	return {
-		execute: async (context: CommandContext, noteId: string = null) => {
-			noteId = noteId || stateUtils.selectedNoteId(context.state);
+		execute: async (context: CommandContext, noteId: string = '') => {
+			noteId = noteId || (stateUtils.selectedNoteId(context.state) ?? '');
+			if (!noteId) return;
 
 			const note = await Note.load(noteId);
 			if (note) {

@@ -18,7 +18,7 @@ import OneDriveApi from '../onedrive-api';
 import SyncTargetOneDrive from '../SyncTargetOneDrive';
 import XilinotaDatabase from '../XilinotaDatabase';
 import * as fs from 'fs-extra';
-const { DatabaseDriverNode } = require('../database-driver-node.js');
+import DatabaseDriverNode from '../database-driver-node';
 import Folder from '../models/Folder';
 import Note from '../models/Note';
 import ItemChange from '../models/ItemChange';
@@ -30,7 +30,7 @@ import MasterKey from '../models/MasterKey';
 import BaseItem from '../models/BaseItem';
 import { FileApi } from '../file-api';
 const FileApiDriverMemory = require('../file-api-driver-memory').default;
-const { FileApiDriverLocal } = require('../file-api-driver-local');
+import FileApiDriverLocal from '../file-api-driver-local';
 const { FileApiDriverWebDav } = require('../file-api-driver-webdav.js');
 const { FileApiDriverDropbox } = require('../file-api-driver-dropbox.js');
 const { FileApiDriverOneDrive } = require('../file-api-driver-onedrive.js');
@@ -58,11 +58,12 @@ import { setActiveMasterKeyId, setEncryptionEnabled } from '../services/synchron
 import Synchronizer from '../Synchronizer';
 import SyncTargetNone from '../SyncTargetNone';
 import { setRSA } from '../services/e2ee/ppk';
-const md5 = require('md5');
+import md5 from 'md5';
 const { Dirnames } = require('../services/synchronizer/utils/types');
 import RSA from '../services/e2ee/RSA.node';
 import { State as ShareState } from '../services/share/reducer';
 import initLib from '../initLib';
+import XilinotaError from '../XilinotaError';
 
 // Each suite has its own separate data and temp directory so that multiple
 // suites can be run at the same time. suiteName is what is used to
@@ -126,7 +127,7 @@ SyncTargetRegistry.addClass(SyncTargetXilinotaServer);
 SyncTargetRegistry.addClass(SyncTargetJoplinCloud);
 
 let syncTargetName_ = '';
-let syncTargetId_: number = null;
+let syncTargetId_: number = 0;
 let sleepTime = 0;
 let isNetworkSyncTarget_ = false;
 
@@ -183,6 +184,7 @@ BaseItem.loadClass('Tag', Tag);
 BaseItem.loadClass('NoteTag', NoteTag);
 BaseItem.loadClass('MasterKey', MasterKey);
 BaseItem.loadClass('Revision', Revision);
+BaseItem.loadClass('Setting', Setting);
 
 Setting.setConstant('appId', 'ac.mdiq.xilinotatest-cli');
 Setting.setConstant('appType', 'cli');
@@ -230,11 +232,11 @@ function msleep(ms: number): Promise<void> {
 				const iid = setInterval(() => {
 					if (Date.now() - startTime >= ms) {
 						clearInterval(iid);
-						resolve(null);
+						resolve();
 					}
 				}, 2);
 			} else {
-				resolve(null);
+				resolve();
 			}
 		}, ms);
 	});
@@ -298,8 +300,8 @@ async function switchClient(id: number, options: any = null) {
 	await clearSettingFile(id);
 }
 
-async function clearDatabase(id: number = null) {
-	if (id === null) id = currentClient_;
+async function clearDatabase(id: number = 0) {
+	if (!id) id = currentClient_;
 	if (!databases_[id]) return;
 
 	await ItemChange.waitForAllSaved();
@@ -329,10 +331,10 @@ async function clearDatabase(id: number = null) {
 	await databases_[id].transactionExecBatch(queries);
 }
 
-async function setupDatabase(id: number = null, options: any = null) {
+async function setupDatabase(id: number = 0, options: any = null) {
 	options = { keychainEnabled: false, ...options };
 
-	if (id === null) id = currentClient_;
+	if (!id) id = currentClient_;
 
 	Setting.cancelScheduleSave();
 
@@ -379,8 +381,8 @@ async function clearSettingFile(id: number) {
 	await fs.remove(Setting.settingFilePath);
 }
 
-export async function createFolderTree(parentId: string, tree: any[], num = 0): Promise<FolderEntity> {
-	let rootFolder: FolderEntity = null;
+export async function createFolderTree(parentId: string, tree: any[], num = 0): Promise<FolderEntity | null> {
+	let rootFolder: FolderEntity | null = null;
 
 	for (const item of tree) {
 		const isFolder = !!item.children;
@@ -393,7 +395,7 @@ export async function createFolderTree(parentId: string, tree: any[], num = 0): 
 		if (isFolder) {
 			const folder = await Folder.save({ title: `Folder ${num}`, parent_id: parentId, ...data });
 			if (!rootFolder) rootFolder = folder;
-			if (item.children.length) await createFolderTree(folder.id, item.children, num);
+			if (item.children.length) await createFolderTree(folder.id ?? '', item.children, num);
 		} else {
 			await Note.save({ title: `Note ${num}`, parent_id: parentId, ...data });
 		}
@@ -402,28 +404,28 @@ export async function createFolderTree(parentId: string, tree: any[], num = 0): 
 	return rootFolder;
 }
 
-function exportDir(id: number = null) {
-	if (id === null) id = currentClient_;
+function exportDir(id: number = 0) {
+	if (id === 0) id = currentClient_;
 	return `${dataDir}/export`;
 }
 
-function resourceDirName(id: number = null) {
-	if (id === null) id = currentClient_;
+function resourceDirName(id: number = 0) {
+	if (id === 0) id = currentClient_;
 	return `resources-${id}`;
 }
 
-function resourceDir(id: number = null) {
-	if (id === null) id = currentClient_;
+function resourceDir(id: number = 0) {
+	if (id === 0) id = currentClient_;
 	return `${dataDir}/${resourceDirName(id)}`;
 }
 
-function pluginDir(id: number = null) {
-	if (id === null) id = currentClient_;
+function pluginDir(id: number = 0) {
+	if (id === 0) id = currentClient_;
 	return `${dataDir}/plugins-${id}`;
 }
 
 async function setupDatabaseAndSynchronizer(id: number, options: any = null) {
-	if (id === null) id = currentClient_;
+	if (id === 0) id = currentClient_;
 
 	BaseService.logger_ = logger;
 
@@ -467,21 +469,21 @@ async function setupDatabaseAndSynchronizer(id: number, options: any = null) {
 	await fileApi().clearRoot();
 }
 
-function db(id: number = null): XilinotaDatabase {
-	if (id === null) id = currentClient_;
+function db(id: number = 0): XilinotaDatabase {
+	if (id === 0) id = currentClient_;
 	return databases_[id];
 }
 
-function synchronizer(id: number = null) {
-	if (id === null) id = currentClient_;
+function synchronizer(id: number = 0) {
+	if (id === 0) id = currentClient_;
 	return synchronizers_[id];
 }
 
 // This is like calling synchronizer.start() but it handles the
 // complexity of passing around the sync context depending on
 // the client.
-async function synchronizerStart(id: number = null, extraOptions: any = null) {
-	if (id === null) id = currentClient_;
+async function synchronizerStart(id: number = 0, extraOptions: any = null) {
+	if (id === 0) id = currentClient_;
 
 	const contextKey = `sync.${syncTargetId()}.context`;
 	const contextString = Setting.value(contextKey);
@@ -496,41 +498,41 @@ async function synchronizerStart(id: number = null, extraOptions: any = null) {
 	return newContext;
 }
 
-function encryptionService(id: number = null) {
-	if (id === null) id = currentClient_;
+function encryptionService(id: number = 0) {
+	if (id === 0) id = currentClient_;
 	return encryptionServices_[id];
 }
 
-function kvStore(id: number = null) {
-	if (id === null) id = currentClient_;
+function kvStore(id: number = 0) {
+	if (id === 0) id = currentClient_;
 	const o = kvStores_[id];
 	o.setDb(db(id));
 	return o;
 }
 
-function revisionService(id: number = null) {
-	if (id === null) id = currentClient_;
+function revisionService(id: number = 0) {
+	if (id === 0) id = currentClient_;
 	return revisionServices_[id];
 }
 
-function decryptionWorker(id: number = null) {
-	if (id === null) id = currentClient_;
+function decryptionWorker(id: number = 0) {
+	if (id === 0) id = currentClient_;
 	const o = decryptionWorkers_[id];
 	o.setKvStore(kvStore(id));
 	return o;
 }
 
-function resourceService(id: number = null) {
-	if (id === null) id = currentClient_;
+function resourceService(id: number = 0) {
+	if (id === 0) id = currentClient_;
 	return resourceServices_[id];
 }
 
-function resourceFetcher(id: number = null) {
-	if (id === null) id = currentClient_;
+function resourceFetcher(id: number = 0) {
+	if (id === 0) id = currentClient_;
 	return resourceFetchers_[id];
 }
 
-async function loadEncryptionMasterKey(id: number = null, useExisting = false) {
+async function loadEncryptionMasterKey(id: number = 0, useExisting = false) {
 	const service = encryptionService(id);
 	const password = '123456';
 
@@ -546,13 +548,13 @@ async function loadEncryptionMasterKey(id: number = null, useExisting = false) {
 	}
 
 	const passwordCache = Setting.value('encryption.passwordCache');
-	passwordCache[masterKey.id] = password;
+	passwordCache[masterKey.id ?? ''] = password;
 	Setting.setValue('encryption.passwordCache', passwordCache);
 	await Setting.saveAll();
 
 	await service.loadMasterKey(masterKey, password, true);
 
-	setActiveMasterKeyId(masterKey.id);
+	setActiveMasterKeyId(masterKey.id ?? '');
 
 	return masterKey;
 }
@@ -616,7 +618,7 @@ async function initFileApi() {
 		const api = new OneDriveApi(config.id, config.secret, false);
 		const authData = fs.readFileSync(await credentialFile('onedrive-auth.txt'), 'utf8');
 		const urlInfo = require('url-parse')(authData, true);
-		const auth = require('querystring').parse(urlInfo.hash.substr(1));
+		const auth = require('querystring').parse(urlInfo.hash.substring(1));
 		api.setAuth(auth);
 
 		const accountProperties = await api.execAccountPropertiesRequest();
@@ -668,12 +670,13 @@ async function initFileApi() {
 		fileApi = new FileApi('', new FileApiDriverXilinotaServer(api));
 	}
 
-	fileApi.setLogger(logger);
-	fileApi.setSyncTargetId(syncTargetId_);
-	fileApi.setTempDirName(Dirnames.Temp);
-	fileApi.requestRepeatCount_ = isNetworkSyncTarget_ ? 1 : 0;
-
-	fileApis_[syncTargetId_] = fileApi;
+	if (fileApi) {
+		fileApi.setLogger(logger);
+		fileApi.setSyncTargetId(syncTargetId_);
+		fileApi.setTempDirName(Dirnames.Temp);
+		fileApi.requestRepeatCount_ = isNetworkSyncTarget_ ? 1 : 0;
+		fileApis_[syncTargetId_] = fileApi;
+	}
 }
 
 function fileApi() {
@@ -689,7 +692,7 @@ function objectsEqual(o1: any, o2: any) {
 	return true;
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
+
 async function checkThrowAsync(asyncFn: Function) {
 	let hasThrown = false;
 	try {
@@ -700,7 +703,7 @@ async function checkThrowAsync(asyncFn: Function) {
 	return hasThrown;
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
+
 async function expectThrow(asyncFn: Function, errorCode: any = undefined) {
 	let hasThrown = false;
 	let thrownError = null;
@@ -713,7 +716,7 @@ async function expectThrow(asyncFn: Function, errorCode: any = undefined) {
 
 	if (!hasThrown) {
 		expect('not throw').toBe('throw');
-	} else if (thrownError.code !== errorCode) {
+	} else if (thrownError instanceof XilinotaError && thrownError.code !== errorCode) {
 		console.error(thrownError);
 		expect(`error code: ${thrownError.code}`).toBe(`error code: ${errorCode}`);
 	} else {
@@ -721,7 +724,7 @@ async function expectThrow(asyncFn: Function, errorCode: any = undefined) {
 	}
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
+
 async function expectNotThrow(asyncFn: Function) {
 	let thrownError = null;
 	try {
@@ -732,13 +735,13 @@ async function expectNotThrow(asyncFn: Function) {
 
 	if (thrownError) {
 		console.error(thrownError);
-		expect(thrownError.message).toBe('');
+		expect((thrownError as Error).message).toBe('');
 	} else {
 		expect(true).toBe(true);
 	}
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
+
 function checkThrow(fn: Function) {
 	let hasThrown = false;
 	try {
@@ -764,9 +767,9 @@ async function allSyncTargetItemsEncrypted() {
 	let encryptedCount = 0;
 	for (let i = 0; i < files.length; i++) {
 		const file = files[i];
-		if (!BaseItem.isSystemPath(file.path)) continue;
+		if (!BaseItem.isSystemPath(file.path ?? '')) continue;
 
-		const remoteContentString = await fileApi().get(file.path);
+		const remoteContentString = await fileApi().get(file.path ?? '');
 		const remoteContent = await BaseItem.unserialize(remoteContentString);
 		const ItemClass = BaseItem.itemClass(remoteContent);
 
@@ -777,7 +780,7 @@ async function allSyncTargetItemsEncrypted() {
 		if (remoteContent.type_ === BaseModel.TYPE_RESOURCE) {
 			const content = await fileApi().get(`.resource/${remoteContent.id}`);
 			totalCount++;
-			if (content.substr(0, 5) === 'JED01') encryptedCount++;
+			if (content.substring(0, 5) === 'JED01') encryptedCount++;
 		}
 
 		if (remoteContent.encryption_applied) encryptedCount++;
@@ -818,7 +821,7 @@ async function createNTestFolders(n: number) {
 	return folders;
 }
 
-async function createNTestNotes(n: number, folder: any, tagIds: string[] = null, title = 'note') {
+async function createNTestNotes(n: number, folder: any, tagIds: string[] = [], title = 'note') {
 	const notes = [];
 	for (let i = 0; i < n; i++) {
 		const title_ = n > 1 ? `${title}${i}` : title;
@@ -826,9 +829,9 @@ async function createNTestNotes(n: number, folder: any, tagIds: string[] = null,
 		notes.push(note);
 		await time.msleep(10);
 	}
-	if (tagIds) {
+	if (tagIds.length) {
 		for (let i = 0; i < notes.length; i++) {
-			await Tag.setNoteTagsByIds(notes[i].id, tagIds);
+			await Tag.setNoteTagsByIds(notes[i].id ?? '', tagIds);
 			await time.msleep(10);
 		}
 	}
@@ -846,7 +849,7 @@ async function createNTestTags(n: number) {
 }
 
 function tempFilePath(ext: string) {
-	return `${Setting.value('tempDir')}/${md5(Date.now() + Math.random())}.${ext}`;
+	return `${Setting.value('tempDir')}/${md5(Date.now().toString() + Math.random())}.${ext}`;
 }
 
 const createTempFile = async (content = '') => {
@@ -872,7 +875,7 @@ async function waitForFolderCount(count: number) {
 	}
 }
 
-let naughtyStrings_: string[] = null;
+let naughtyStrings_: string[] = [];
 export async function naughtyStrings() {
 	if (naughtyStrings_) return naughtyStrings_;
 	const t = await fs.readFile(`${supportDir}/big-list-of-naughty-strings.txt`, 'utf8');
@@ -919,7 +922,7 @@ class TestApp extends BaseApplication {
 		return this.hasGui_;
 	}
 
-	public async start(argv: any[]) {
+	public async start(argv: string[]): Promise<string[]> {
 		this.logger_.info('Test app starting...');
 
 		if (!argv.includes('--profile')) {
@@ -938,6 +941,7 @@ class TestApp extends BaseApplication {
 		await this.wait();
 
 		this.logger_.info('Test app started...');
+		return [];
 	}
 
 	public async generalMiddleware(store: any, next: any, action: any) {

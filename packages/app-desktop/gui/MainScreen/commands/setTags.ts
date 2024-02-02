@@ -10,9 +10,9 @@ export const declaration: CommandDeclaration = {
 
 export const runtime = (comp: any): CommandRuntime => {
 	return {
-		execute: async (_context: CommandContext, noteIds: string[] = null) => {
+		execute: async (_context: CommandContext, _noteIds: string[]|null = []) => {
 			// noteIds = noteIds || context.state.selectedNoteIds;
-			noteIds = noteIds || [];
+			const noteIds = _noteIds || [];
 
 			const tags = await Tag.commonTagsByNoteIds(noteIds);
 			const startTags = tags
@@ -41,7 +41,7 @@ export const runtime = (comp: any): CommandRuntime => {
 					value: startTags,
 					autocomplete: tagSuggestions,
 					onClose: async (answer: any[]) => {
-						if (answer !== null) {
+						if (answer) {
 							const endTagTitles = answer.map(a => {
 								return a.label.trim();
 							});

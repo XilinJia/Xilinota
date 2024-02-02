@@ -24,6 +24,7 @@
 
 import Logger from '@xilinota/utils/Logger';
 import PluginService from './plugins/PluginService';
+import BaseService from './BaseService';
 
 const logger = Logger.create('PostMessageService');
 
@@ -44,9 +45,9 @@ export interface MessageResponse {
 	error: any;
 }
 
-type MessageResponder = (message: MessageResponse)=> void;
+type MessageResponder = (message: MessageResponse) => void;
 
-type ViewMessageHandler = (message: any)=> void;
+type ViewMessageHandler = (message: any) => void;
 
 interface Message {
 	pluginId: string;
@@ -58,7 +59,7 @@ interface Message {
 	content: any;
 }
 
-export default class PostMessageService {
+export default class PostMessageService extends BaseService {
 
 	private static instance_: PostMessageService;
 	private responders_: Record<string, MessageResponder> = {};
@@ -112,7 +113,7 @@ export default class PostMessageService {
 
 	private sendResponse(message: Message, responseContent: any, error: any) {
 
-		let responder: MessageResponder = null;
+		let responder: MessageResponder | null = null;
 
 		if (message.from === MessageParticipant.ContentScript) {
 			responder = this.responder(ResponderComponentType.NoteTextViewer, message.viewId);
@@ -122,13 +123,13 @@ export default class PostMessageService {
 
 		if (!responder) {
 			logger.warn('Cannot respond to message because no responder was found', message);
+		} else {
+			responder({
+				responseId: message.id,
+				response: responseContent,
+				error,
+			});
 		}
-
-		responder({
-			responseId: message.id,
-			response: responseContent,
-			error,
-		});
 	}
 
 	private responder(type: ResponderComponentType, viewId: string): any {

@@ -1,9 +1,0 @@
-{
-  "verbose": true,
-  "watch": [
-    "dist/",
-    "../renderer",
-    "../lib",
-    "src/views"
-  ]
-}

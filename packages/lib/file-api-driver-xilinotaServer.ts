@@ -51,7 +51,7 @@ export default class FileApiDriverXilinotaServer {
 
 	private metadataToStat_(md: any, path: string, isDeleted = false, rootPath: string) {
 		const output = {
-			path: rootPath ? path.substr(rootPath.length + 1) : path,
+			path: rootPath ? path.substring(rootPath.length + 1) : path,
 			updated_time: md.updated_time,
 			jop_updated_time: md.jop_updated_time,
 			isDir: false,
@@ -80,7 +80,7 @@ export default class FileApiDriverXilinotaServer {
 			const response = await this.api().exec('GET', this.apiFilePath_(path));
 			return this.metadataToStat_(response, path, false, '');
 		} catch (error) {
-			if (error.code === 404) return null;
+			if (error instanceof XilinotaError && error.code === 404) return null;
 			throw error;
 		}
 	}
@@ -122,7 +122,7 @@ export default class FileApiDriverXilinotaServer {
 				return output;
 			} catch (error) {
 				// If there's an error related to an invalid cursor, clear the cursor and retry.
-				if (cursor && error.code === 'resyncRequired') {
+				if (cursor && error instanceof XilinotaError && error.code === 'resyncRequired') {
 					cursor = null;
 					continue;
 				}
@@ -144,7 +144,7 @@ export default class FileApiDriverXilinotaServer {
 			isUsingWildcard = true;
 		}
 
-		const query = options.context?.cursor ? { cursor: options.context.cursor } : null;
+		const query = options.context?.cursor ? { cursor: options.context.cursor } : {};
 
 		const results = await this.api().exec('GET', `${this.apiFilePath_(searchPath)}/children`, query);
 
@@ -162,10 +162,10 @@ export default class FileApiDriverXilinotaServer {
 		if (!options) options = {};
 		if (!options.responseFormat) options.responseFormat = 'text';
 		try {
-			const response = await this.api().exec('GET', `${this.apiFilePath_(path)}/content`, null, null, null, options);
+			const response = await this.api().exec('GET', `${this.apiFilePath_(path)}/content`, {}, null, null, options);
 			return response;
 		} catch (error) {
-			if (error.code !== 404) throw error;
+			if (error instanceof XilinotaError && error.code !== 404) throw error;
 			return null;
 		}
 	}
@@ -185,17 +185,17 @@ export default class FileApiDriverXilinotaServer {
 
 	public async put(path: string, content: any, options: any = null) {
 		try {
-			const output = await this.api().exec('PUT', `${this.apiFilePath_(path)}/content`, options && options.shareId ? { share_id: options.shareId } : null, content, {
+			const output = await this.api().exec('PUT', `${this.apiFilePath_(path)}/content`, options && options.shareId ? { share_id: options.shareId } : {}, content, {
 				'Content-Type': 'application/octet-stream',
 			}, options);
 			return output;
 		} catch (error) {
 			if (this.isRejectedBySyncTargetError(error)) {
-				throw new XilinotaError(error.message, 'rejectedByTarget');
+				throw new XilinotaError((error as Error).message, 'rejectedByTarget');
 			}
 
 			if (this.isReadyOnlyError(error)) {
-				throw new XilinotaError(error.message, 'isReadOnly');
+				throw new XilinotaError((error as Error).message, 'isReadOnly');
 			}
 
 			throw error;
@@ -203,7 +203,7 @@ export default class FileApiDriverXilinotaServer {
 	}
 
 	public async multiPut(items: MultiPutItem[], options: any = null) {
-		const output = await this.api().exec('PUT', 'api/batch_items', null, { items: items }, null, options);
+		const output = await this.api().exec('PUT', 'api/batch_items', {}, { items: items }, null, options);
 
 		for (const [, response] of Object.entries<any>(output.items)) {
 			if (response.error && this.isRejectedBySyncTargetError(response.error)) {
@@ -253,7 +253,7 @@ export default class FileApiDriverXilinotaServer {
 	// }
 
 	public async acquireLock(type: LockType, clientType: LockClientType, clientId: string): Promise<Lock> {
-		return this.api().exec('POST', 'api/locks', null, {
+		return this.api().exec('POST', 'api/locks', {}, {
 			type,
 			clientType,
 			clientId: clientId,
@@ -275,7 +275,7 @@ export default class FileApiDriverXilinotaServer {
 			await this.delete(item.path);
 		}
 
-		await this.api().exec('POST', 'api/debug', null, { action: 'clearKeyValues' });
+		await this.api().exec('POST', 'api/debug', {}, { action: 'clearKeyValues' });
 
 		if (response.has_more) throw new Error('has_more support not implemented');
 	}

@@ -5,17 +5,17 @@ import CommandService from '@xilinota/lib/services/CommandService';
 import PostMessageService from '@xilinota/lib/services/PostMessageService';
 import ResourceFetcher from '@xilinota/lib/services/ResourceFetcher';
 import { reg } from '@xilinota/lib/registry';
+
 const bridge = require('@electron/remote').require('./bridge').default;
 
-// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
+
 export default function useMessageHandler(scrollWhenReady: any, setScrollWhenReady: Function, editorRef: any, setLocalSearchResultCount: Function, dispatch: Function, formNote: FormNote) {
 	return useCallback(async (event: any) => {
 		const msg = event.channel ? event.channel : '';
 		const args = event.args;
 		const arg0 = args && args.length >= 1 ? args[0] : null;
 
-		// eslint-disable-next-line no-console
-		if (msg !== 'percentScroll') console.info(`Got ipc-message: ${msg}`, arg0);
+		if (msg !== 'percentScroll') console.info(`useMessageHandler Got ipc-message: ${msg}`, arg0);
 
 		if (msg.indexOf('error:') === 0) {
 			const s = msg.split(':');
@@ -61,6 +61,6 @@ export default function useMessageHandler(scrollWhenReady: any, setScrollWhenRea
 			await CommandService.instance().execute('openItem', msg);
 			// bridge().showErrorMessageBox(_('Unsupported link or message: %s', msg));
 		}
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [dispatch, setLocalSearchResultCount, scrollWhenReady, formNote]);
 }

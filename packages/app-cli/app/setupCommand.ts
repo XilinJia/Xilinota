@@ -1,16 +1,16 @@
 import { _ } from '@xilinota/lib/locale';
 
-// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-export default (cmd: any, stdout: Function, store: Function, gui: Function) => {
+
+export default (cmd: any, stdout: Function | null, store: Function | null, gui: Function | null) => {
 	cmd.setStdout((text: string) => {
-		return stdout(text);
+		return stdout ? stdout(text) : '';
 	});
 
 	cmd.setDispatcher((action: any) => {
-		if (store()) {
+		if (store && store()) {
 			return store().dispatch(action);
 		} else {
-			return () => {};
+			return () => { };
 		}
 	});
 
@@ -24,10 +24,10 @@ export default (cmd: any, stdout: Function, store: Function, gui: Function) => {
 			message += ` (${options.answers.join('/')})`;
 		}
 
-		let answer = await gui().prompt('', `${message} `, options);
+		let answer = gui ? await gui().prompt('', `${message} `, options) : '';
 
 		if (options.type === 'boolean') {
-			if (answer === null) return false; // Pressed ESCAPE
+			if (answer === '') return false; // Pressed ESCAPE
 			if (!answer) answer = options.answers[0];
 			const positiveIndex = options.booleanAnswerDefault === 'y' ? 0 : 1;
 			return answer.toLowerCase() === options.answers[positiveIndex].toLowerCase();

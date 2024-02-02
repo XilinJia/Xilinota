@@ -7,8 +7,9 @@ import Logger from '@xilinota/utils/Logger';
 import shim from '../shim';
 import KvStore from './KvStore';
 import EncryptionService from './e2ee/EncryptionService';
+import XilinotaError from '../XilinotaError';
 
-const EventEmitter = require('events');
+import EventEmitter from 'events';
 
 interface DecryptionResult {
 	skippedItemCount?: number;
@@ -19,18 +20,17 @@ interface DecryptionResult {
 
 export default class DecryptionWorker {
 
-	public static instance_: DecryptionWorker = null;
+	public static instance_: DecryptionWorker | null = null;
 
 	private state_ = 'idle';
 	private logger_: Logger;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	public dispatch: Function = () => {};
+	public dispatch: Function = () => { };
 	private scheduleId_: any = null;
 	private eventEmitter_: any;
-	private kvStore_: KvStore = null;
+	private kvStore_: KvStore | undefined;
 	private maxDecryptionAttempts_ = 2;
 	private startCalls_: boolean[] = [];
-	private encryptionService_: EncryptionService = null;
+	private encryptionService_: EncryptionService | undefined;
 
 	public constructor() {
 		this.state_ = 'idle';
@@ -46,12 +46,10 @@ export default class DecryptionWorker {
 		return this.logger_;
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public on(eventName: string, callback: Function) {
 		return this.eventEmitter_.on(eventName, callback);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public off(eventName: string, callback: Function) {
 		return this.eventEmitter_.removeListener(eventName, callback);
 	}
@@ -70,7 +68,7 @@ export default class DecryptionWorker {
 		this.kvStore_ = v;
 	}
 
-	public encryptionService() {
+	public encryptionService(): EncryptionService {
 		if (!this.encryptionService_) throw new Error('DecryptionWorker.encryptionService_ is not set!!');
 		return this.encryptionService_;
 	}
@@ -119,7 +117,7 @@ export default class DecryptionWorker {
 	}
 
 	private async start_(options: any = null): Promise<DecryptionResult> {
-		if (options === null) options = {};
+		if (!options) options = {}
 		if (!('masterKeyNotLoadedHandler' in options)) options.masterKeyNotLoadedHandler = 'throw';
 		if (!('errorHandler' in options)) options.errorHandler = 'log';
 
@@ -229,19 +227,20 @@ export default class DecryptionWorker {
 					} catch (error) {
 						excludedIds.push(item.id);
 
-						if (error.code === 'masterKeyNotLoaded' && options.masterKeyNotLoadedHandler === 'dispatch') {
-							if (notLoadedMasterKeyDisptaches.indexOf(error.masterKeyId) < 0) {
+						if ((error as any).code === 'masterKeyNotLoaded' && options.masterKeyNotLoadedHandler === 'dispatch') {
+							const err = error as any;
+							if (notLoadedMasterKeyDisptaches.indexOf(err.masterKeyId) < 0) {
 								this.dispatch({
 									type: 'MASTERKEY_ADD_NOT_LOADED',
-									id: error.masterKeyId,
+									id: err.masterKeyId,
 								});
-								notLoadedMasterKeyDisptaches.push(error.masterKeyId);
+								notLoadedMasterKeyDisptaches.push(err.masterKeyId);
 							}
 							await clearDecryptionCounter();
 							continue;
 						}
 
-						if (error.code === 'masterKeyNotLoaded' && options.masterKeyNotLoadedHandler === 'throw') {
+						if (error instanceof XilinotaError && error.code === 'masterKeyNotLoaded' && options.masterKeyNotLoadedHandler === 'throw') {
 							await clearDecryptionCounter();
 							throw error;
 						}
@@ -293,7 +292,7 @@ export default class DecryptionWorker {
 		return finalReport;
 	}
 
-	public async start(options: any = {}) {
+	public async start(options: any = null) {
 		this.startCalls_.push(true);
 		let output = null;
 		try {

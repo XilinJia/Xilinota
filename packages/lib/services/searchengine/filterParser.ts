@@ -54,7 +54,7 @@ const getTerms = (query: string, validFilters: Set<string>): Term[] => {
 		}
 
 		if (c === ':' && !inQuote && !inTerm &&
-		(validFilters.has(currentTerm.toLowerCase()) || currentTerm[0] === '-' && validFilters.has(currentTerm.toLowerCase().substr(1, currentTerm.length)))) {
+			(validFilters.has(currentTerm.toLowerCase()) || currentTerm[0] === '-' && validFilters.has(currentTerm.toLowerCase().substring(1, currentTerm.length)))) {
 			currentCol = currentTerm.toLowerCase();
 			currentTerm = '';
 			inTerm = true; // to ignore any other ':' before a space eg.'sourceurl:https://www.google.com'
@@ -90,7 +90,7 @@ const parseQuery = (query: string): Term[] => {
 				// Trim quotes since we don't support phrase query here
 				// eg. Split title:"hello world" to title:hello title:world
 				const values = trimQuotes(value).split(/[\s-_]+/);
-				// eslint-disable-next-line github/array-foreach -- Old code before rule was applied
+
 				values.forEach(value => {
 					result.push({ name, value, negated, wildcard: value.indexOf('*') >= 0 });
 				});
@@ -137,7 +137,7 @@ const parseQuery = (query: string): Term[] => {
 	return result;
 };
 
-const trimQuotes = (str: string): string => str.startsWith('"') ? str.substr(1, str.length - 2) : str;
+const trimQuotes = (str: string): string => str.startsWith('"') ? str.substring(1, str.length - 2) : str;
 
 export default function filterParser(searchString: string) {
 	searchString = searchString.trim();

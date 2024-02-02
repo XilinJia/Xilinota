@@ -11,18 +11,20 @@ export default class EventDispatcher<EventKeyType extends string|symbol|number, 
 		this.listeners = {};
 	}
 
-	public dispatch(eventName: EventKeyType, event: EventMessageType = null) {
-		if (!this.listeners[eventName]) return;
+	public dispatch(eventName: EventKeyType, event: EventMessageType|null = null) {
+		if (!event || !this.listeners[eventName]) return;
 
 		const ls = this.listeners[eventName];
-		for (let i = 0; i < ls.length; i++) {
-			ls[i](event);
+		if (ls) {
+			for (let i = 0; i < ls.length; i++) {
+				ls[i](event);
+			}
 		}
 	}
 
 	public on(eventName: EventKeyType, callback: CallbackHandler<EventMessageType>) {
 		if (!this.listeners[eventName]) this.listeners[eventName] = [];
-		this.listeners[eventName].push(callback);
+		this.listeners[eventName]?.push(callback);
 
 		return {
 			// Retuns false if the listener has already been removed, true otherwise.
@@ -30,7 +32,7 @@ export default class EventDispatcher<EventKeyType extends string|symbol|number, 
 				const originalListeners = this.listeners[eventName];
 				this.off(eventName, callback);
 
-				return originalListeners.length !== this.listeners[eventName].length;
+				return !!originalListeners && originalListeners?.length !== this.listeners[eventName]?.length;
 			},
 		};
 	}
@@ -42,7 +44,7 @@ export default class EventDispatcher<EventKeyType extends string|symbol|number, 
 		// Replace the current list of listeners with a new, shortened list.
 		// This allows any iterators over this.listeners to continue iterating
 		// without skipping elements.
-		this.listeners[eventName] = this.listeners[eventName].filter(
+		this.listeners[eventName] = this.listeners[eventName]?.filter(
 			otherCallback => otherCallback !== callback,
 		);
 	}

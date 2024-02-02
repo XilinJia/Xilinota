@@ -5,12 +5,9 @@ interface Props {
 	itemHeight: number;
 	items: any[];
 	disabled?: boolean;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	onKeyDown?: Function;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	itemRenderer: Function;
 	className?: string;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	onNoteDrop?: Function;
 }
 
@@ -36,12 +33,12 @@ class ItemList extends React.Component<Props, State> {
 		this.onDrop = this.onDrop.bind(this);
 	}
 
-	public visibleItemCount(props: Props = undefined) {
+	public visibleItemCount(props: Props | undefined = undefined) {
 		if (typeof props === 'undefined') props = this.props;
 		return Math.ceil(props.style.height / props.itemHeight);
 	}
 
-	public updateStateItemIndexes(props: Props = undefined) {
+	public updateStateItemIndexes(props: Props | undefined = undefined) {
 		if (typeof props === 'undefined') props = this.props;
 
 		const topItemIndex = Math.floor(this.scrollTop_ / props.itemHeight);
@@ -124,8 +121,10 @@ class ItemList extends React.Component<Props, State> {
 
 	public render() {
 		const items = this.props.items;
-		const style = { ...this.props.style, overflowX: 'hidden',
-			overflowY: 'auto' };
+		const style = {
+			...this.props.style, overflowX: 'hidden',
+			overflowY: 'auto'
+		};
 
 		// if (this.props.disabled) style.opacity = 0.5;
 

@@ -148,14 +148,18 @@ const RecommendedBadge = styled.a`
 `;
 
 export default function(props: Props) {
+	if (!props.item && !props.manifest) return;
+
 	const item = useMemo(() => {
-		return props.item ? props.item : manifestToItem(props.manifest);
+		return props.item  ? props.item : manifestToItem(props.manifest!);
 	}, [props.item, props.manifest]);
 
 	const onNameClick = useCallback(() => {
 		const manifest = item.manifest;
-		if (!manifest.homepage_url) return;
-		void bridge().openExternal(manifest.homepage_url);
+		if (manifest) {
+			if (!manifest.homepage_url) return;
+			void bridge().openExternal(manifest.homepage_url);
+		}
 	}, [item]);
 
 	const onRecommendedClick = useCallback(() => {
@@ -176,13 +180,13 @@ export default function(props: Props) {
 		return <ToggleButton
 			themeId={props.themeId}
 			value={item.enabled}
-			onToggle={() => props.onToggle({ item })}
+			onToggle={() => { if (props.onToggle) props.onToggle({ item }); }}
 		/>;
 	}
 
 	function renderDeleteButton() {
 		if (!props.onDelete) return null;
-		return <Button level={ButtonLevel.Secondary} onClick={() => props.onDelete({ item })} title={_('Delete')}/>;
+		return <Button level={ButtonLevel.Secondary} onClick={() => { if (props.onDelete) props.onDelete({ item }) }} title={_('Delete')}/>;
 	}
 
 	function renderInstallButton() {
@@ -195,7 +199,7 @@ export default function(props: Props) {
 		return <Button
 			level={ButtonLevel.Secondary}
 			disabled={props.installState !== InstallState.NotInstalled}
-			onClick={() => props.onInstall({ item })}
+			onClick={() => { if (props.onInstall) props.onInstall({ item }) }}
 			title={title}
 		/>;
 	}
@@ -209,9 +213,10 @@ export default function(props: Props) {
 		if (props.updateState === UpdateState.HasBeenUpdated) title = _('Updated');
 
 		return <Button
-			ml={1}
+			// ml not exist
+			// ml={1}
 			level={ButtonLevel.Recommended}
-			onClick={() => props.onUpdate({ item })}
+			onClick={() => { if (props.onUpdate) props.onUpdate({ item }) }}
 			title={title}
 			disabled={props.updateState === UpdateState.HasBeenUpdated}
 		/>;
@@ -242,19 +247,19 @@ export default function(props: Props) {
 
 	function renderRecommendedBadge() {
 		if (props.onToggle) return null;
-		if (!item.manifest._recommended) return null;
+		if (!item.manifest || !item.manifest._recommended) return null;
 		return <RecommendedBadge href="#" title={_('The Xilinota team has vetted this plugin and it meets our standards for security and performance.')} onClick={onRecommendedClick}><i className="fas fa-crown"></i></RecommendedBadge>;
 	}
 
 	return (
 		<CellRoot isCompatible={props.isCompatible}>
 			<CellTop>
-				<StyledNameAndVersion mb={'5px'}><StyledName onClick={onNameClick} href="#" style={{ marginRight: 5 }}>{item.manifest.name} {item.deleted ? _('(%s)', 'Deleted') : ''}</StyledName><StyledVersion>v{item.manifest.version}</StyledVersion></StyledNameAndVersion>
+				<StyledNameAndVersion mb={'5px'}><StyledName onClick={onNameClick} href="#" style={{ marginRight: 5 }}>{item.manifest ? item.manifest.name : ''} {item.deleted ? _('(%s)', 'Deleted') : ''}</StyledName><StyledVersion>v{item.manifest ? item.manifest.version : 0}</StyledVersion></StyledNameAndVersion>
 				{renderToggleButton()}
 				{renderRecommendedBadge()}
 			</CellTop>
 			<CellContent>
-				<StyledDescription>{item.manifest.description}</StyledDescription>
+				<StyledDescription>{item.manifest ? item.manifest.description : ''}</StyledDescription>
 			</CellContent>
 			{renderFooter()}
 		</CellRoot>

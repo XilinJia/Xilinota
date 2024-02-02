@@ -1,7 +1,7 @@
 import PerFolderSortOrderService from './PerFolderSortOrderService';
 import { setNotesSortOrder } from './notesSortOrderUtils';
 import Setting from '@xilinota/lib/models/Setting';
-const { shimInit } = require('@xilinota/lib/shim-init-node.js');
+import { shimInit } from '@xilinota/lib/shim-init-node';
 
 const folderId1 = 'aa012345678901234567890123456789';
 const folderId2 = 'bb012345678901234567890123456789';

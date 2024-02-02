@@ -31,7 +31,7 @@ export default class AsyncActionQueue {
 		this.intervalType_ = intervalType;
 	}
 
-	public push(action: QueueItemAction, context: any = null) {
+	public push(action: QueueItemAction, context: any = null): void {
 		this.queue_.push({
 			action: action,
 			context: context,
@@ -43,8 +43,8 @@ export default class AsyncActionQueue {
 		return !this.queue_.length;
 	}
 
-	private scheduleProcessing(interval: number = null) {
-		if (interval === null) interval = this.interval_;
+	private scheduleProcessing(interval: number = -1): void {
+		if (interval === -1) interval = this.interval_;
 
 		if (this.scheduleProcessingIID_) {
 			if (this.intervalType_ === IntervalType.Fixed) return;
@@ -57,7 +57,7 @@ export default class AsyncActionQueue {
 		}, interval);
 	}
 
-	private async processQueue() {
+	private async processQueue(): Promise<void> {
 		if (this.processing_) {
 			this.scheduleProcessing();
 			return;

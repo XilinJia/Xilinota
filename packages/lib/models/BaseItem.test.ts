@@ -44,7 +44,7 @@ describe('BaseItem', () => {
 
 	it('should correctly unserialize note timestamps', async () => {
 		const folder = await Folder.save({ title: 'folder' });
-		const note = await Note.save({ title: 'note', parent_id: folder.id });
+		const note = await Note.save({ title: 'note', parent_id: folder.id! });
 
 		const serialized = await Note.serialize(note);
 		const unserialized = await Note.unserialize(serialized);
@@ -57,8 +57,8 @@ describe('BaseItem', () => {
 
 	it('should serialize geolocation fields', async () => {
 		const folder = await Folder.save({ title: 'folder' });
-		let note = await Note.save({ title: 'note', parent_id: folder.id });
-		note = await Note.load(note.id);
+		let note = await Note.save({ title: 'note', parent_id: folder.id! });
+		note = (await Note.load(note.id!))!;
 
 		let serialized = await Note.serialize(note);
 		let unserialized = await Note.unserialize(serialized);
@@ -73,7 +73,7 @@ describe('BaseItem', () => {
 			altitude: 0,
 			latitude: 48.732,
 		});
-		note = await Note.load(note.id);
+		note = (await Note.load(note.id!))!;
 
 		serialized = await Note.serialize(note);
 		unserialized = await Note.unserialize(serialized);
@@ -85,7 +85,7 @@ describe('BaseItem', () => {
 
 	it('should serialize and unserialize notes', async () => {
 		const folder = await Folder.save({ title: 'folder' });
-		const note = await Note.save({ title: 'note', parent_id: folder.id });
+		const note = await Note.save({ title: 'note', parent_id: folder.id! });
 		await Note.save({
 			id: note.id,
 			longitude: -3.459,
@@ -93,7 +93,7 @@ describe('BaseItem', () => {
 			latitude: 48.732,
 		});
 
-		const noteBefore = await Note.load(note.id);
+		const noteBefore = await Note.load(note.id!);
 		const serialized = await Note.serialize(noteBefore);
 		const noteAfter = await Note.unserialize(serialized);
 
@@ -107,7 +107,7 @@ https://xilinotaapp.org/ \\n
 
 		const note = await Note.save({ title: 'note', source_url: sourceUrl });
 
-		const noteBefore = await Note.load(note.id);
+		const noteBefore = await Note.load(note.id!);
 		const serialized = await Note.serialize(noteBefore);
 		const noteAfter = await Note.unserialize(serialized);
 
@@ -119,7 +119,7 @@ https://xilinotaapp.org/ \\n
 two line
 three line \\n no escape` });
 
-		const noteBefore = await Note.load(note.id);
+		const noteBefore = await Note.load(note.id!);
 		const serialized = await Note.serialize(noteBefore);
 		expect(serialized.indexOf(`my note
 
@@ -136,17 +136,17 @@ three line \\n no escape`)).toBe(0);
 			return syncItem ? syncItem.sync_time : 0;
 		};
 
-		expect(await syncTime(note1.id)).toBe(0);
+		expect(await syncTime(note1.id!)).toBe(0);
 
 		await synchronizerStart();
 
-		const newTime = await syncTime(note1.id);
+		const newTime = await syncTime(note1.id!);
 		expect(newTime).toBeLessThanOrEqual(Date.now());
 
 		// Check that it doesn't change if we sync again
 		await msleep(1);
 		await synchronizerStart();
-		expect(await syncTime(note1.id)).toBe(newTime);
+		expect(await syncTime(note1.id!)).toBe(newTime);
 	});
 
 });

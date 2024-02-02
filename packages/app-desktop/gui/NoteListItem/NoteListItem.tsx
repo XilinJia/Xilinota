@@ -18,7 +18,7 @@ interface NoteItemProps {
 	isProvisional: boolean;
 	itemSize: Size;
 	noteCount: number;
-	onChange: OnChangeHandler;
+	onChange: OnChangeHandler|undefined;
 	onClick: MouseEventHandler<HTMLDivElement>;
 	onContextMenu: MouseEventHandler;
 	onDragOver: DragEventHandler;
@@ -31,7 +31,7 @@ interface NoteItemProps {
 }
 
 const NoteListItem = (props: NoteItemProps, ref: LegacyRef<HTMLDivElement>) => {
-	const noteId = props.note.id;
+	const noteId = props.note.id??'';
 	const elementId = `list-note-${noteId}`;
 
 	const onInputChange: OnInputChange = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
@@ -42,8 +42,8 @@ const NoteListItem = (props: NoteItemProps, ref: LegacyRef<HTMLDivElement>) => {
 		};
 
 		const changeEvent: OnChangeEvent = {
-			noteId: noteId,
-			elementId: event.currentTarget.getAttribute('data-id'),
+			noteId: noteId??'',
+			elementId: event.currentTarget.getAttribute('data-id')??'',
 			value: getValue(event.currentTarget),
 		};
 
@@ -58,7 +58,6 @@ const NoteListItem = (props: NoteItemProps, ref: LegacyRef<HTMLDivElement>) => {
 	}, [props.onChange, noteId]);
 
 	const rootElement = useRootElement(elementId);
-
 	const renderedNote = useRenderedNote(props.note, props.isSelected, props.isWatched, props.listRenderer, props.highlightedWords);
 
 	const itemElement = useItemElement(
@@ -71,8 +70,8 @@ const NoteListItem = (props: NoteItemProps, ref: LegacyRef<HTMLDivElement>) => {
 		props.flow,
 	);
 
-	useItemEventHandlers(rootElement, itemElement, onInputChange);
-
+	if (itemElement) useItemEventHandlers(rootElement, itemElement, onInputChange);
+	
 	const className = useMemo(() => {
 		return [
 			'note-list-item-wrapper',

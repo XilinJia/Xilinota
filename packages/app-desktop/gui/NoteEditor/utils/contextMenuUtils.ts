@@ -17,18 +17,14 @@ export interface ContextMenuOptions {
 	linkToCopy: string;
 	textToCopy: string;
 	htmlToCopy: string;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	insertContent: Function;
 	isReadOnly?: boolean;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	fireEditorEvent: Function;
 }
 
 export interface ContextMenuItem {
 	label: string;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	onAction: Function;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	isActive: Function;
 }
 
@@ -47,12 +43,13 @@ export function textToDataUri(text: string, mime: string): string {
 	return `data:${mime};base64,${Buffer.from(text).toString('base64')}`;
 }
 export const svgDimensions = (document: Document, svg: string) => {
-	let width: number;
-	let height: number;
+	let width: number = 50;
+	let height: number = 50;
 	try {
 		const parser = new DOMParser();
-		const id = parser.parseFromString(svg, 'text/html').querySelector('svg').id;
-		({ width, height } = document.querySelector<HTMLIFrameElement>('.noteTextViewer').contentWindow.document.querySelector(`#${id}`).getBoundingClientRect());
+		const id = parser.parseFromString(svg, 'text/html')?.querySelector('svg')?.id;
+		const domrect = document.querySelector<HTMLIFrameElement>('.noteTextViewer')?.contentWindow?.document.querySelector(`#${id}`)?.getBoundingClientRect();
+		if (domrect) ({ width, height } = domrect);
 	} catch (error) {
 		logger.warn('Could not get SVG dimensions.');
 		logger.warn('Error was: ', error);
@@ -77,7 +74,7 @@ export const svgUriToPng = (document: Document, svg: string, width: number, heig
 			img = document.createElement('img');
 			if (!img) throw new Error('Failed to create img element');
 		} catch (e) {
-			return cleanUpAndReject(e);
+			return cleanUpAndReject(e as Error);
 		}
 
 		img.onload = function() {
@@ -112,7 +109,7 @@ export const svgUriToPng = (document: Document, svg: string, width: number, heig
 				img.remove();
 				resolve(buff);
 			} catch (error) {
-				cleanUpAndReject(error);
+				cleanUpAndReject(error as Error);
 			}
 		};
 		img.onerror = function(e) {

@@ -20,7 +20,7 @@ describe('command-done', () => {
 		const now = Date.now();
 		await command.action({ note: note.id });
 
-		const checkNote: NoteEntity = await Note.load(note.id);
+		const checkNote: NoteEntity = (await Note.load(note.id!))!;
 		expect(checkNote.todo_completed).toBeGreaterThanOrEqual(now);
 	});
 

@@ -12,6 +12,14 @@
 
 const path = require('path');
 
+const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
+
+const defaultConfig = getDefaultConfig(__dirname);
+
+const {
+	resolver: { sourceExts, assetExts },
+} = getDefaultConfig(__dirname);
+
 const localPackages = {
 	'@xilinota/lib': path.resolve(__dirname, '../lib/'),
 	'@xilinota/renderer': path.resolve(__dirname, '../renderer/'),
@@ -43,7 +51,7 @@ for (const [, v] of Object.entries(localPackages)) {
 	watchedFolders.push(v);
 }
 
-module.exports = {
+const config = {
 	transformer: {
 		getTransformOptions: async () => ({
 			transform: {
@@ -51,8 +59,11 @@ module.exports = {
 				inlineRequires: true,
 			},
 		}),
+		babelTransformerPath: require.resolve('react-native-svg-transformer'),
 	},
 	resolver: {
+		assetExts: assetExts.filter(ext => ext !== 'svg'),
+		sourceExts: [...sourceExts, 'svg'],
 		// This configuration allows you to build React-Native modules and test
 		// them without having to publish the module. Any exports provided by
 		// your source should be added to the "target" parameter. Any import not
@@ -79,3 +90,5 @@ module.exports = {
 	projectRoot: path.resolve(__dirname),
 	watchFolders: watchedFolders,
 };
+
+module.exports = mergeConfig(defaultConfig, config);

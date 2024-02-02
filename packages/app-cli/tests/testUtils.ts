@@ -5,9 +5,7 @@ export interface PluginServiceOptions {
 	getState?(): Record<string, any>;
 }
 
-export function newPluginService(appVersion = '1.4', options: PluginServiceOptions = null): PluginService {
-	options = options || {};
-
+export function newPluginService(appVersion = '1.4', options: PluginServiceOptions = {}): PluginService {
 	const runner = new PluginRunner();
 	const service = new PluginService();
 	service.initialize(

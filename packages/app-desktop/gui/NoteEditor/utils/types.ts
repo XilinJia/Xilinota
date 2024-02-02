@@ -4,7 +4,7 @@ import { PluginStates } from '@xilinota/lib/services/plugins/reducer';
 import { MarkupLanguage } from '@xilinota/renderer';
 import { RenderResult, RenderResultPluginAsset } from '@xilinota/renderer/MarkupToHtml';
 import { MarkupToHtmlOptions } from './useMarkupToHtml';
-import { Dispatch } from 'redux';
+import { Action, Dispatch } from 'redux';
 
 export interface AllAssetsOptions {
 	contentMaxWidthTarget?: string;
@@ -49,7 +49,7 @@ export interface NoteEditorProps {
 }
 
 export interface NoteBodyEditorRef {
-	content(): string|Promise<string>;
+	content(): string | Promise<string>;
 	resetScroll(): void;
 	scrollTo(options: ScrollOptions): void;
 
@@ -69,12 +69,10 @@ export interface NoteBodyEditorProps {
 	onWillChange(event: any): void;
 	onMessage(event: any): void;
 	onScroll(event: { percent: number }): void;
-	markupToHtml: (markupLanguage: MarkupLanguage, markup: string, options: MarkupToHtmlOptions)=> Promise<RenderResult>;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
+	markupToHtml: (markupLanguage: MarkupLanguage, markup: string, options: MarkupToHtmlOptions) => Promise<RenderResult>;
 	htmlToMarkdown: Function;
-	allAssets: (markupLanguage: MarkupLanguage, options: AllAssetsOptions)=> Promise<RenderResultPluginAsset[]>;
+	allAssets: (markupLanguage: MarkupLanguage, options: AllAssetsOptions) => Promise<RenderResultPluginAsset[]>;
 	disabled: boolean;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	dispatch: Function;
 	noteToolbar: any;
 	setLocalSearchResultCount(count: number): void;
@@ -83,7 +81,6 @@ export interface NoteBodyEditorProps {
 	keyboardMode: string;
 	resourceInfos: ResourceInfos;
 	locale: string;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	onDrop: Function;
 	noteToolbarButtonInfos: ToolbarButtonInfo[];
 	plugins: PluginStates;
@@ -126,7 +123,7 @@ export interface FormNote {
 	bodyWillChangeId: number;
 	bodyChangeId: number;
 
-	saveActionQueue: AsyncActionQueue;
+	saveActionQueue: AsyncActionQueue | null;
 
 	// Note with markup_language = HTML have a block of CSS at the start, which is used
 	// to preserve the style from the original (web-clipped) page. When sending the note

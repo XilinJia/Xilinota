@@ -1,12 +1,17 @@
 import * as React from 'react';
 import { useRef, forwardRef, useImperativeHandle, useCallback } from 'react';
-const { themeStyle } = require('@xilinota/lib/theme');
+import { themeStyle } from '@xilinota/lib/theme';
 const Mark = require('mark.js/dist/mark.min.js');
 const markJsUtils = require('@xilinota/lib/markJsUtils');
 import Note from '@xilinota/lib/models/Note';
-const { replaceRegexDiacritics, pregQuote } = require('@xilinota/lib/string-utils');
-const styled = require('styled-components').default;
+import { replaceRegexDiacritics, pregQuote } from '@xilinota/lib/string-utils';
+import styled from 'styled-components';
 
+// const StyledRoot1 = styled.div({
+// 	width: (props: any) => `${props.width}px`,
+// 	height: (props: any) => `${props.height}px`,
+// });
+  
 const StyledRoot = styled.div`
 	width: ${(props: any) => props.width}px;
 	height: ${(props: any) => props.height}px;
@@ -66,23 +71,23 @@ function NoteListItem(props: NoteListItemProps, ref: any) {
 	const theme = themeStyle(props.themeId);
 	const hPadding = 16;
 
-	const anchorRef = useRef(null);
+	const anchorRef = useRef<HTMLAnchorElement>(document.createElement('a'));
 
 	useImperativeHandle(ref, () => {
 		return {
 			focus: function() {
-				if (anchorRef.current) anchorRef.current.focus();
+				anchorRef.current.focus();
 			},
-			getHeight: () => anchorRef.current?.clientHeight,
+			getHeight: () => anchorRef.current.clientHeight,
 		};
 	});
 
-	let dragItemPosition = '';
-	if (props.dragItemIndex === props.index) {
-		dragItemPosition = 'top';
-	} else if (props.index === props.itemCount - 1 && props.dragItemIndex >= props.itemCount) {
-		dragItemPosition = 'bottom';
-	}
+	// let dragItemPosition = '';
+	// if (props.dragItemIndex === props.index) {
+	// 	dragItemPosition = 'top';
+	// } else if (props.index === props.itemCount - 1 && props.dragItemIndex >= props.itemCount) {
+	// 	dragItemPosition = 'bottom';
+	// }
 
 	const onTitleClick = useCallback((event: any) => {
 		props.onTitleClick(event, props.item);
@@ -135,7 +140,7 @@ function NoteListItem(props: NoteListItemProps, ref: any) {
 				});
 			}
 		} catch (error) {
-			if (error.name !== 'SyntaxError') {
+			if ((error as Error).name !== 'SyntaxError') {
 				throw error;
 			}
 			// An error of 'Regular expression too large' might occour in the markJs library
@@ -175,11 +180,12 @@ function NoteListItem(props: NoteListItemProps, ref: any) {
 		<StyledRoot
 			className={classNames}
 			onDragOver={props.onNoteDragOver}
-			width={props.width}
-			height={props.height}
-			isProvisional={props.isProvisional}
-			selected={props.isSelected}
-			dragItemPosition={dragItemPosition}
+			// the folllowing not exist
+			// width={props.width}
+			// height={props.height}
+			// isProvisional={props.isProvisional}
+			// selected={props.isSelected}
+			// dragItemPosition={dragItemPosition}
 		>
 			{renderCheckbox()}
 			<a

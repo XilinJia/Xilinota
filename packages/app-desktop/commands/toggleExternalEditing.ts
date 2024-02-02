@@ -11,8 +11,8 @@ export const declaration: CommandDeclaration = {
 
 export const runtime = (): CommandRuntime => {
 	return {
-		execute: async (context: DesktopCommandContext, noteId: string = null) => {
-			noteId = noteId || stateUtils.selectedNoteId(context.state);
+		execute: async (context: DesktopCommandContext, noteId: string = '') => {
+			noteId = noteId || (stateUtils.selectedNoteId(context.state) ?? '');
 
 			if (!noteId) return;
 

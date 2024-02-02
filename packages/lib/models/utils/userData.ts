@@ -18,7 +18,7 @@ const unserializeUserData = (s: string): UserData => {
 		const r = JSON.parse(s);
 		return r as UserData;
 	} catch (error) {
-		error.message = `Could not unserialize user data: ${error.message}: ${s}`;
+		if (error instanceof Error) error.message = `Could not unserialize user data: ${error.message}: ${s}`;
 		throw error;
 	}
 };
@@ -54,7 +54,7 @@ export const getUserData = <T>(userData: UserData, namespace: string, key: strin
 	return userData[namespace][key].v as T;
 };
 
-const checkIsSupportedItemType = (itemType: ModelType) => {
+const checkIsSupportedItemType = (itemType: ModelType): void => {
 	if (![ModelType.Note, ModelType.Folder, ModelType.Tag, ModelType.Resource].includes(itemType)) {
 		throw new Error(`Unsupported item type: ${itemType}`);
 	}
@@ -98,7 +98,7 @@ export const setItemUserData = async <T>(itemType: ModelType, itemId: string, na
 
 // Deprecated - don't use
 export const setNoteUserData = async <T>(note: NoteEntity, namespace: string, key: string, value: T, deleted = false): Promise<NoteEntity> => {
-	return setItemUserData(ModelType.Note, note.id, namespace, key, value, deleted);
+	return setItemUserData(ModelType.Note, note.id??'', namespace, key, value, deleted);
 };
 
 const hasUserData = (userData: UserData, namespace: string, key: string) => {
@@ -122,7 +122,7 @@ export const getItemUserData = async <T>(itemType: ModelType, itemId: string, na
 
 // Deprecated - don't use
 export const getNoteUserData = async <T>(note: NoteEntity, namespace: string, key: string): Promise<T|undefined> => {
-	return getItemUserData<T>(ModelType.Note, note.id, namespace, key);
+	return getItemUserData<T>(ModelType.Note, note.id??'', namespace, key);
 };
 
 export const deleteItemUserData = async (itemType: ModelType, itemId: string, namespace: string, key: string): Promise<SupportedEntity> => {

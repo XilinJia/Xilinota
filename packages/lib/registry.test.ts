@@ -49,8 +49,8 @@ describe('Registry', () => {
 
 		it('should sync if do wifi check is false', done => {
 			void reg.scheduleSync(1, null, false)
-			// eslint-disable-next-line promise/prefer-await-to-then -- Old code before rule was applied
-				.then(() =>{
+
+				.then(() => {
 					expect(sync.start).toHaveBeenCalled();
 					done();
 				});

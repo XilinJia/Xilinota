@@ -24,7 +24,7 @@ export default class JoplinViewsMenus {
 	private registerCommandAccelerators(menuItems: MenuItem[]) {
 		for (const menuItem of menuItems) {
 			if (menuItem.accelerator) {
-				KeymapService.instance().registerCommandAccelerator(menuItem.commandName, menuItem.accelerator);
+				KeymapService.instance().registerCommandAccelerator(menuItem.commandName!, menuItem.accelerator);
 			}
 
 			if (menuItem.submenu) {

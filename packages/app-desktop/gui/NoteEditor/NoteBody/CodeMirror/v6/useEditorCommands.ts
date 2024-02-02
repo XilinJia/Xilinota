@@ -10,7 +10,7 @@ import CodeMirrorControl from '@xilinota/editor/CodeMirror/CodeMirrorControl';
 
 const logger = Logger.create('CodeMirror 6 commands');
 
-const wrapSelectionWithStrings = (editor: CodeMirrorControl, string1: string, string2 = '', defaultText = '') => {
+const wrapSelectionWithStrings = (editor: CodeMirrorControl, string1: string, string2 = '', defaultText = ''): void => {
 	if (editor.somethingSelected()) {
 		editor.wrapSelections(string1, string2);
 	} else {
@@ -52,69 +52,69 @@ const useEditorCommands = (props: Props) => {
 		};
 
 		return {
-			dropItems: async (cmd: any) => {
+			dropItems: async (cmd: any): Promise<void> => {
 				if (cmd.type === 'notes') {
-					editorRef.current.insertText(cmd.markdownTags.join('\n'));
+					editorRef.current?.insertText(cmd.markdownTags.join('\n'));
 				} else if (cmd.type === 'files') {
 					const pos = props.selectionRange.from;
 					const newBody = await commandAttachFileToBody(props.editorContent, cmd.paths, { createFileURL: !!cmd.createFileURL, position: pos });
-					editorRef.current.updateBody(newBody);
+					editorRef.current?.updateBody(newBody ?? '');
 				} else {
 					logger.warn('CodeMirror: unsupported drop item: ', cmd);
 				}
 			},
-			selectedText: () => {
+			selectedText: (): string => {
 				return selectedText();
 			},
-			selectedHtml: () => {
+			selectedHtml: (): string => {
 				return selectedText();
 			},
-			replaceSelection: (value: string) => {
-				return editorRef.current.insertText(value);
+			replaceSelection: (value: string): void => {
+				editorRef.current?.insertText(value);
 			},
-			textCopy: () => {
+			textCopy: (): void => {
 				props.editorCopyText();
 			},
-			textCut: () => {
+			textCut: (): void => {
 				props.editorCutText();
 			},
-			textPaste: () => {
+			textPaste: (): void => {
 				props.editorPaste();
 			},
-			textSelectAll: () => {
-				return editorRef.current.execCommand(EditorCommandType.SelectAll);
+			textSelectAll: (): void => {
+				editorRef.current?.execCommand(EditorCommandType.SelectAll);
 			},
-			textLink: async () => {
+			textLink: async (): Promise<void> => {
 				const url = await dialogs.prompt(_('Insert Hyperlink'));
-				editorRef.current.focus();
-				if (url) wrapSelectionWithStrings(editorRef.current, '[', `](${url})`);
+				editorRef.current?.focus();
+				if (editorRef.current && url) wrapSelectionWithStrings(editorRef.current, '[', `](${url})`);
 			},
-			insertText: (value: any) => editorRef.current.insertText(value),
-			attachFile: async () => {
+			insertText: (value: any): void => editorRef.current?.insertText(value),
+			attachFile: async (): Promise<void> => {
 				const newBody = await commandAttachFileToBody(
-					props.editorContent, null, { position: props.selectionRange.from },
+					props.editorContent, [], { position: props.selectionRange.from },
 				);
 				if (newBody) {
-					editorRef.current.updateBody(newBody);
+					editorRef.current?.updateBody(newBody);
 				}
 			},
-			textHorizontalRule: () => editorRef.current.insertText('* * *'),
+			textHorizontalRule: (): void => editorRef.current?.insertText('* * *'),
+
 			'editor.execCommand': (value: CommandValue) => {
 				if (!('args' in value)) value.args = [];
 
 				if ((editorRef.current as any)[value.name]) {
 					const result = (editorRef.current as any)[value.name](...value.args);
 					return result;
-				} else if (editorRef.current.commandExists(value.name)) {
-					const result = editorRef.current.execCommand(value.name);
-					return result;
+				} else if (editorRef.current?.commandExists(value.name)) {
+					editorRef.current.execCommand(value.name);
 				} else {
 					logger.warn('CodeMirror execCommand: unsupported command: ', value.name);
 				}
 			},
-			'editor.focus': () => {
+			'editor.focus': (): void => {
 				if (props.visiblePanes.indexOf('editor') >= 0) {
-					editorRef.current.editor.focus();
+					editorRef.current?.editor.focus();
 				} else {
 					// If we just call focus() then the iframe is focused,
 					// but not its content, such that scrolling up / down
@@ -122,8 +122,8 @@ const useEditorCommands = (props: Props) => {
 					props.webviewRef.current.send('focus');
 				}
 			},
-			search: () => {
-				editorRef.current.execCommand(EditorCommandType.ShowSearch);
+			search: (): void => {
+				editorRef.current?.execCommand(EditorCommandType.ShowSearch);
 			},
 		};
 	}, [

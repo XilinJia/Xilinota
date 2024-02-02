@@ -18,7 +18,7 @@ export const runtime = (comp: any): CommandRuntime => {
 					buttons: ['create', 'cancel'],
 					value: '',
 					onClose: async (answer: string) => {
-						if (answer) {
+						if (answer && context.state.profileConfig) {
 							const { newConfig, newProfile } = createNewProfile(context.state.profileConfig, answer);
 							newConfig.currentProfileId = newProfile.id;
 							await saveProfileConfig(`${Setting.value('rootProfileDir')}/profiles.json`, newConfig);

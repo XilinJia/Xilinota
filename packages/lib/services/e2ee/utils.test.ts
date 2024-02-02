@@ -20,26 +20,26 @@ describe('e2ee/utils', () => {
 		const mk1 = await MasterKey.save(await encryptionService().generateMasterKey('111111'));
 		const mk2 = await MasterKey.save(await encryptionService().generateMasterKey('111111'));
 
-		expect(showMissingMasterKeyMessage(localSyncInfo(), [mk1.id])).toBe(true);
-		expect(showMissingMasterKeyMessage(localSyncInfo(), [mk1.id, mk2.id])).toBe(true);
+		expect(showMissingMasterKeyMessage(localSyncInfo(), [mk1.id!])).toBe(true);
+		expect(showMissingMasterKeyMessage(localSyncInfo(), [mk1.id!, mk2.id!])).toBe(true);
 		expect(showMissingMasterKeyMessage(localSyncInfo(), [])).toBe(false);
 
-		setMasterKeyEnabled(mk1.id, false);
-		expect(showMissingMasterKeyMessage(localSyncInfo(), [mk1.id])).toBe(false);
-		expect(showMissingMasterKeyMessage(localSyncInfo(), [mk1.id, mk2.id])).toBe(true);
+		setMasterKeyEnabled(mk1.id!, false);
+		expect(showMissingMasterKeyMessage(localSyncInfo(), [mk1.id!])).toBe(false);
+		expect(showMissingMasterKeyMessage(localSyncInfo(), [mk1.id!, mk2.id!])).toBe(true);
 
-		setMasterKeyEnabled(mk2.id, false);
-		expect(showMissingMasterKeyMessage(localSyncInfo(), [mk1.id, mk2.id])).toBe(false);
+		setMasterKeyEnabled(mk2.id!, false);
+		expect(showMissingMasterKeyMessage(localSyncInfo(), [mk1.id!, mk2.id!])).toBe(false);
 
-		setMasterKeyEnabled(mk1.id, true);
-		setMasterKeyEnabled(mk2.id, true);
-		expect(showMissingMasterKeyMessage(localSyncInfo(), [mk1.id, mk2.id])).toBe(true);
+		setMasterKeyEnabled(mk1.id!, true);
+		setMasterKeyEnabled(mk2.id!, true);
+		expect(showMissingMasterKeyMessage(localSyncInfo(), [mk1.id!, mk2.id!])).toBe(true);
 
 		await expectNotThrow(async () => showMissingMasterKeyMessage(localSyncInfo(), ['not_downloaded_yet']));
 
 		const syncInfo = localSyncInfo();
 		syncInfo.masterKeys = [];
-		expect(showMissingMasterKeyMessage(syncInfo, [mk1.id, mk2.id])).toBe(false);
+		expect(showMissingMasterKeyMessage(syncInfo, [mk1.id!, mk2.id!])).toBe(false);
 	});
 
 	it('should do the master password migration', async () => {
@@ -47,8 +47,8 @@ describe('e2ee/utils', () => {
 		const mk2 = await MasterKey.save(await encryptionService().generateMasterKey('222222'));
 
 		Setting.setValue('encryption.passwordCache', {
-			[mk1.id]: '111111',
-			[mk2.id]: '222222',
+			[mk1.id!]: '111111',
+			[mk2.id!]: '222222',
 		});
 
 		await migrateMasterPassword();
@@ -56,18 +56,18 @@ describe('e2ee/utils', () => {
 		{
 			expect(Setting.value('encryption.masterPassword')).toBe('');
 			const newCache = Setting.value('encryption.passwordCache');
-			expect(newCache[mk1.id]).toBe('111111');
-			expect(newCache[mk2.id]).toBe('222222');
+			expect(newCache[mk1.id!]).toBe('111111');
+			expect(newCache[mk2.id!]).toBe('222222');
 		}
 
-		setActiveMasterKeyId(mk1.id);
+		setActiveMasterKeyId(mk1.id!);
 		await migrateMasterPassword();
 
 		{
 			expect(Setting.value('encryption.masterPassword')).toBe('111111');
 			const newCache = Setting.value('encryption.passwordCache');
-			expect(newCache[mk1.id]).toBe(undefined);
-			expect(newCache[mk2.id]).toBe('222222');
+			expect(newCache[mk1.id!]).toBe(undefined);
+			expect(newCache[mk2.id!]).toBe('222222');
 		}
 	});
 
@@ -83,12 +83,12 @@ describe('e2ee/utils', () => {
 		await updateMasterPassword(masterPassword1, masterPassword2);
 
 		expect(Setting.value('encryption.masterPassword')).toBe(masterPassword2);
-		expect(await ppkPasswordIsValid(encryptionService(), localSyncInfo().ppk, masterPassword1)).toBe(false);
-		expect(await ppkPasswordIsValid(encryptionService(), localSyncInfo().ppk, masterPassword2)).toBe(true);
-		expect(await encryptionService().checkMasterKeyPassword(await MasterKey.load(mk1.id), masterPassword1)).toBe(false);
-		expect(await encryptionService().checkMasterKeyPassword(await MasterKey.load(mk2.id), masterPassword1)).toBe(false);
-		expect(await encryptionService().checkMasterKeyPassword(await MasterKey.load(mk1.id), masterPassword2)).toBe(true);
-		expect(await encryptionService().checkMasterKeyPassword(await MasterKey.load(mk2.id), masterPassword2)).toBe(true);
+		expect(await ppkPasswordIsValid(encryptionService(), localSyncInfo().ppk!, masterPassword1)).toBe(false);
+		expect(await ppkPasswordIsValid(encryptionService(), localSyncInfo().ppk!, masterPassword2)).toBe(true);
+		expect(await encryptionService().checkMasterKeyPassword((await MasterKey.load(mk1.id!))!, masterPassword1)).toBe(false);
+		expect(await encryptionService().checkMasterKeyPassword((await MasterKey.load(mk2.id!))!, masterPassword1)).toBe(false);
+		expect(await encryptionService().checkMasterKeyPassword((await MasterKey.load(mk1.id!))!, masterPassword2)).toBe(true);
+		expect(await encryptionService().checkMasterKeyPassword((await MasterKey.load(mk2.id!))!, masterPassword2)).toBe(true);
 
 		await expectThrow(async () => updateMasterPassword('wrong', masterPassword1));
 	});
@@ -140,11 +140,11 @@ describe('e2ee/utils', () => {
 		const previousPpk = localSyncInfo().ppk;
 		await resetMasterPassword(encryptionService(), kvStore(), null, masterPassword2);
 
-		expect(masterKeyEnabled(masterKeyById(mk1.id))).toBe(false);
-		expect(masterKeyEnabled(masterKeyById(mk2.id))).toBe(false);
-		expect(localSyncInfo().ppk.id).not.toBe(previousPpk.id);
-		expect(localSyncInfo().ppk.privateKey.ciphertext).not.toBe(previousPpk.privateKey.ciphertext);
-		expect(localSyncInfo().ppk.publicKey).not.toBe(previousPpk.publicKey);
+		expect(masterKeyEnabled(masterKeyById(mk1.id!)!)).toBe(false);
+		expect(masterKeyEnabled(masterKeyById(mk2.id!)!)).toBe(false);
+		expect(localSyncInfo().ppk!.id).not.toBe(previousPpk!.id);
+		expect(localSyncInfo().ppk!.privateKey.ciphertext).not.toBe(previousPpk!.privateKey.ciphertext);
+		expect(localSyncInfo().ppk!.publicKey).not.toBe(previousPpk!.publicKey);
 
 		// Also check that a new master key has been created, that it is active and enabled
 		expect(localSyncInfo().masterKeys.length).toBe(3);
@@ -160,8 +160,8 @@ describe('e2ee/utils', () => {
 		await MasterKey.save(await encryptionService().generateMasterKey(masterPassword1));
 		await msleep(1);
 		const mk3 = await MasterKey.save(await encryptionService().generateMasterKey(masterPassword1));
-		setActiveMasterKeyId(mk1.id);
-		setMasterKeyEnabled(mk1.id, false);
+		setActiveMasterKeyId(mk1.id!);
+		setMasterKeyEnabled(mk1.id!, false);
 
 		activeMasterKeySanityCheck();
 
@@ -176,7 +176,7 @@ describe('e2ee/utils', () => {
 		const mk1 = await MasterKey.save(await encryptionService().generateMasterKey(masterPassword1));
 		await msleep(1);
 		await MasterKey.save(await encryptionService().generateMasterKey(masterPassword1));
-		setActiveMasterKeyId(mk1.id);
+		setActiveMasterKeyId(mk1.id!);
 
 		activeMasterKeySanityCheck();
 

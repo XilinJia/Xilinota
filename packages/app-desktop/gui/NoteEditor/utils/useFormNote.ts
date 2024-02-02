@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, SetStateAction, Dispatch } from 'react';
 import { FormNote, defaultFormNote, ResourceInfos } from './types';
 import { clearResourceCache, attachedResources } from './resourceHandling';
 import AsyncActionQueue from '@xilinota/lib/AsyncActionQueue';
@@ -8,13 +8,13 @@ import Setting from '@xilinota/lib/models/Setting';
 import usePrevious from '../../hooks/usePrevious';
 import ResourceEditWatcher from '@xilinota/lib/services/ResourceEditWatcher/index';
 
-const { MarkupToHtml } = require('@xilinota/renderer');
+import { MarkupToHtml } from '@xilinota/renderer';
 import Note from '@xilinota/lib/models/Note';
 import { reg } from '@xilinota/lib/registry';
 import ResourceFetcher from '@xilinota/lib/services/ResourceFetcher';
 import DecryptionWorker from '@xilinota/lib/services/DecryptionWorker';
+import { NoteEntity } from '@xilinota/lib/services/database/types';
 // import { toFileProtocolPath, filename } from '@xilinota/lib/path-utils';
-// import path = require('path');
 
 export interface OnLoadEvent {
 	formNote: FormNote;
@@ -25,22 +25,22 @@ export interface HookDependencies {
 	decryptionStarted: boolean;
 	noteId: string;
 	isProvisional: boolean;
-	titleInputRef: any;
+	titleInputRef: React.MutableRefObject<HTMLInputElement>;
 	editorRef: any;
 	onBeforeLoad(event: OnLoadEvent): void;
 	onAfterLoad(event: OnLoadEvent): void;
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-function installResourceChangeHandler(onResourceChangeHandler: Function) {
+
+function installResourceChangeHandler(onResourceChangeHandler: (...args: any[]) => void) {
 	ResourceFetcher.instance().on('downloadComplete', onResourceChangeHandler);
 	ResourceFetcher.instance().on('downloadStarted', onResourceChangeHandler);
 	DecryptionWorker.instance().on('resourceDecrypted', onResourceChangeHandler);
 	ResourceEditWatcher.instance().on('resourceChange', onResourceChangeHandler);
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-function uninstallResourceChangeHandler(onResourceChangeHandler: Function) {
+
+function uninstallResourceChangeHandler(onResourceChangeHandler: (...args: any[]) => void) {
 	ResourceFetcher.instance().off('downloadComplete', onResourceChangeHandler);
 	ResourceFetcher.instance().off('downloadStarted', onResourceChangeHandler);
 	DecryptionWorker.instance().off('resourceDecrypted', onResourceChangeHandler);
@@ -63,7 +63,12 @@ function uninstallResourceChangeHandler(onResourceChangeHandler: Function) {
 // 	return false;
 // }
 
-export default function useFormNote(dependencies: HookDependencies) {
+export default function useFormNote(dependencies: HookDependencies): {
+	isNewNote: boolean;
+	formNote: FormNote;
+	setFormNote: Dispatch<SetStateAction<FormNote>>;
+	resourceInfos: ResourceInfos;
+} {
 	const { syncStarted, decryptionStarted, noteId, isProvisional, titleInputRef, editorRef, onBeforeLoad, onAfterLoad } = dependencies;
 
 	const [formNote, setFormNote] = useState<FormNote>(defaultFormNote());
@@ -77,28 +82,28 @@ export default function useFormNote(dependencies: HookDependencies) {
 	// a new refresh.
 	const [formNoteRefeshScheduled, setFormNoteRefreshScheduled] = useState<number>(0);
 
-	async function initNoteState(n: any) {
+	async function initNoteState(n: NoteEntity): Promise<FormNote> {
 		let originalCss = '';
 
 		if (n.markup_language === MarkupToHtml.MARKUP_LANGUAGE_HTML) {
-			const splitted = splitHtml(n.body);
+			const splitted = splitHtml(n.body ?? '');
 			originalCss = splitted.css;
 		}
 
 		const newFormNote = {
-			id: n.id,
-			title: n.title,
-			body: n.body,
-			is_todo: n.is_todo,
-			parent_id: n.parent_id,
+			id: n.id ?? '',
+			title: n.title ?? '',
+			body: n.body ?? '',
+			is_todo: n.is_todo ?? 0,
+			parent_id: n.parent_id ?? '',
 			bodyWillChangeId: 0,
 			bodyChangeId: 0,
-			markup_language: n.markup_language,
+			markup_language: n.markup_language ?? 0,
 			saveActionQueue: new AsyncActionQueue(300),
 			originalCss: originalCss,
 			hasChanged: false,
-			user_updated_time: n.user_updated_time,
-			encryption_applied: n.encryption_applied,
+			user_updated_time: n.user_updated_time ?? 0,
+			encryption_applied: n.encryption_applied ?? 0,
 		};
 
 		// Note that for performance reason,the call to setResourceInfos should
@@ -109,13 +114,13 @@ export default function useFormNote(dependencies: HookDependencies) {
 		// setResourceInfos(await attachedResources(n.body));
 		setFormNote(newFormNote);
 
-		await handleResourceDownloadMode(n.body);
+		await handleResourceDownloadMode(n.body ?? '');
 
 		return newFormNote;
 	}
 
 	useEffect(() => {
-		if (formNoteRefeshScheduled <= 0) return () => {};
+		if (formNoteRefeshScheduled <= 0) return () => { };
 
 		reg.logger().info('Sync has finished and note has never been changed - reloading it');
 
@@ -170,10 +175,10 @@ export default function useFormNote(dependencies: HookDependencies) {
 	useEffect(() => {
 		if (!noteId) {
 			if (formNote.id) setFormNote(defaultFormNote());
-			return () => {};
+			return () => { };
 		}
 
-		if (formNote.id === noteId) return () => {};
+		if (formNote.id === noteId) return () => { };
 
 		let cancelled = false;
 
@@ -227,7 +232,7 @@ export default function useFormNote(dependencies: HookDependencies) {
 		return () => {
 			cancelled = true;
 		};
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [noteId, isProvisional, formNote]);
 
 	const onResourceChange = useCallback(
@@ -258,7 +263,7 @@ export default function useFormNote(dependencies: HookDependencies) {
 	// useEffect(() => {
 	// 	let cancelled = false;
 
-	// 	// eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
+	// 	
 	// 	async function runEffect() {
 	// 		reg.logger().info('useFormNote: runEffect called');
 	// 		const r = await attachedResources(formNote.body);

@@ -19,12 +19,12 @@ export default class JoplinViews {
 	private store: any;
 	private plugin: Plugin;
 
-	private panels_: JoplinViewsPanels = null;
-	private menuItems_: JoplinViewsMenuItems = null;
-	private menus_: JoplinViewsMenus = null;
-	private toolbarButtons_: JoplinViewsToolbarButtons = null;
-	private dialogs_: JoplinViewsDialogs = null;
-	private noteList_: JoplinViewsNoteList = null;
+	private panels_: JoplinViewsPanels|undefined;
+	private menuItems_: JoplinViewsMenuItems|undefined;
+	private menus_: JoplinViewsMenus|undefined;
+	private toolbarButtons_: JoplinViewsToolbarButtons|undefined;
+	private dialogs_: JoplinViewsDialogs|undefined;
+	private noteList_: JoplinViewsNoteList|undefined;
 	private implementation_: any = null;
 
 	public constructor(implementation: any, plugin: Plugin, store: any) {

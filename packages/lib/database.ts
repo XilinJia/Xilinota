@@ -1,8 +1,10 @@
 import Logger from '@xilinota/utils/Logger';
 import time from './time';
 import shim from './shim';
+import XilinotaError from './XilinotaError';
 
-const Mutex = require('async-mutex').Mutex;
+import { Mutex } from 'async-mutex';
+import DatabaseDriverBase from './database-driver-base';
 
 type SqlParams = any[];
 
@@ -24,51 +26,51 @@ export default class Database {
 
 	protected debugMode_ = false;
 	private sqlQueryLogEnabled_ = false;
-	private driver_: any;
+	private driver_: DatabaseDriverBase;
 	private logger_ = new Logger();
 	private logExcludedQueryTypes_: string[] = [];
 	private batchTransactionMutex_ = new Mutex();
 	private profilingEnabled_ = false;
 	private queryId_ = 1;
 
-	public constructor(driver: any) {
+	public constructor(driver: DatabaseDriverBase) {
 		this.driver_ = driver;
 	}
 
-	public setLogExcludedQueryTypes(v: string[]) {
+	public setLogExcludedQueryTypes(v: string[]): void {
 		this.logExcludedQueryTypes_ = v;
 	}
 
 	// Converts the SQLite error to a regular JS error
 	// so that it prints a stacktrace when passed to
 	// console.error()
-	public sqliteErrorToJsError(error: any, sql: string = null, params: SqlParams = null) {
+	public sqliteErrorToJsError(error: any, sql: string = '', params: SqlParams = []) {
 		return this.driver().sqliteErrorToJsError(error, sql, params);
 	}
 
-	public setLogger(l: Logger) {
+	public setLogger(l: Logger): void {
 		this.logger_ = l;
 	}
 
-	public logger() {
+	public logger(): Logger {
 		return this.logger_;
 	}
 
-	public driver() {
+	public driver(): DatabaseDriverBase {
 		return this.driver_;
 	}
 
-	public async open(options: any) {
+	public async open(options: any): Promise<void> {
 		try {
 			await this.driver().open(options);
 		} catch (error) {
-			throw new Error(`Cannot open database: ${error.message}: ${JSON.stringify(options)}`);
+			throw new Error(`Cannot open database: ${(error as Error).message}: ${JSON.stringify(options)}`);
 		}
 
 		this.logger().info('Database was open successfully');
 	}
 
-	public escapeField(field: string) {
+	public escapeField(field: string): string {
 		if (field === '*') return '*';
 		const p = field.split('.');
 		if (p.length === 1) return `\`${field}\``;
@@ -87,8 +89,8 @@ export default class Database {
 		return output;
 	}
 
-	public escapeFieldsToString(fields: string[] | string): string {
-		if (fields === '*') return '*';
+	public escapeFieldsToString(fields: string[] | string | undefined): string {
+		if (!fields || fields === '*') return '*';
 
 		const output = [];
 		for (let i = 0; i < fields.length; i++) {
@@ -98,11 +100,11 @@ export default class Database {
 	}
 
 	public async tryCall(callName: string, inputSql: StringOrSqlQuery, inputParams: SqlParams) {
-		let sql: string = null;
-		let params: SqlParams = null;
+		let sql: string = '';
+		let params: SqlParams = [];
 
 		if (typeof inputSql === 'object') {
-			params = (inputSql as SqlQuery).params;
+			params = (inputSql as SqlQuery).params ?? [];
 			sql = (inputSql as SqlQuery).sql;
 		} else {
 			params = inputParams;
@@ -119,27 +121,28 @@ export default class Database {
 
 				const queryId = this.queryId_++;
 				if (this.profilingEnabled_) {
-					// eslint-disable-next-line no-console
 					console.info(`SQL START ${queryId}`, sql, params);
-
 					profilingTimeoutId = shim.setInterval(() => {
 						console.warn(`SQL ${queryId} has been running for ${Date.now() - callStartTime}: ${sql}`);
 					}, 3000);
 				}
 
+				// console.log('Database tryCall', this.driver(), callName);
 				const result = await this.driver()[callName](sql, params);
+				// console.log('Database tryCall 1', callName, result);
 
 				if (this.profilingEnabled_) {
 					shim.clearInterval(profilingTimeoutId);
 					profilingTimeoutId = null;
 					const elapsed = Date.now() - callStartTime;
-					// eslint-disable-next-line no-console
 					if (elapsed > 10) console.info(`SQL END ${queryId}`, elapsed, sql, params);
 				}
+				// console.log('Database tryCall 2', callName, result);
 
 				return result; // No exception was thrown
 			} catch (error) {
-				if (error && (error.code === 'SQLITE_IOERR' || error.code === 'SQLITE_BUSY')) {
+				// console.error('tryCall', error);
+				if (error && error instanceof XilinotaError && (error.code === 'SQLITE_IOERR' || error.code === 'SQLITE_BUSY')) {
 					if (totalWaitTime >= 20000) throw this.sqliteErrorToJsError(error, sql, params);
 					// NOTE: don't put logger statements here because it might log to the database, which
 					// could result in an error being thrown again.
@@ -148,6 +151,7 @@ export default class Database {
 					await time.msleep(waitTime);
 					totalWaitTime += waitTime;
 					waitTime *= 1.5;
+					return null;
 				} else {
 					throw this.sqliteErrorToJsError(error, sql, params);
 				}
@@ -157,8 +161,9 @@ export default class Database {
 		}
 	}
 
-	public async selectOne(sql: string, params: SqlParams = null): Promise<Row> {
-		return this.tryCall('selectOne', sql, params);
+	public async selectOne(sql: string, params: SqlParams = []): Promise<Row | null> {
+		const res = this.tryCall('selectOne', sql, params);
+		return res || null;
 	}
 
 	public async loadExtension(/* path */) {
@@ -173,12 +178,15 @@ export default class Database {
 		// }
 	}
 
-	public async selectAll(sql: string, params: SqlParams = null): Promise<Row[]> {
-		return this.tryCall('selectAll', sql, params);
+	public async selectAll(sql: string, params: SqlParams = []): Promise<Row[]> {
+		const res = await this.tryCall('selectAll', sql, params);
+		return res || [];
 	}
 
 	public async selectAllFields(sql: string, params: SqlParams, field: string): Promise<any[]> {
 		const rows = await this.tryCall('selectAll', sql, params);
+		if (!rows) return [];
+
 		const output = [];
 		for (let i = 0; i < rows.length; i++) {
 			const v = rows[i][field];
@@ -188,11 +196,11 @@ export default class Database {
 		return output;
 	}
 
-	public async exec(sql: StringOrSqlQuery, params: SqlParams = null) {
+	public async exec(sql: StringOrSqlQuery, params: SqlParams = []) {
 		return this.tryCall('exec', sql, params);
 	}
 
-	public async transactionExecBatch(queries: StringOrSqlQuery[]) {
+	public async transactionExecBatch(queries: StringOrSqlQuery[]): Promise<void> {
 		if (queries.length <= 0) return;
 
 		if (queries.length === 1) {
@@ -240,7 +248,7 @@ export default class Database {
 		throw new Error(`Unknown enum type or value: ${type}, ${s}`);
 	}
 
-	public static enumName(type: string, id: number) {
+	public static enumName(type: string, id: number): "int" | "unknown" | "text" | "numeric" | undefined {
 		if (type === 'fieldType') {
 			if (id === Database.TYPE_UNKNOWN) return 'unknown';
 			if (id === Database.TYPE_INT) return 'int';
@@ -261,14 +269,14 @@ export default class Database {
 		throw new Error(`Unknown type: ${type}`);
 	}
 
-	public sqlStringToLines(sql: string) {
+	public sqlStringToLines(sql: string): string[] {
 		const output = [];
 		const lines = sql.split('\n');
 		let statement = '';
 		for (let i = 0; i < lines.length; i++) {
 			const line = lines[i];
 			if (line === '') continue;
-			if (line.substr(0, 2) === '--') continue;
+			if (line.substring(0, 2) === '--') continue;
 			statement += line.trim();
 			if (line[line.length - 1] === ',') statement += ' ';
 			if (line[line.length - 1] === ';') {
@@ -279,7 +287,7 @@ export default class Database {
 		return output;
 	}
 
-	public logQuery(sql: string, params: SqlParams = null) {
+	public logQuery(sql: string, params: SqlParams = []): void {
 		if (!this.sqlQueryLogEnabled_) return;
 
 		if (this.logExcludedQueryTypes_.length) {
@@ -290,10 +298,10 @@ export default class Database {
 		}
 
 		this.logger().debug(sql);
-		if (params !== null && params.length) this.logger().debug(JSON.stringify(params));
+		if (params.length) this.logger().debug(JSON.stringify(params));
 	}
 
-	public static insertQuery(tableName: string, data: Record<string, any>) {
+	public static insertQuery(tableName: string, data: Record<string, any>): { sql: string; params: any[]; } {
 		if (!data || !Object.keys(data).length) throw new Error('Data is empty');
 
 		let keySql = '';
@@ -314,7 +322,7 @@ export default class Database {
 		};
 	}
 
-	public static updateQuery(tableName: string, data: Record<string, any>, where: string | Record<string, any>) {
+	public static updateQuery(tableName: string, data: Record<string, any>, where: string | Record<string, any>): { sql: string; params: any[]; } {
 		if (!data || !Object.keys(data).length) throw new Error('Data is empty');
 
 		let sql = '';
@@ -343,7 +351,7 @@ export default class Database {
 		};
 	}
 
-	public alterColumnQueries(tableName: string, fields: Record<string, string>) {
+	public alterColumnQueries(tableName: string, fields: Record<string, string>): string[] {
 		const fieldsNoType = [];
 		for (const n in fields) {
 			if (!fields.hasOwnProperty(n)) continue;
@@ -373,7 +381,7 @@ export default class Database {
 		return sql.trim().split('\n');
 	}
 
-	public wrapQueries(queries: any[]) {
+	public wrapQueries(queries: any[]): SqlQuery[] {
 		const output = [];
 		for (let i = 0; i < queries.length; i++) {
 			output.push(this.wrapQuery(queries[i]));
@@ -381,7 +389,7 @@ export default class Database {
 		return output;
 	}
 
-	public wrapQuery(sql: any, params: SqlParams = null): SqlQuery {
+	public wrapQuery(sql: any, params: SqlParams = []): SqlQuery {
 		if (!sql) throw new Error(`Cannot wrap empty string: ${sql}`);
 
 		if (Array.isArray(sql)) {

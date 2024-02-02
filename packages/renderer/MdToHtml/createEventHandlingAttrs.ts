@@ -37,7 +37,7 @@ const clearLongPressTimeoutFnString = `() => {
 }`;
 
 // Helper for createEventHandlingAttrs. Exported to facilitate testing.
-export const createEventHandlingListeners = (resourceId: string, options: Options, onClickAction: string|null) => {
+export const createEventHandlingListeners = (resourceId: string, options: Options, onClickAction: string | null) => {
 	const eventHandlers = {
 		ontouchstart: '',
 		ontouchmove: '',
@@ -79,7 +79,7 @@ export const createEventHandlingListeners = (resourceId: string, options: Option
 
 // Adds event-handling (e.g. long press) code to images and links.
 // resourceId is the ID of the image resource or link.
-const createEventHandlingAttrs = (resourceId: string, options: Options, onClickAction: string|null) => {
+const createEventHandlingAttrs = (resourceId: string, options: Options, onClickAction: string | null): string => {
 	const eventHandlers = createEventHandlingListeners(resourceId, options, onClickAction);
 
 	// Build onfoo="listener" strings and add them to the result.

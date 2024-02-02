@@ -9,7 +9,7 @@ const promptRestoreAutosave = async (onRestoreAutosave: RestoreAutosaveCallback)
 	const autosavePath = getAutosaveFilepath();
 
 	if (await shim.fsDriver().exists(autosavePath)) {
-		const title: string|null = null;
+		const title: string = '';
 		const message = _(
 			'An autosaved drawing was found. Attach a copy of it to the note?',
 		);
@@ -27,7 +27,7 @@ const promptRestoreAutosave = async (onRestoreAutosave: RestoreAutosaveCallback)
 					const autosaveData = await readAutosave();
 					await clearAutosave();
 
-					onRestoreAutosave(autosaveData);
+					if (autosaveData) onRestoreAutosave(autosaveData);
 				},
 			},
 		]);

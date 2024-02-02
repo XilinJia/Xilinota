@@ -8,7 +8,7 @@ const outputDir = `${rootDir}/pluginAssets`;
 const walk = function(dir) {
 	let results = [];
 	const list = fs.readdirSync(dir);
-	// eslint-disable-next-line github/array-foreach -- Old code before rule was applied
+	 
 	list.forEach((file) => {
 		file = `${dir}/${file}`;
 		const stat = fs.statSync(file);
@@ -55,7 +55,7 @@ async function main() {
 			const files = walk(sourceAssetDir);
 
 			for (const file of files) {
-				const destFile = file.substr(sourceAssetDir.length + 1);
+				const destFile = file.substring(sourceAssetDir.length + 1);
 				encodedFiles.push(await encodeFile(file, destFile));
 			}
 

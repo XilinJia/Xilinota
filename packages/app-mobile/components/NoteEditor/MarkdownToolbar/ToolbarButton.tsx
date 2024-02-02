@@ -1,4 +1,4 @@
-import React = require('react');
+import React from 'react';
 import { useCallback } from 'react';
 import { Text, TextStyle } from 'react-native';
 import { ButtonSpec, StyleSheetData } from './types';

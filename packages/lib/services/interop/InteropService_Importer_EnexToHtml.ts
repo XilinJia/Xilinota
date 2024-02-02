@@ -2,7 +2,7 @@ import { ImportExportResult } from './types';
 import InteropService_Importer_Base from './InteropService_Importer_Base';
 import Folder from '../../models/Folder';
 import importEnex from '../../import-enex';
-const { filename } = require('../../path-utils');
+import { filename } from '../../path-utils';
 
 export default class InteropService_Importer_EnexToHtml extends InteropService_Importer_Base {
 	public async exec(result: ImportExportResult): Promise<ImportExportResult> {

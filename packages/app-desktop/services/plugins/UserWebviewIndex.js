@@ -2,7 +2,7 @@
 const webviewApiPromises_ = {};
 let viewMessageHandler_ = () => {};
 
-// eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
+
 const webviewApi = {
 	postMessage: function(message) {
 		const messageId = `userWebview_${Date.now()}${Math.random()}`;
@@ -87,7 +87,7 @@ const webviewApi = {
 				// console.debug('UserWebviewIndex: setting html to', args.html);
 
 				window.requestAnimationFrame(() => {
-					// eslint-disable-next-line no-console
+					
 					console.debug('UserWebviewIndex: setting html callback', args.hash);
 					window.postMessage({ target: 'UserWebview', message: 'htmlIsSet', hash: args.hash }, '*');
 				});
@@ -156,7 +156,7 @@ const webviewApi = {
 			if (!ipc[callName]) {
 				console.warn('Missing IPC function:', event.data);
 			} else {
-				// eslint-disable-next-line no-console
+				
 				console.debug('UserWebviewIndex: Got message', callName, args);
 				ipc[callName](args);
 			}
@@ -168,7 +168,7 @@ const webviewApi = {
 		// Need to send it with a delay to make sure all listeners are
 		// ready when the message is sent.
 		window.requestAnimationFrame(() => {
-			// eslint-disable-next-line no-console
+			
 			console.debug('UserWebViewIndex: calling isReady');
 			window.postMessage({ target: 'UserWebview', message: 'ready' }, '*');
 		});

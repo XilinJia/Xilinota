@@ -1,7 +1,7 @@
 import Logger from '@xilinota/utils/Logger';
 import shim from '../../shim';
 import { PluginManifest } from './utils/types';
-const md5 = require('md5');
+import md5 from 'md5';
 import { compareVersions } from 'compare-versions';
 
 const logger = Logger.create('RepositoryApi');
@@ -57,10 +57,10 @@ export default class RepositoryApi {
 	// Later on, other repo types could be supported.
 	private baseUrl_: string;
 	private tempDir_: string;
-	private release_: Release = null;
-	private manifests_: PluginManifest[] = null;
-	private githubApiUrl_: string;
-	private contentBaseUrl_: string;
+	private release_: Release | null = null;
+	private manifests_: PluginManifest[] = [];
+	private githubApiUrl_: string = '';
+	private contentBaseUrl_: string = '';
 	private isUsingDefaultContentUrl_ = true;
 
 	public constructor(baseUrl: string, tempDir: string) {
@@ -95,7 +95,7 @@ export default class RepositoryApi {
 				return m;
 			});
 		} catch (error) {
-			throw new Error(`Could not parse JSON: ${error.message}`);
+			throw new Error(`Could not parse JSON: ${(error as Error).message}`);
 		}
 	}
 
@@ -194,7 +194,7 @@ export default class RepositoryApi {
 		if (!manifest) throw new Error(`No manifest for plugin ID "${pluginId}"`);
 
 		const fileUrl = this.assetFileUrl(manifest.id); // this.repoFileUrl(`plugins/${manifest.id}/plugin.jpl`);
-		const hash = md5(Date.now() + Math.random());
+		const hash = md5(Date.now().toString() + Math.random());
 		const targetPath = `${this.tempDir_}/${hash}_${manifest.id}.jpl`;
 
 		if (this.isLocalRepo) {

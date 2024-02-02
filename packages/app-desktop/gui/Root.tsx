@@ -10,9 +10,8 @@ import { themeStyle } from '@xilinota/lib/theme';
 import { Size } from './ResizableLayout/utils/types';
 import MenuBar from './MenuBar';
 import { _ } from '@xilinota/lib/locale';
-const React = require('react');
-const { createRoot } = require('react-dom/client');
-const { connect, Provider } = require('react-redux');
+import React from 'react';
+import { connect, Provider } from 'react-redux';
 import Setting from '@xilinota/lib/models/Setting';
 import shim from '@xilinota/lib/shim';
 import ClipperServer from '@xilinota/lib/ClipperServer';
@@ -25,21 +24,23 @@ import EditFolderDialog from './EditFolderDialog/Dialog';
 import PdfViewer from './PdfViewer';
 import StyleSheetContainer from './StyleSheets/StyleSheetContainer';
 import ImportScreen from './ImportScreen';
-const { ResourceScreen } = require('./ResourceScreen.js');
+import ResourceScreen from './ResourceScreen';
 import Navigator from './Navigator';
 import WelcomeUtils from '@xilinota/lib/WelcomeUtils';
-const { ThemeProvider, StyleSheetManager, createGlobalStyle } = require('styled-components');
+import { ThemeProvider, StyleSheetManager, createGlobalStyle } from 'styled-components';
+
+const { createRoot } = require('react-dom/client');
 const bridge = require('@electron/remote').require('./bridge').default;
 
 interface Props {
 	themeId: number;
 	appState: string;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	dispatch: Function;
 	size: Size;
 	zoomFactor: number;
 	needApiAuth: boolean;
 	dialogs: AppStateDialog[];
+	profileConfigCurrentProfileId: string;
 }
 
 interface ModalDialogProps {
@@ -52,35 +53,34 @@ interface ModalDialogProps {
 interface RegisteredDialogProps {
 	themeId: number;
 	key: string;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	dispatch: Function;
 }
 
 interface RegisteredDialog {
-	render: (props: RegisteredDialogProps, customProps: any)=> any;
+	render: (props: RegisteredDialogProps, customProps: any) => React.JSX.Element;
 }
 
 const registeredDialogs: Record<string, RegisteredDialog> = {
 	syncWizard: {
-		render: (props: RegisteredDialogProps, customProps: any) => {
-			return <SyncWizardDialog key={props.key} dispatch={props.dispatch} themeId={props.themeId} {...customProps}/>;
+		render: (props: RegisteredDialogProps, customProps: any): React.JSX.Element => {
+			return <SyncWizardDialog key={props.key} dispatch={props.dispatch} themeId={props.themeId} {...customProps} />;
 		},
 	},
 
 	masterPassword: {
-		render: (props: RegisteredDialogProps, customProps: any) => {
-			return <MasterPasswordDialog key={props.key} dispatch={props.dispatch} themeId={props.themeId} {...customProps}/>;
+		render: (props: RegisteredDialogProps, customProps: any): React.JSX.Element => {
+			return <MasterPasswordDialog key={props.key} dispatch={props.dispatch} themeId={props.themeId} {...customProps} />;
 		},
 	},
 
 	editFolder: {
-		render: (props: RegisteredDialogProps, customProps: any) => {
-			return <EditFolderDialog key={props.key} dispatch={props.dispatch} themeId={props.themeId} {...customProps}/>;
+		render: (props: RegisteredDialogProps, customProps: any): React.JSX.Element => {
+			return <EditFolderDialog key={props.key} dispatch={props.dispatch} themeId={props.themeId} {...customProps} />;
 		},
 	},
 	pdfViewer: {
-		render: (props: RegisteredDialogProps, customProps: any) => {
-			return <PdfViewer key={props.key} dispatch={props.dispatch} themeId={props.themeId} {...customProps}/>;
+		render: (props: RegisteredDialogProps, customProps: any): React.JSX.Element => {
+			return <PdfViewer key={props.key} dispatch={props.dispatch} themeId={props.themeId} {...customProps} />;
 		},
 	},
 };
@@ -97,9 +97,9 @@ const GlobalStyle = createGlobalStyle`
 	*/
 `;
 
-let wcsTimeoutId_: any = null;
+let wcsTimeoutId_: string | number | null = null;
 
-async function initialize() {
+async function initialize(): Promise<void> {
 	bridge().window().on('resize', () => {
 		if (wcsTimeoutId_) shim.clearTimeout(wcsTimeoutId_);
 
@@ -128,7 +128,8 @@ async function initialize() {
 }
 
 class RootComponent extends React.Component<Props, any> {
-	public async componentDidMount() {
+
+	public async componentDidMount(): Promise<void> {
 		if (this.props.appState === 'starting') {
 			this.props.dispatch({
 				type: 'APP_STATE_SET',
@@ -146,13 +147,13 @@ class RootComponent extends React.Component<Props, any> {
 		await WelcomeUtils.install(Setting.value('locale'), this.props.dispatch);
 	}
 
-	private renderModalMessage(props: ModalDialogProps) {
+	private renderModalMessage(props: ModalDialogProps | null): React.JSX.Element | null {
 		if (!props) return null;
 
 		const renderContent = () => {
 			return (
 				<div>
-					<DialogTitle title={_('Confirmation')}/>
+					<DialogTitle title={_('Confirmation')} />
 					<p>{props.message}</p>
 					<DialogButtonRow
 						themeId={props.themeId}
@@ -165,15 +166,15 @@ class RootComponent extends React.Component<Props, any> {
 			);
 		};
 
-		return <Dialog renderContent={renderContent}/>;
+		return <Dialog renderContent={renderContent} />;
 	}
 
-	private modalDialogProps(): ModalDialogProps {
+	private modalDialogProps(): ModalDialogProps | null {
 		if (!this.props.needApiAuth) return null;
 
 		let message = '';
 		const buttonSpecs: ButtonSpec[] = [];
-		let onClick: ClickEventHandler = null;
+		let onClick: ClickEventHandler;
 
 		if (this.props.needApiAuth) {
 			message = _('The Web Clipper needs your authorisation to access your data.');
@@ -194,12 +195,12 @@ class RootComponent extends React.Component<Props, any> {
 		};
 	}
 
-	private renderDialogs() {
+	private renderDialogs(): React.JSX.Element[] | null {
 		const props: Props = this.props;
 
 		if (!props.dialogs.length) return null;
 
-		const output: any[] = [];
+		const output: React.JSX.Element[] = [];
 		for (const dialog of props.dialogs) {
 			const md = registeredDialogs[dialog.name];
 			if (!md) throw new Error(`Unknown dialog: ${dialog.name}`);
@@ -212,7 +213,7 @@ class RootComponent extends React.Component<Props, any> {
 		return output;
 	}
 
-	public render() {
+	public render(): React.JSX.Element {
 		const navigatorStyle = {
 			width: this.props.size.width / this.props.zoomFactor,
 			height: this.props.size.height / this.props.zoomFactor,
@@ -231,11 +232,15 @@ class RootComponent extends React.Component<Props, any> {
 		};
 
 		return (
-			<StyleSheetManager disableVendorPrefixes>
+			// disableVendorPrefixes not exist
+			// <StyleSheetManager disableVendorPrefixes>
+			<StyleSheetManager>
 				<ThemeProvider theme={theme}>
 					<StyleSheetContainer themeId={this.props.themeId}></StyleSheetContainer>
-					<MenuBar/>
-					<GlobalStyle/>
+					<MenuBar />
+					<GlobalStyle />
+					{/* style doesn't exist?? */}
+					{/* <Navigator style={navigatorStyle} screens={screens} className={`profile-${this.props.profileConfigCurrentProfileId}`} /> */}
 					<Navigator style={navigatorStyle} screens={screens} className={`profile-${this.props.profileConfigCurrentProfileId}`} />
 					{this.renderModalMessage(this.modalDialogProps())}
 					{this.renderDialogs()}
@@ -253,7 +258,7 @@ const mapStateToProps = (state: AppState) => {
 		themeId: state.settings.theme,
 		needApiAuth: state.needApiAuth,
 		dialogs: state.dialogs,
-		profileConfigCurrentProfileId: state.profileConfig.currentProfileId,
+		profileConfigCurrentProfileId: state.profileConfig ? state.profileConfig.currentProfileId : 'default',
 	};
 };
 

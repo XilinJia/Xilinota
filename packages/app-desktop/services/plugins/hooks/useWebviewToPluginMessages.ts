@@ -1,7 +1,7 @@
 import PostMessageService, { MessageResponse, ResponderComponentType } from '@xilinota/lib/services/PostMessageService';
 import { useEffect } from 'react';
 
-// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
+
 export default function(frameWindow: any, isReady: boolean, pluginId: string, viewId: string, postMessage: Function) {
 	useEffect(() => {
 		PostMessageService.instance().registerResponder(ResponderComponentType.UserWebview, viewId, (message: MessageResponse) => {
@@ -11,11 +11,11 @@ export default function(frameWindow: any, isReady: boolean, pluginId: string, vi
 		return () => {
 			PostMessageService.instance().unregisterResponder(ResponderComponentType.UserWebview, viewId);
 		};
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [viewId]);
 
 	useEffect(() => {
-		if (!frameWindow) return () => {};
+		if (!frameWindow) return () => { };
 
 		function onMessage_(event: any) {
 
@@ -41,6 +41,6 @@ export default function(frameWindow: any, isReady: boolean, pluginId: string, vi
 		return () => {
 			if (frameWindow?.removeEventListener) frameWindow.removeEventListener('message', onMessage_);
 		};
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [frameWindow, isReady, pluginId, viewId]);
 }

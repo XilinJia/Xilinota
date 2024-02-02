@@ -3,7 +3,6 @@ import shim from '@xilinota/lib/shim';
 
 interface HookDependencies {
 	editor: any;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	onScroll: Function;
 }
 
@@ -60,7 +59,7 @@ export default function useScroll(dependencies: HookDependencies) {
 	}, [scheduleOnScroll, scrollPercent]);
 
 	useEffect(() => {
-		if (!editor) return () => {};
+		if (!editor) return () => { };
 
 		editor.getDoc().addEventListener('scroll', onEditorScroll);
 		return () => {

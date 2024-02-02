@@ -1,15 +1,5 @@
 {
 	"extends": "../../tsconfig.json",
-	"compilerOptions": {
-		// "baseUrl": "./",
-		// "rootDir": "./",
-		// "outDir": "./dist",
-		// "paths": {
-		// 	"@xilinota/lib/*": [
-		// 		"./dist/lib/*"
-		// 	],
-		// }
-	},
 	"include": [
 		"**/*.ts",
 		"**/*.tsx",
@@ -17,5 +7,5 @@
 	"exclude": [
 		"**/node_modules",
 		"**/plugin_types",
-	],
+	]
 }

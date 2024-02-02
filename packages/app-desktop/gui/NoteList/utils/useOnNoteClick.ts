@@ -13,7 +13,7 @@ const useOnNoteClick = (dispatch: Dispatch, focusNote: FocusNote) => {
 		// should be handled by the checkbox onChange handler.
 		if (['INPUT'].includes(targetTagName)) return;
 
-		focusNote(noteId);
+		if (noteId) focusNote(noteId);
 
 		if (event.ctrlKey || event.metaKey) {
 			event.preventDefault();

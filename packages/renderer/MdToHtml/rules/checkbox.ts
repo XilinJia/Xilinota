@@ -75,8 +75,10 @@ function createPrefixTokens(Token: any, id: string, checked: boolean, label: str
 
 			${postMessageSyntax}('checkboxclick:${checkedString}:${lineIndex}');
 			const label = document.getElementById("${labelId}");
-			label.classList.remove(this.checked ? 'checkbox-label-unchecked' : 'checkbox-label-checked');
-			label.classList.add(this.checked ? 'checkbox-label-checked' : 'checkbox-label-unchecked');
+			if (label) {
+				label.classList.remove(this.checked ? 'checkbox-label-unchecked' : 'checkbox-label-checked');
+				label.classList.add(this.checked ? 'checkbox-label-checked' : 'checkbox-label-unchecked');
+			}
 		} catch (error) {
 			console.warn('Checkbox ${checkedString}:${lineIndex} error', error);
 		}

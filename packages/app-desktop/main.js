@@ -9,6 +9,12 @@ const FsDriverNode = require('@xilinota/lib/fs-driver-node').default;
 const envFromArgs = require('@xilinota/lib/envFromArgs');
 const packageInfo = require('./packageInfo.js');
 const { isCallbackUrl } = require('@xilinota/lib/callbackUrlUtils');
+const unhandled = require('electron-unhandled');
+
+const log = require('electron-log/main');
+
+log.initialize();
+// log.info('main.js starting');
 
 // Electron takes the application name from package.json `name` and
 // displays this in the tray icon toolip and message box titles, however in
@@ -16,6 +22,8 @@ const { isCallbackUrl } = require('@xilinota/lib/callbackUrlUtils');
 // check the productName key but is not doing it, so here set the
 // application name to the right string.
 electronApp.name = packageInfo.name;
+
+unhandled();
 
 process.on('unhandledRejection', (reason, p) => {
 	console.error('Unhandled promise rejection', p, 'reason:', reason);
@@ -32,21 +40,27 @@ function profileFromArgs(args) {
 	return profileValue ? profileValue : null;
 }
 
-Logger.fsDriver_ = new FsDriverNode();
+try {
+	Logger.fsDriver_ = new FsDriverNode();
 
-const env = envFromArgs(process.argv);
-const profilePath = profileFromArgs(process.argv);
-const isDebugMode = !!process.argv && process.argv.indexOf('--debug') >= 0;
+	const env = envFromArgs(process.argv);
+	const profilePath = profileFromArgs(process.argv);
+	// electron: [DEP0062]: `node --debug` and `node --debug-brk` are invalid. Please use `node --inspect` and `node --inspect-brk` instead
+	const isDebugMode = !!process.argv && (process.argv.indexOf('--debug') >= 0 || process.argv.indexOf('--inspect') >= 0);
 
-electronApp.setAsDefaultProtocolClient('xilinota');
+	electronApp.setAsDefaultProtocolClient('xilinota');
 
-const initialCallbackUrl = process.argv.find((arg) => isCallbackUrl(arg));
+	const initialCallbackUrl = process.argv.find((arg) => isCallbackUrl(arg));
 
-const wrapper = new ElectronAppWrapper(electronApp, env, profilePath, isDebugMode, initialCallbackUrl);
+	const wrapper = new ElectronAppWrapper(electronApp, env, profilePath, isDebugMode, initialCallbackUrl);
 
-initBridge(wrapper);
+	initBridge(wrapper);
 
-wrapper.start().catch((error) => {
-	console.error('Electron App fatal error:');
-	console.error(error);
-});
+	wrapper.start().catch((error) => {
+		console.error('Electron App fatal error:');
+		console.error(error);
+	});
+
+} catch (e) {
+	log.error('Log from the main.js', e);
+}

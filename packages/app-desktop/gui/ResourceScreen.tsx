@@ -2,10 +2,11 @@ import * as React from 'react';
 import ButtonBar from './ConfigScreen/ButtonBar';
 import { _ } from '@xilinota/lib/locale';
 
-const { connect } = require('react-redux');
-const { themeStyle } = require('@xilinota/lib/theme');
+import { connect } from 'react-redux';
+import { themeStyle } from '@xilinota/lib/theme';
 const bridge = require('@electron/remote').require('./bridge').default;
 const prettyBytes = require('pretty-bytes');
+
 import Resource from '@xilinota/lib/models/Resource';
 
 interface Style {
@@ -16,7 +17,6 @@ interface Style {
 interface Props {
 	themeId: number;
 	style: Style;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	dispatch: Function;
 }
 
@@ -36,9 +36,9 @@ interface State {
 interface ResourceTable {
 	resources: InnerResource[];
 	sorting: ActiveSorting;
-	onResourceClick: (resource: InnerResource)=> any;
-	onResourceDelete: (resource: InnerResource)=> any;
-	onToggleSorting: (order: SortingOrder)=> any;
+	onResourceClick: (resource: InnerResource) => any;
+	onResourceDelete: (resource: InnerResource) => any;
+	onToggleSorting: (order: SortingOrder) => any;
 	themeId: number;
 	style: Style;
 }
@@ -86,6 +86,7 @@ const ResourceTableComp = (props: ResourceTable) => {
 		fontWeight: 'bold',
 	};
 
+	// const prettyBytes = await import('pretty-bytes');
 	return (
 		<table style={{ width: '100%' }}>
 			<thead>
@@ -120,8 +121,8 @@ const ResourceTableComp = (props: ResourceTable) => {
 
 const getSortingOrderColumn = (s: SortingOrder): string => {
 	switch (s) {
-	case 'name': return 'title';
-	case 'size': return 'size';
+		case 'name': return 'title';
+		case 'size': return 'size';
 	}
 };
 
@@ -158,7 +159,7 @@ class ResourceScreenComponent extends React.Component<Props, State> {
 			}],
 			limit: MAX_RESOURCES,
 			fields: ['title', 'id', 'size', 'file_extension'],
-		});
+		}) as InnerResource[];
 		this.setState({ resources, isLoading: false });
 	}
 
@@ -175,11 +176,11 @@ class ResourceScreenComponent extends React.Component<Props, State> {
 			return;
 		}
 		Resource.delete(resource.id)
-		// eslint-disable-next-line promise/prefer-await-to-then -- Old code before rule was applied
+
 			.catch((error: Error) => {
 				bridge().showErrorMessageBox(error.message);
 			})
-		// eslint-disable-next-line promise/prefer-await-to-then -- Old code before rule was applied
+
 			.finally(() => {
 				void this.reloadResources(this.state.sorting);
 			});
@@ -266,4 +267,6 @@ const mapStateToProps = (state: any) => ({
 
 const ResourceScreen = connect(mapStateToProps)(ResourceScreenComponent);
 
-module.exports = { ResourceScreen };
+export default ResourceScreen;
+
+// module.exports = { ResourceScreen };

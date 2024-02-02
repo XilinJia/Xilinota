@@ -137,7 +137,7 @@ const hasCompatibleStyle = function (dom, sib, detail) {
   const sibStyle = dom.getStyle(sib, 'list-style-type');
   let detailStyle = detail ? detail['list-style-type'] : '';
 
-  detailStyle = detailStyle === null ? '' : detailStyle;
+  detailStyle = !detailStyle ? '' : detailStyle;
 
   return sibStyle === detailStyle;
 };

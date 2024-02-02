@@ -1,23 +1,23 @@
 // Helper functions to reduce the boiler plate of loading and saving profiles on
 // mobile
 
-const RNExitApp = require('react-native-exit-app').default;
+import RNExitApp from 'react-native-exit-app';
 import { Profile, ProfileConfig } from '@xilinota/lib/services/profileConfig/types';
 import { loadProfileConfig as libLoadProfileConfig, saveProfileConfig as libSaveProfileConfig } from '@xilinota/lib/services/profileConfig/index';
 import RNFetchBlob from 'rn-fetch-blob';
 
-// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-let dispatch_: Function = null;
-// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-export const setDispatch = (dispatch: Function) => {
+
+let dispatch_: Function | null = null;
+
+export const setDispatch = (dispatch: Function): void => {
 	dispatch_ = dispatch;
 };
 
-export const getProfilesRootDir = () => {
+export const getProfilesRootDir = (): string => {
 	return RNFetchBlob.fs.dirs.DocumentDir;
 };
 
-export const getProfilesConfigPath = () => {
+export const getProfilesConfigPath = (): string => {
 	return `${getProfilesRootDir()}/profiles.json`;
 };
 
@@ -27,24 +27,24 @@ export const getProfilesConfigPath = () => {
 // };
 
 // The suffix is for debugging only
-export const getDatabaseName = (profile: Profile, isSubProfile: boolean, suffix = '') => {
+export const getDatabaseName = (profile: Profile, isSubProfile: boolean, suffix = ''): string => {
 	if (!isSubProfile) return `xilinota${suffix}.sqlite`;
 	return `xilinota-${profile.id}${suffix}.sqlite`;
 };
 
-export const loadProfileConfig = async () => {
+export const loadProfileConfig = async (): Promise<ProfileConfig> => {
 	return libLoadProfileConfig(getProfilesConfigPath());
 };
 
-export const saveProfileConfig = async (profileConfig: ProfileConfig) => {
+export const saveProfileConfig = async (profileConfig: ProfileConfig): Promise<void> => {
 	await libSaveProfileConfig(getProfilesConfigPath(), profileConfig);
-	dispatch_({
+	if (dispatch_) dispatch_({
 		type: 'PROFILE_CONFIG_SET',
 		value: profileConfig,
 	});
 };
 
-export const switchProfile = async (profileId: string) => {
+export const switchProfile = async (profileId: string): Promise<void> => {
 	const config = await loadProfileConfig();
 	if (config.currentProfileId === profileId) throw new Error('This profile is already active');
 

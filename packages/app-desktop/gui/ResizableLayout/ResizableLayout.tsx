@@ -9,32 +9,31 @@ import { canMove, MoveDirection } from './utils/movements';
 import MoveButtons, { MoveButtonClickEvent } from './MoveButtons';
 import { StyledWrapperRoot, StyledMoveOverlay, MoveModeRootWrapper, MoveModeRootMessage } from './utils/style';
 import { Resizable } from 're-resizable';
-const EventEmitter = require('events');
+import EventEmitter from 'events';
 
 interface OnResizeEvent {
 	layout: LayoutItem;
 }
 
 interface Props {
-	layout: LayoutItem;
+	layout: LayoutItem | null;	// can be null coming from react dom 
 	onResize(event: OnResizeEvent): void;
 	width?: number;
 	height?: number;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	renderItem: Function;
 	onMoveButtonClick(event: MoveButtonClickEvent): void;
 	moveMode: boolean;
 	moveModeMessage: string;
 }
 
-function itemVisible(item: LayoutItem, moveMode: boolean) {
+function itemVisible(item: LayoutItem, moveMode: boolean): boolean {
 	if (moveMode) return true;
 	if (item.children && !item.children.length) return false;
 	return item.visible !== false;
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-function renderContainer(item: LayoutItem, parent: LayoutItem | null, sizes: LayoutItemSizes, resizedItemMaxSize: Size | null, onResizeStart: Function, onResize: Function, onResizeStop: Function, children: any[], isLastChild: boolean, moveMode: boolean): any {
+
+function renderContainer(item: LayoutItem, parent: LayoutItem | null, sizes: LayoutItemSizes, resizedItemMaxSize: Size | null, onResizeStart: Function, onResize: Function, onResizeStop: Function, children: any[], isLastChild: boolean, moveMode: boolean): React.JSX.Element {
 	const style: any = {
 		display: itemVisible(item, moveMode) ? 'flex' : 'none',
 		flexDirection: item.direction,
@@ -82,10 +81,10 @@ function renderContainer(item: LayoutItem, parent: LayoutItem | null, sizes: Lay
 	}
 }
 
-function ResizableLayout(props: Props) {
+function ResizableLayout(props: Props): React.JSX.Element | null {
 	const eventEmitter = useRef(new EventEmitter());
 
-	const [resizedItem, setResizedItem] = useState<any>(null);
+	const [resizedItem, setResizedItem] = useState<any>();
 
 	function renderItemWrapper(comp: any, item: LayoutItem, parent: LayoutItem | null, size: Size, moveMode: boolean) {
 		const moveOverlay = moveMode ? (
@@ -93,10 +92,10 @@ function ResizableLayout(props: Props) {
 				<MoveButtons
 					itemKey={item.key}
 					onClick={props.onMoveButtonClick}
-					canMoveLeft={canMove(MoveDirection.Left, item, parent)}
-					canMoveRight={canMove(MoveDirection.Right, item, parent)}
-					canMoveUp={canMove(MoveDirection.Up, item, parent)}
-					canMoveDown={canMove(MoveDirection.Down, item, parent)}
+					canMoveLeft={!!parent && canMove(MoveDirection.Left, item, parent)}
+					canMoveRight={!!parent && canMove(MoveDirection.Right, item, parent)}
+					canMoveUp={!!parent && canMove(MoveDirection.Up, item, parent)}
+					canMoveDown={!!parent && canMove(MoveDirection.Down, item, parent)}
 				/>
 			</StyledMoveOverlay>
 		) : null;
@@ -109,17 +108,17 @@ function ResizableLayout(props: Props) {
 		);
 	}
 
-	function renderLayoutItem(item: LayoutItem, parent: LayoutItem | null, sizes: LayoutItemSizes, isVisible: boolean, isLastChild: boolean): any {
-		function onResizeStart() {
+	function renderLayoutItem(item: LayoutItem, parent: LayoutItem | null, sizes: LayoutItemSizes, isVisible: boolean, isLastChild: boolean): React.JSX.Element {
+		function onResizeStart(): void {
 			setResizedItem({
 				key: item.key,
 				initialWidth: sizes[item.key].width,
 				initialHeight: sizes[item.key].height,
-				maxSize: calculateMaxSizeAvailableForItem(item, parent, sizes),
+				maxSize: parent ? calculateMaxSizeAvailableForItem(item, parent, sizes) : 10,
 			});
 		}
 
-		function onResize(_event: any, direction: string, _refToElement: any, delta: any) {
+		function onResize(_event: any, direction: string, _refToElement: any, delta: any): void {
 			const newWidth = Math.max(itemMinWidth, resizedItem.initialWidth + delta.width);
 			const newHeight = Math.max(itemMinHeight, resizedItem.initialHeight + delta.height);
 
@@ -134,13 +133,14 @@ function ResizableLayout(props: Props) {
 				newSize.width = newWidth;
 			}
 
-			const newLayout = setLayoutItemProps(props.layout, item.key, newSize);
-
-			props.onResize({ layout: newLayout });
+			if (props.layout) {
+				const newLayout = setLayoutItemProps(props.layout, item.key, newSize);
+				props.onResize({ layout: newLayout });
+			}
 			eventEmitter.current.emit('resize');
 		}
 
-		function onResizeStop(_event: any, _direction: any, _refToElement: any, delta: any) {
+		function onResizeStop(_event: any, _direction: string, _refToElement: any, delta: any): void {
 			onResize(_event, _direction, _refToElement, delta);
 			setResizedItem(null);
 		}
@@ -171,13 +171,13 @@ function ResizableLayout(props: Props) {
 	}
 
 	useEffect(() => {
-		validateLayout(props.layout);
+		if (props.layout) validateLayout(props.layout);
 	}, [props.layout]);
 
 	useWindowResizeEvent(eventEmitter);
 	const sizes = useLayoutItemSizes(props.layout, props.moveMode);
 
-	function renderMoveModeBox(rootComp: any) {
+	function renderMoveModeBox(rootComp: React.JSX.Element): React.JSX.Element {
 		return (
 			<MoveModeRootWrapper>
 				<MoveModeRootMessage>{props.moveModeMessage}</MoveModeRootMessage>
@@ -186,13 +186,17 @@ function ResizableLayout(props: Props) {
 		);
 	}
 
-	const rootComp = renderLayoutItem(props.layout, null, sizes, itemVisible(props.layout, props.moveMode), true);
+	if (props.layout) {
+		const rootComp = renderLayoutItem(props.layout, null, sizes, itemVisible(props.layout, props.moveMode), true);
 
-	if (props.moveMode) {
-		return renderMoveModeBox(rootComp);
-	} else {
-		return rootComp;
+		if (props.moveMode) {
+			return renderMoveModeBox(rootComp);
+		} else {
+			return rootComp;
+		}
 	}
+
+	return null;
 }
 
 export default ResizableLayout;

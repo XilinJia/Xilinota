@@ -1,6 +1,7 @@
 import Logger from '@xilinota/utils/Logger';
 import shim from '../../shim';
-import Setting from '../Setting';
+import BaseItem from '../BaseItem';
+// import Setting from '../Setting';
 
 const logger = Logger.create('Settings');
 
@@ -9,7 +10,7 @@ export type SettingValues = Record<string, any>;
 export default class FileHandler {
 
 	private filePath_: string;
-	private valueJsonCache_: string = null;
+	private valueJsonCache_: string = '';
 
 	public constructor(filePath: string) {
 		this.filePath_ = filePath;
@@ -39,7 +40,9 @@ export default class FileHandler {
 		}
 	}
 
-	public async save(values: SettingValues) {
+	public async save(values: SettingValues) : Promise<void> {
+		const Setting = BaseItem.getClass('Setting');
+
 		const json = `${JSON.stringify({
 			'$schema': Setting.schemaUrl,
 			...values,

@@ -34,9 +34,9 @@ function formatShareInvitations(invitations: any[]): ShareInvitation[] {
 export default class ShareService {
 
 	private static instance_: ShareService;
-	private api_: XilinotaServerApi = null;
-	private store_: Store<any> = null;
-	private encryptionService_: EncryptionService = null;
+	private api_: XilinotaServerApi | null = null;
+	private store_: Store<any> | null = null;
+	private encryptionService_: EncryptionService | null = null;
 	private initialized_ = false;
 
 	public static instance(): ShareService {
@@ -45,7 +45,7 @@ export default class ShareService {
 		return this.instance_;
 	}
 
-	public initialize(store: Store<any>, encryptionService: EncryptionService, api: XilinotaServerApi = null) {
+	public initialize(store: Store<any>, encryptionService: EncryptionService, api: XilinotaServerApi | null = null) {
 		this.initialized_ = true;
 		this.store_ = store;
 		this.encryptionService_ = encryptionService;
@@ -57,12 +57,12 @@ export default class ShareService {
 		return [9, 10].includes(Setting.value('sync.target')); // Xilinota Server, Joplin Cloud targets
 	}
 
-	private get store(): Store<any> {
+	private get store(): Store<any> | null {
 		return this.store_;
 	}
 
 	public get state(): State {
-		return this.store.getState()[stateRootKey] as State;
+		return this.store?.getState()[stateRootKey] as State;
 	}
 
 	public get userId(): string {
@@ -88,9 +88,9 @@ export default class ShareService {
 		const folder = await Folder.load(folderId);
 		if (!folder) throw new Error(`No such folder: ${folderId}`);
 
-		let folderMasterKey: MasterKeyEntity = null;
+		let folderMasterKey: MasterKeyEntity | null = null;
 
-		if (getEncryptionEnabled()) {
+		if (this.encryptionService_ && getEncryptionEnabled()) {
 			const syncInfo = localSyncInfo();
 
 			// Shouldn't happen
@@ -106,7 +106,7 @@ export default class ShareService {
 		const newFolderProps: FolderEntity = {};
 
 		if (folder.parent_id) newFolderProps.parent_id = '';
-		if (folderMasterKey) newFolderProps.master_key_id = folderMasterKey.id;
+		if (folderMasterKey) newFolderProps.master_key_id = folderMasterKey.id??'';
 
 		if (Object.keys(newFolderProps).length) {
 			await Folder.save({
@@ -192,8 +192,8 @@ export default class ShareService {
 	// If `folderShareUserId` is provided, the function will check that the user
 	// does not own the share. It would be an error to leave such a folder
 	// (instead "unshareFolder" should be called).
-	public async leaveSharedFolder(folderId: string, folderShareUserId: string = null): Promise<void> {
-		if (folderShareUserId !== null) {
+	public async leaveSharedFolder(folderId: string, folderShareUserId: string = ''): Promise<void> {
+		if (folderShareUserId) {
 			const userId = Setting.value('sync.userId');
 			if (folderShareUserId === userId) throw new Error('Cannot leave own notebook');
 		}
@@ -205,7 +205,7 @@ export default class ShareService {
 		await Folder.updateAllShareIds(ResourceService.instance());
 
 		await Folder.delete(folderId, { deleteChildren: false, disableReadOnlyCheck: true });
-		await Folder.deleteAllByShareId(folder.share_id, { disableReadOnlyCheck: true, trackDeleted: false });
+		if (folder && folder.share_id) await Folder.deleteAllByShareId(folder.share_id, { disableReadOnlyCheck: true, trackDeleted: false });
 	}
 
 	// Finds any folder that is associated with a share, but the user no longer
@@ -237,7 +237,7 @@ export default class ShareService {
 				//
 				// In that case we need to leave the notebook.
 				logger.warn(`Found a folder that was associated with a share, but the user not longer has access to the share - leaving the folder. Folder: ${folder.title} (${folder.id}). Share: ${folder.share_id}`);
-				await this.leaveSharedFolder(folder.id);
+				if (folder.id) await this.leaveSharedFolder(folder.id);
 			}
 		}
 	}
@@ -292,16 +292,16 @@ export default class ShareService {
 		return `${this.api().personalizedUserContentBaseUrl(userId)}/shares/${share.id}`;
 	}
 
-	public folderShare(folderId: string): StateShare {
+	public folderShare(folderId: string): StateShare | undefined {
 		return this.shares.find(s => s.folder_id === folderId);
 	}
 
-	public isSharedFolderOwner(folderId: string, userId: string = null): boolean {
-		if (userId === null) userId = this.userId;
+	public isSharedFolderOwner(folderId: string, userId: string = ''): boolean {
+		if (!userId) userId = this.userId;
 
 		const share = this.folderShare(folderId);
 		if (!share) throw new Error(`Cannot find share associated with folder: ${folderId}`);
-		return share.user.id === userId;
+		return !!share.user && share.user.id === userId;
 	}
 
 	public get shares() {
@@ -321,9 +321,9 @@ export default class ShareService {
 	}
 
 	public async addShareRecipient(shareId: string, masterKeyId: string, recipientEmail: string, permissions: SharePermissions) {
-		let recipientMasterKey: MasterKeyEntity = null;
+		let recipientMasterKey: MasterKeyEntity | null = null;
 
-		if (getEncryptionEnabled()) {
+		if (this.encryptionService_ && getEncryptionEnabled()) {
 			const syncInfo = localSyncInfo();
 			const masterKey = syncInfo.masterKeys.find(m => m.id === masterKeyId);
 			if (!masterKey) throw new Error(`Cannot find master key with ID "${masterKeyId}"`);
@@ -369,7 +369,7 @@ export default class ShareService {
 	}
 
 	public setProcessingShareInvitationResponse(v: boolean) {
-		this.store.dispatch({
+		if (this.store) this.store.dispatch({
 			type: 'SHARE_INVITATION_RESPONSE_PROCESSING',
 			value: v,
 		});
@@ -378,12 +378,12 @@ export default class ShareService {
 	public async setPermissions(shareId: string, shareUserId: string, permissions: SharePermissions) {
 		logger.info('setPermissions: ', shareUserId, permissions);
 
-		await this.api().exec('PATCH', `api/share_users/${shareUserId}`, null, {
+		await this.api().exec('PATCH', `api/share_users/${shareUserId}`, {}, {
 			can_read: 1,
 			can_write: permissions.can_write,
 		});
 
-		this.store.dispatch({
+		if (this.store) this.store.dispatch({
 			type: 'SHARE_USER_UPDATE_ONE',
 			shareId: shareId,
 			shareUser: {
@@ -398,11 +398,12 @@ export default class ShareService {
 		logger.info('respondInvitation: ', shareUserId, accept);
 
 		if (accept) {
-			if (masterKey) {
+			const ppk = localSyncInfo().ppk;
+			if (ppk && this.encryptionService_ && masterKey) {
 				const reencryptedMasterKey = await mkReencryptFromPublicKeyToPassword(
 					this.encryptionService_,
 					masterKey,
-					localSyncInfo().ppk,
+					ppk,
 					getMasterPassword(),
 					getMasterPassword(),
 				);
@@ -412,9 +413,9 @@ export default class ShareService {
 				await MasterKey.save(reencryptedMasterKey);
 			}
 
-			await this.api().exec('PATCH', `api/share_users/${shareUserId}`, null, { status: 1 });
+			await this.api().exec('PATCH', `api/share_users/${shareUserId}`, {}, { status: 1 });
 		} else {
-			await this.api().exec('PATCH', `api/share_users/${shareUserId}`, null, { status: 2 });
+			await this.api().exec('PATCH', `api/share_users/${shareUserId}`, {}, { status: 2 });
 		}
 	}
 
@@ -424,7 +425,7 @@ export default class ShareService {
 		const invitations = formatShareInvitations(result.items);
 		logger.info('Refresh share invitations:', invitations);
 
-		this.store.dispatch({
+		if (this.store) this.store.dispatch({
 			type: 'SHARE_INVITATION_SET',
 			shareInvitations: invitations,
 		});
@@ -472,7 +473,7 @@ export default class ShareService {
 
 		logger.info('Refreshed shares:', result);
 
-		this.store.dispatch({
+		if (this.store) this.store.dispatch({
 			type: 'SHARE_SET',
 			shares: result.items,
 		});
@@ -485,7 +486,7 @@ export default class ShareService {
 
 		logger.info('Refreshed share users:', result);
 
-		this.store.dispatch({
+		if (this.store) this.store.dispatch({
 			type: 'SHARE_USER_SET',
 			shareId: shareId,
 			shareUsers: result.items,

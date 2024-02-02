@@ -4,7 +4,7 @@ import PdfDocument from '../PdfDocument';
 
 
 const usePdfDocument = (pdfPath: string) => {
-	const [pdfDocument, setPdfDocument] = useState<PdfDocument>(null);
+	const [pdfDocument, setPdfDocument] = useState<PdfDocument>();
 
 	useAsyncEffect(async (event: AsyncEffectEvent) => {
 		const pdfData = new PdfDocument(document);

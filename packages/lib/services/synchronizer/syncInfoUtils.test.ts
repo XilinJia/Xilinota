@@ -17,20 +17,20 @@ describe('syncInfoUtils', () => {
 		const mk1 = await MasterKey.save(await encryptionService().generateMasterKey('111111'));
 		const mk2 = await MasterKey.save(await encryptionService().generateMasterKey('111111'));
 
-		setMasterKeyEnabled(mk2.id, false);
+		setMasterKeyEnabled(mk2.id??'', false);
 
-		expect(masterKeyEnabled(await MasterKey.load(mk1.id))).toBe(true);
-		expect(masterKeyEnabled(await MasterKey.load(mk2.id))).toBe(false);
+		expect(masterKeyEnabled((await MasterKey.load(mk1.id??''))!)).toBe(true);
+		expect(masterKeyEnabled((await MasterKey.load(mk2.id??''))!)).toBe(false);
 
-		setMasterKeyEnabled(mk1.id, false);
+		setMasterKeyEnabled(mk1.id??'', false);
 
-		expect(masterKeyEnabled(await MasterKey.load(mk1.id))).toBe(false);
-		expect(masterKeyEnabled(await MasterKey.load(mk2.id))).toBe(false);
+		expect(masterKeyEnabled((await MasterKey.load(mk1.id??''))!)).toBe(false);
+		expect(masterKeyEnabled((await MasterKey.load(mk2.id??''))!)).toBe(false);
 
-		setMasterKeyEnabled(mk1.id, true);
+		setMasterKeyEnabled(mk1.id??'', true);
 
-		expect(masterKeyEnabled(await MasterKey.load(mk1.id))).toBe(true);
-		expect(masterKeyEnabled(await MasterKey.load(mk2.id))).toBe(false);
+		expect(masterKeyEnabled((await MasterKey.load(mk1.id??''))!)).toBe(true);
+		expect(masterKeyEnabled((await MasterKey.load(mk2.id??''))!)).toBe(false);
 	});
 
 	it('should tell if two sync info are equal', async () => {

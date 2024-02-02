@@ -3,13 +3,15 @@ import shim from './shim';
 import BaseItem from './models/BaseItem';
 import time from './time';
 
-const { isHidden } = require('./path-utils');
+import { isHidden } from './path-utils';
 import XilinotaError from './XilinotaError';
 import { Lock, LockClientType, LockType } from './services/synchronizer/LockHandler';
-import * as ArrayUtils from './ArrayUtils';
-import path = require('path');
-const { sprintf } = require('sprintf-js');
-const Mutex = require('async-mutex').Mutex;
+import { binarySearch } from './ArrayUtils';
+import path from 'path';
+import { Mutex } from 'async-mutex';
+import FsDriverBase from './fs-driver-base';
+
+import { sprintf } from 'sprintf-js';
 
 const logger = Logger.create('FileApi');
 
@@ -42,7 +44,7 @@ export interface PaginatedList {
 	context: any;
 }
 
-function requestCanBeRepeated(error: any) {
+function requestCanBeRepeated(error: any): boolean {
 	const errorCode = typeof error === 'object' && error.code ? error.code : null;
 
 	// Unauthorized/forbidden error - means username or password is incorrect or other
@@ -61,7 +63,7 @@ function requestCanBeRepeated(error: any) {
 	return true;
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
+
 async function tryAndRepeat(fn: Function, count: number) {
 	let retryCount = 0;
 
@@ -93,15 +95,14 @@ class FileApi {
 	private baseDir_: any;
 	private driver_: any;
 	private logger_: Logger = new Logger();
-	private syncTargetId_: number = null;
-	private tempDirName_: string = null;
-	public requestRepeatCount_: number = null; // For testing purpose only - normally this value should come from the driver
-	private remoteDateOffset_ = 0;
-	private remoteDateNextCheckTime_ = 0;
-	private remoteDateMutex_ = new Mutex();
-	private initialized_ = false;
+	private syncTargetId_: number = 0;
+	private tempDirName_: string = '';
+	public requestRepeatCount_: number = 0; // For testing purpose only - normally this value should come from the driver
+	private remoteDateOffset_: number = 0;
+	private remoteDateNextCheckTime_: number = 0;
+	private remoteDateMutex_: Mutex = new Mutex();
+	private initialized_: boolean = false;
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public constructor(baseDir: string | Function, driver: any) {
 		this.baseDir_ = baseDir;
 		this.driver_ = driver;
@@ -138,7 +139,7 @@ class FileApi {
 		return !!this.driver().supportsLocks;
 	}
 
-	private async fetchRemoteDateOffset_() {
+	private async fetchRemoteDateOffset_(): Promise<number> {
 		const tempFile = `${this.tempDirName()}/timeCheck${Math.round(Math.random() * 1000000)}.txt`;
 		const startTime = Date.now();
 		await this.put(tempFile, 'timeCheck');
@@ -164,7 +165,7 @@ class FileApi {
 
 	// Approximates the current time on the sync target. It caches the time offset to
 	// improve performance.
-	public async remoteDate() {
+	public async remoteDate(): Promise<Date> {
 		const shouldSyncTime = () => {
 			return !this.remoteDateNextCheckTime_ || Date.now() > this.remoteDateNextCheckTime_;
 		};
@@ -196,8 +197,8 @@ class FileApi {
 	// Ideally all requests repeating should be done at the FileApi level to remove duplicate code in the drivers, but
 	// historically some drivers (eg. OneDrive) are already handling request repeating, so this is optional, per driver,
 	// and it defaults to no repeating.
-	public requestRepeatCount() {
-		if (this.requestRepeatCount_ !== null) return this.requestRepeatCount_;
+	public requestRepeatCount(): number {
+		if (this.requestRepeatCount_ !== 0) return this.requestRepeatCount_;
 		if (this.driver_.requestRepeatCount) return this.driver_.requestRepeatCount();
 		return 0;
 	}
@@ -206,7 +207,7 @@ class FileApi {
 		return this.driver_.lastRequests ? this.driver_.lastRequests() : [];
 	}
 
-	public clearLastRequests() {
+	public clearLastRequests(): void {
 		if (this.driver_.clearLastRequests) this.driver_.clearLastRequests();
 	}
 
@@ -214,16 +215,16 @@ class FileApi {
 		return typeof this.baseDir_ === 'function' ? this.baseDir_() : this.baseDir_;
 	}
 
-	public tempDirName() {
-		if (this.tempDirName_ === null) throw Error('Temp dir not set!');
+	public tempDirName(): string {
+		if (this.tempDirName_ === '') throw Error('Temp dir not set!');
 		return this.tempDirName_;
 	}
 
-	public setTempDirName(v: string) {
+	public setTempDirName(v: string): void {
 		this.tempDirName_ = v;
 	}
 
-	public fsDriver() {
+	public fsDriver(): FsDriverBase {
 		return shim.fsDriver();
 	}
 
@@ -231,25 +232,25 @@ class FileApi {
 		return this.driver_;
 	}
 
-	public setSyncTargetId(v: number) {
+	public setSyncTargetId(v: number): void {
 		this.syncTargetId_ = v;
 	}
 
-	public syncTargetId() {
-		if (this.syncTargetId_ === null) throw new Error('syncTargetId has not been set!!');
+	public syncTargetId(): number {
+		if (this.syncTargetId_ === 0) throw new Error('syncTargetId has not been set!!');
 		return this.syncTargetId_;
 	}
 
-	public setLogger(l: Logger) {
+	public setLogger(l: Logger): void {
 		if (!l) l = new Logger();
 		this.logger_ = l;
 	}
 
-	public logger() {
+	public logger(): Logger {
 		return this.logger_;
 	}
 
-	public fullPath(path_: string) {
+	public fullPath(path_: string): string {
 		const output = [];
 		if (this.baseDir()) output.push(this.baseDir());
 		if (path_) output.push(path_);
@@ -257,7 +258,7 @@ class FileApi {
 	}
 
 	// DRIVER MUST RETURN PATHS RELATIVE TO `path_`
-	// eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
+
 	public async list(path_ = '', options: any = null): Promise<PaginatedList> {
 		if (!options) options = {};
 		if (!('includeHidden' in options)) options.includeHidden = false;
@@ -272,7 +273,8 @@ class FileApi {
 		if (!options.includeHidden) {
 			const temp = [];
 			for (let i = 0; i < result.items.length; i++) {
-				if (!isHidden(result.items[i].path)) temp.push(result.items[i]);
+				const p = result.items[i].path;
+				if (p && !isHidden(p)) temp.push(result.items[i]);
 			}
 			result.items = temp;
 		}
@@ -291,13 +293,13 @@ class FileApi {
 	public ls_R(path_ = '') {
 		// logger.debug(`ls_R ${this.baseDir()}`);
 
-		return this.driver_.ls_R(this.fullPath(path_));
+		return this.fsDriver().ls_R(this.fullPath(path_));
 	}
 
 	public ls_RR(path_ = '') {
 		// logger.debug(`ls_RR ${this.baseDir()}`);
 
-		return this.driver_.ls_RR(this.fullPath(path_));
+		return this.fsDriver().ls_RR(this.fullPath(path_));
 	}
 
 	// Deprectated
@@ -429,8 +431,18 @@ function basicDeltaContextFromOptions_(options: any) {
 // This is the basic delta algorithm, which can be used in case the cloud service does not have
 // a built-in delta API. OneDrive and Dropbox have one for example, but Nextcloud and obviously
 // the file system do not.
-// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-async function basicDelta(path_: string, getDirStatFn: Function, options: any) {
+
+async function basicDelta(path_: string, getDirStatFn: Function, options: any): Promise<{
+	hasMore: boolean;
+	context: {
+		timestamp: any;
+		filesAtTimestamp: any;
+		statsCache: any;
+		statIdsCache: any;
+		deletedItemsProcessed: any;
+	};
+	items: any[];
+}> {
 	const outputLimit = 50;
 	const itemIds = await options.allItemIdsHandler();
 	if (!Array.isArray(itemIds)) throw new Error('Delta API not supported - local IDs must be provided');
@@ -521,7 +533,7 @@ async function basicDelta(path_: string, getDirStatFn: Function, options: any) {
 		for (let i = 0; i < itemIds.length; i++) {
 			const itemId = itemIds[i];
 
-			if (ArrayUtils.binarySearch(newContext.statIdsCache, itemId) < 0) {
+			if (binarySearch(newContext.statIdsCache, itemId) < 0) {
 				deletedItems.push({
 					path: BaseItem.systemPath(itemId),
 					isDeleted: true,

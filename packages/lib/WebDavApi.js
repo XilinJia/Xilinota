@@ -26,7 +26,7 @@ class WebDavApi {
 
 		const serializeRequest = (r) => {
 			const options = { ...r.options };
-			if (typeof options.body === 'string') options.body = options.body.substr(0, 4096);
+			if (typeof options.body === 'string') options.body = options.body.substring(0, 4096);
 			const output = [];
 			output.push(options.method ? options.method : 'GET');
 			output.push(r.url);
@@ -41,7 +41,7 @@ class WebDavApi {
 		this.lastRequests_.push({
 			timestamp: Date.now(),
 			request: serializeRequest(request),
-			response: responseText ? responseText.substr(0, 4096) : '',
+			response: responseText ? responseText.substring(0, 4096) : '',
 		});
 	}
 
@@ -411,7 +411,7 @@ class WebDavApi {
 		const newError = (message, code = 0) => {
 			// Gives a shorter response for error messages. Useful for cases where a full HTML page is accidentally loaded instead of
 			// JSON. That way the error message will still show there's a problem but without filling up the log or screen.
-			const shortResponseText = (`${responseText}`).substr(0, 1024);
+			const shortResponseText = (`${responseText}`).substring(0, 1024);
 			return new XilinotaError(`${method} ${path}: ${message} (${code}): ${shortResponseText}`, code);
 		};
 
@@ -419,7 +419,7 @@ class WebDavApi {
 		const loadResponseJson = async () => {
 			if (!responseText) return null;
 			if (responseJson_) return responseJson_;
-			// eslint-disable-next-line require-atomic-updates
+			
 			responseJson_ = await this.xmlToJson(responseText);
 			if (!responseJson_) throw newError('Cannot parse XML response', response.status);
 			return responseJson_;

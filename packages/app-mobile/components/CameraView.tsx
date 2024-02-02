@@ -1,21 +1,38 @@
-const { RNCamera } = require('react-native-camera');
-const React = require('react');
+import { RNCamera } from 'react-native-camera';
+import React from 'react';
 const Component = React.Component;
-const { connect } = require('react-redux');
-const { View, TouchableOpacity, Text, Dimensions } = require('react-native');
-const Icon = require('react-native-vector-icons/Ionicons').default;
-const { _ } = require('@xilinota/lib/locale');
+import { connect } from 'react-redux';
+import { View, TouchableOpacity, Text, Dimensions, GestureResponderEvent } from 'react-native';
+import Icon from 'react-native-vector-icons/Ionicons';
+import { _ } from '@xilinota/lib/locale';
 import shim from '@xilinota/lib/shim';
 import Setting from '@xilinota/lib/models/Setting';
 
 // We need this to suppress the useless warning
 // https://github.com/oblador/react-native-vector-icons/issues/1465
-// eslint-disable-next-line no-console
+
+
+interface Props {
+	onCancel: () => void;
+	onPhoto: (arg0: any) => void;
+	cameraType: string;
+	cameraRatio: number;
+	style: any;
+}
+
+interface State {
+	snapping: boolean;
+	ratios: number[];
+	screenWidth: number;
+	screenHeight: number;
+}
+
 Icon.loadFont().catch((error: any) => { console.info(error); });
 
-class CameraView extends Component {
-	public constructor() {
-		super();
+class CameraView extends Component<Props, State> {
+	camera: any;
+	public constructor(props: Props) {
+		super(props);
 
 		const dimensions = Dimensions.get('window');
 
@@ -86,8 +103,7 @@ class CameraView extends Component {
 		}
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	public renderButton(onPress: Function, iconNameOrIcon: any, style: any) {
+	public renderButton(onPress: ((event: GestureResponderEvent) => void) | undefined, iconNameOrIcon: any, style: any) {
 		let icon = null;
 
 		if (typeof iconNameOrIcon === 'string') {
@@ -107,7 +123,7 @@ class CameraView extends Component {
 		return (
 			<TouchableOpacity onPress={onPress} style={{ ...style }}>
 				<View style={{ borderRadius: 32, width: 60, height: 60, borderColor: '#00000040', borderWidth: 1, borderStyle: 'solid', backgroundColor: '#ffffff77', justifyContent: 'center', alignItems: 'center', alignSelf: 'baseline' }}>
-					{ icon }
+					{icon}
 				</View>
 			</TouchableOpacity>
 		);
@@ -163,14 +179,14 @@ class CameraView extends Component {
 		const displayRatios = this.supportsRatios() && this.state.ratios.length > 1;
 
 		const reverseCameraButton = this.renderButton(this.reverse_onPress, 'camera-reverse', { flex: 1, flexDirection: 'row', justifyContent: 'flex-start', marginLeft: 20 });
-		const ratioButton = !displayRatios ? <View style={{ flex: 1 }}/> : this.renderButton(this.ratio_onPress, <Text style={{ fontWeight: 'bold', fontSize: 20 }}>{Setting.value('camera.ratio')}</Text>, { flex: 1, flexDirection: 'row', justifyContent: 'flex-end', marginRight: 20 });
+		const ratioButton = !displayRatios ? <View style={{ flex: 1 }} /> : this.renderButton(this.ratio_onPress, <Text style={{ fontWeight: 'bold', fontSize: 20 }}>{Setting.value('camera.ratio')}</Text>, { flex: 1, flexDirection: 'row', justifyContent: 'flex-end', marginRight: 20 });
 
 		let cameraRatio = '4:3';
 		const cameraProps: any = {};
 
 		if (displayRatios) {
 			cameraProps.ratio = this.props.cameraRatio;
-			cameraRatio = this.props.cameraRatio;
+			cameraRatio = this.props.cameraRatio.toString();
 		}
 
 		const cameraRect = this.cameraRect(cameraRatio);
@@ -179,7 +195,7 @@ class CameraView extends Component {
 
 		return (
 			<View style={{ ...this.props.style, position: 'relative' }} onLayout={this.onLayout}>
-				<View style={{ position: 'absolute', backgroundColor: '#000000', width: '100%', height: '100%' }}/>
+				<View style={{ position: 'absolute', backgroundColor: '#000000', width: '100%', height: '100%' }} />
 				<RNCamera
 					style={({ position: 'absolute', ...cameraRect })}
 					ref={(ref: any) => {
@@ -195,7 +211,7 @@ class CameraView extends Component {
 						buttonNegative: _('Cancel'),
 					}}
 
-					{ ...cameraProps }
+					{...cameraProps}
 				>
 					<View style={{ flex: 1, justifyContent: 'space-between', flexDirection: 'column' }}>
 						<View style={{ flex: 1, justifyContent: 'flex-start' }}>
@@ -213,7 +229,7 @@ class CameraView extends Component {
 						</View>
 						<View style={{ flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-end' }}>
 							<View style={{ flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
-								{ reverseCameraButton }
+								{reverseCameraButton}
 								<TouchableOpacity onPress={this.photo_onPress} disabled={this.state.snapping}>
 									<View style={{ flexDirection: 'row', borderRadius: 90, width: 90, height: 90, backgroundColor: '#ffffffaa', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
 										<Icon
@@ -225,7 +241,7 @@ class CameraView extends Component {
 										/>
 									</View>
 								</TouchableOpacity>
-								{ ratioButton }
+								{ratioButton}
 							</View>
 						</View>
 					</View>

@@ -2,15 +2,17 @@ import { RuleOptions } from '../../MdToHtml';
 import linkReplacement from '../linkReplacement';
 import utils from '../../utils';
 
-const urlUtils = require('../../urlUtils.js');
+import urlUtils from '../../urlUtils';
 
 function plugin(markdownIt: any, ruleOptions: RuleOptions) {
-	markdownIt.renderer.rules.link_open = function(tokens: any[], idx: number) {
+	markdownIt.renderer.rules.link_open = function(tokens: any[], idx: number): string {
 		const token = tokens[idx];
 		const href = utils.getAttr(token.attrs, 'href');
+		if (!href) return '';
+
 		const resourceHrefInfo = urlUtils.parseResourceUrl(href);
 		const isResourceUrl = ruleOptions.resources && !!resourceHrefInfo;
-		const title = utils.getAttr(token.attrs, 'title', isResourceUrl ? '' : href);
+		const title = utils.getAttr(token.attrs, 'title', isResourceUrl ? '' : href) ?? '';
 
 		const replacement = linkReplacement(href, {
 			title,

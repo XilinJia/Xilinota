@@ -1,4 +1,4 @@
-const React = require('react');
+import React from 'react';
 import Setting from '@xilinota/lib/models/Setting';
 import { useEffect, useMemo, useState } from 'react';
 import { View, Dimensions, Alert, Button } from 'react-native';
@@ -12,7 +12,6 @@ const logger = Logger.create('BiometricPopup');
 interface Props {
 	themeId: number;
 	sensorInfo: SensorInfo;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	dispatch: Function;
 }
 
@@ -41,7 +40,7 @@ export default (props: Props) => {
 				await biometricAuthenticate();
 				setDisplay(false);
 			} catch (error) {
-				Alert.alert(error.message);
+				Alert.alert((error as Error).message);
 			}
 
 			setTryBiometricsCheck(false);

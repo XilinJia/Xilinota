@@ -31,6 +31,9 @@ const itemMetadata_: ItemMetadata = {
 	'7_privacy.md': {
 		id: '5ec2e7505ec2e7505ec2e7505ec2e750',
 	},
+	'8_whats_new.md': {
+		id: '5ec2e7505ec2e7505ec2e7505ec2e751',
+	},
 	'AllClients.png': { id: '5c05172554194f95b60971f6d577cc1a' },
 	'SubNotebooks.png': { id: '3a851ab0c0e849b7bc9e8cd5c4feb34a' },
 	'folder_Welcome': { id: '9bb5d498aba74cc6a047cfdc841e82a1' },
@@ -72,6 +75,9 @@ allMetadata_['fr_FR'] = {
 	'7_privacy.md': {
 		id: '5ec2e7505ec2e7505ec2e7505ec2e760',
 	},
+	'8_whats_new.md': {
+		id: '5ec2e7505ec2e7505ec2e7505ec2e751',
+	},
 	'folder_Welcome': { id: '5494e8c3dcfc84c1549ed22fb3a89265' },
 };
 
@@ -102,7 +108,7 @@ function parseNoteFile(metadata: ItemMetadata, locale: string, filePath: string)
 	const n = basename(filePath);
 	const number = n.split('_')[0];
 	const body = readFileSync(filePath, 'utf8');
-	const title = `${number}. ${body.split('\n')[0].substr(2)}`;
+	const title = `${number}. ${body.split('\n')[0].substring(2)}`;
 	const resources: Record<string, WelcomeAssetResource> = {};
 
 	if (locale === 'en_GB') {

@@ -5,9 +5,9 @@ const gettextParser = require('gettext-parser');
 export interface TranslationStatus {
 	locale?: string;
 	languageName?: string;
-	translatorName: string;
+	translatorName?: string;
 	percentDone: number;
-	untranslatedCount: number;
+	untranslatedCount?: number;
 	pluralForms?: string;
 }
 

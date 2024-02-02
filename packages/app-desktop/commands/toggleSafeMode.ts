@@ -10,8 +10,8 @@ export const declaration: CommandDeclaration = {
 
 export const runtime = (): CommandRuntime => {
 	return {
-		execute: async (_context: CommandContext, enabled: boolean = null) => {
-			enabled = enabled !== null ? enabled : !Setting.value('isSafeMode');
+		execute: async (_context: CommandContext, enabled: boolean = false) => {
+			enabled = enabled ? enabled : !Setting.value('isSafeMode');
 			Setting.setValue('isSafeMode', enabled);
 			await Setting.saveAll();
 			await restart();

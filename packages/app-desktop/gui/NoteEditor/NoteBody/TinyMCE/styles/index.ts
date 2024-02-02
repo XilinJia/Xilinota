@@ -1,6 +1,6 @@
 import { ThemeAppearance } from '@xilinota/lib/themes/type';
 import { NoteBodyEditorProps } from '../../../utils/types';
-const { buildStyle } = require('@xilinota/lib/theme');
+import { buildStyle } from '@xilinota/lib/theme';
 
 export default function styles(props: NoteBodyEditorProps) {
 	return buildStyle(['TinyMCE', props.style.width, props.style.height], props.themeId, (theme: any) => {

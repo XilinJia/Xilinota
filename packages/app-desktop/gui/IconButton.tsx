@@ -5,7 +5,6 @@ interface Props {
 	themeId: number;
 	style: any;
 	iconName: string;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	onClick: Function;
 }
 

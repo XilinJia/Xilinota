@@ -1,8 +1,8 @@
-export default class NavService {
+import BaseService from "./BaseService";
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	public static dispatch: Function = () => {};
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
+export default class NavService extends BaseService {
+
+	public static dispatch: Function = () => { };
 	private static handlers_: Function[] = [];
 
 	public static async go(routeName: string) {
@@ -17,7 +17,6 @@ export default class NavService {
 		});
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public static addHandler(handler: Function) {
 		for (let i = this.handlers_.length - 1; i >= 0; i--) {
 			const h = this.handlers_[i];
@@ -27,7 +26,6 @@ export default class NavService {
 		this.handlers_.push(handler);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public static removeHandler(hanlder: Function) {
 		for (let i = this.handlers_.length - 1; i >= 0; i--) {
 			const h = this.handlers_[i];

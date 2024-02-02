@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { useEffect } from 'react';
 import useSyncTargetUpgrade, { SyncTargetUpgradeResult } from '@xilinota/lib/services/synchronizer/gui/useSyncTargetUpgrade';
-
+// can't import react-dom
 const { render } = require('react-dom');
-const ipcRenderer = require('electron').ipcRenderer;
+import { ipcRenderer } from 'electron';
 import Setting from '@xilinota/lib/models/Setting';
 import restart from '../services/restart';
 
@@ -66,7 +66,7 @@ function useRestartOnDone(upgradeResult: SyncTargetUpgradeResult) {
 		if (upgradeResult.done && !upgradeResult.error) {
 			void restart();
 		}
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+		
 	}, [upgradeResult.done]);
 }
 

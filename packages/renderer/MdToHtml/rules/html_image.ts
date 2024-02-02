@@ -2,14 +2,14 @@ import { RuleOptions } from '../../MdToHtml';
 import { attributesHtml } from '../../htmlUtils';
 import utils from '../../utils';
 
-function renderImageHtml(before: string, src: string, after: string, ruleOptions: RuleOptions) {
+function renderImageHtml(before: string, src: string, after: string, ruleOptions: RuleOptions): string {
 	const r = utils.imageReplacement(ruleOptions.ResourceModel, src, ruleOptions.resources, ruleOptions.resourceBaseUrl, ruleOptions.itemIdToUrl);
 	if (typeof r === 'string') return r;
 	if (r) return `<img ${before} ${attributesHtml(r)} ${after}/>`;
 	return `[Image: ${src}]`;
 }
 
-function plugin(markdownIt: any, ruleOptions: RuleOptions) {
+function plugin(markdownIt: any, ruleOptions: RuleOptions): void {
 	const Resource = ruleOptions.ResourceModel;
 
 	const htmlBlockDefaultRender =
@@ -26,7 +26,6 @@ function plugin(markdownIt: any, ruleOptions: RuleOptions) {
 
 	const imageRegex = /<img(.*?)src=["'](.*?)["'](.*?)>/gi;
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	const handleImageTags = function(defaultRender: Function) {
 		return function(tokens: any[], idx: number, options: any, env: any, self: any) {
 			const token = tokens[idx];

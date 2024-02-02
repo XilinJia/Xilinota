@@ -12,8 +12,8 @@ describe('models/Revision', () => {
 	it('should create patches of text and apply it', (async () => {
 		const note1 = await Note.save({ body: 'my note\nsecond line' });
 
-		const patch = Revision.createTextPatch(note1.body, 'my new note\nsecond line');
-		const merged = Revision.applyTextPatch(note1.body, patch);
+		const patch = Revision.createTextPatch(note1.body!, 'my new note\nsecond line');
+		const merged = Revision.applyTextPatch(note1.body!, patch);
 
 		expect(merged).toBe('my new note\nsecond line');
 	}));
@@ -109,9 +109,9 @@ describe('models/Revision', () => {
 		];
 
 		// Sanity check - verify that the patches are as expected
-		expect(patches[0].substr(0, 2)).toBe('[{'); // New
-		expect(patches[1].substr(0, 2)).toBe('@@'); // Legacy
-		expect(patches[2].substr(0, 2)).toBe('[{'); // New
+		expect(patches[0].substring(0, 2)).toBe('[{'); // New
+		expect(patches[1].substring(0, 2)).toBe('@@'); // Legacy
+		expect(patches[2].substring(0, 2)).toBe('[{'); // New
 
 		let finalString = Revision.applyTextPatch(changes[0], patches[0]);
 		finalString = Revision.applyTextPatch(finalString, patches[1]);

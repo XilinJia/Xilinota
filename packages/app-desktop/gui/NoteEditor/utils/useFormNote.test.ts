@@ -2,16 +2,17 @@ import Note from '@xilinota/lib/models/Note';
 import { setupDatabaseAndSynchronizer, switchClient } from '@xilinota/lib/testing/test-utils';
 import { renderHook } from '@testing-library/react-hooks';
 import useFormNote, { HookDependencies } from './useFormNote';
+import { useRef } from 'react';
 
 const defaultFormNoteProps: HookDependencies = {
 	syncStarted: false,
 	decryptionStarted: false,
 	noteId: '',
 	isProvisional: false,
-	titleInputRef: null,
+	titleInputRef: useRef<HTMLInputElement>(document.createElement('input')),
 	editorRef: null,
-	onBeforeLoad: ()=>{},
-	onAfterLoad: ()=>{},
+	onBeforeLoad: () => { },
+	onAfterLoad: () => { },
 };
 
 describe('useFormNote', () => {
@@ -28,7 +29,7 @@ describe('useFormNote', () => {
 				...defaultFormNoteProps,
 				syncStarted,
 				decryptionStarted,
-				noteId: testNote.id,
+				noteId: testNote.id!,
 			};
 		};
 

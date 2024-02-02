@@ -1,12 +1,12 @@
-const React = require('react');
+import React from 'react';
 import { useState, useCallback, useMemo } from 'react';
 
-const Icon = require('react-native-vector-icons/Ionicons').default;
+import Icon from 'react-native-vector-icons/Ionicons';
 import { FAB, Portal } from 'react-native-paper';
 import { _ } from '@xilinota/lib/locale';
 
 
-type OnButtonPress = ()=> void;
+type OnButtonPress = () => void;
 interface ButtonSpec {
 	icon: string;
 	label: string;
@@ -21,7 +21,7 @@ interface ActionButtonProps {
 	mainButton?: ButtonSpec;
 }
 
-const defaultOnPress = () => {};
+const defaultOnPress = () => { };
 
 // Returns a render function compatible with React Native Paper.
 const getIconRenderFunction = (iconName: string) => {
@@ -57,7 +57,7 @@ const ActionButton = (props: ActionButtonProps) => {
 			<FAB.Group
 				open={open}
 				accessibilityLabel={props.mainButton?.label ?? _('Add new')}
-				icon={ open ? openIcon : closedIcon }
+				icon={open ? openIcon : closedIcon}
 				fabStyle={{
 					backgroundColor: props.mainButton?.color ?? 'rgba(231,76,60,1)',
 				}}

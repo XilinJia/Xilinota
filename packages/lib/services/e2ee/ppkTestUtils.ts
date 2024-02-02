@@ -23,7 +23,7 @@ export async function createTestData() {
 }
 
 export async function printTestData() {
-	// eslint-disable-next-line no-console
+
 	console.info(JSON.stringify(await createTestData(), null, '\t'));
 }
 
@@ -32,7 +32,7 @@ interface CheckTestDataOptions {
 	silent?: boolean;
 }
 
-export async function checkTestData(data: TestData, options: CheckTestDataOptions = null) {
+export async function checkTestData(data: TestData, options: CheckTestDataOptions = {}) {
 	options = {
 		throwOnError: false,
 		silent: false,
@@ -77,7 +77,7 @@ export async function checkTestData(data: TestData, options: CheckTestDataOption
 			if (hasError) {
 				console.warn(msg);
 			} else {
-				// eslint-disable-next-line no-console
+
 				if (!options.silent) console.info(msg);
 			}
 		}
@@ -105,7 +105,7 @@ const desktopData = {
 export const runIntegrationTests = async (silent = false) => {
 	const log = (s: string) => {
 		if (silent) return;
-		// eslint-disable-next-line no-console
+
 		console.info(s);
 	};
 

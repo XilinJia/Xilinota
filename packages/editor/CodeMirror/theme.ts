@@ -52,7 +52,7 @@ const createTheme = (theme: any): Extension[] => {
 
 		// Avoid using units here -- 1.55em, for example, can cause lines to overlap
 		// if some lines contain text with a large enough font size.
-		lineHeight: theme.isDesktop ? '1.55' : undefined,
+		lineHeight: theme.isDesktop ? '1.55' : '',
 	};
 	const baseSelectionStyle: Record<string, string> = { };
 	const blurredSelectionStyle: Record<string, string> = { };
@@ -85,7 +85,7 @@ const createTheme = (theme: any): Extension[] => {
 		'.cm-content': {
 			fontFamily: theme.fontFamily,
 			...baseContentStyle,
-			paddingBottom: theme.isDesktop ? '400px' : undefined,
+			paddingBottom: theme.isDesktop ? '400px' : '',
 		},
 		'&.cm-focused .cm-cursor': baseCursorStyle,
 

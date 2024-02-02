@@ -109,7 +109,7 @@ const defaultKeymapItems = {
 };
 
 export interface KeymapItem {
-	accelerator: string;
+	accelerator: string | null;	// default has to be set as null otherwise accelerator_util.h complains invalid key
 	command: string;
 }
 
@@ -119,10 +119,10 @@ interface Keymap {
 
 export default class KeymapService extends BaseService {
 
-	private keymap: Keymap;
-	private platform: string;
-	private customKeymapPath: string;
-	private defaultKeymapItems: KeymapItem[];
+	private keymap: Keymap = {};
+	private platform: string | undefined;
+	private customKeymapPath: string = '';
+	private defaultKeymapItems: KeymapItem[] | undefined;
 	private lastSaveTime_: number;
 	private modifiersRegExp: any;
 
@@ -144,16 +144,17 @@ export default class KeymapService extends BaseService {
 		this.platform = platform;
 
 		switch (platform) {
-		case 'darwin':
-			this.defaultKeymapItems = defaultKeymapItems.darwin.slice();
-			this.modifiersRegExp = modifiersRegExp.darwin;
-			break;
-		default:
-			this.defaultKeymapItems = defaultKeymapItems.default.slice();
-			this.modifiersRegExp = modifiersRegExp.default;
+			case 'darwin':
+				this.defaultKeymapItems = defaultKeymapItems.darwin.slice();
+				this.modifiersRegExp = modifiersRegExp.darwin;
+				break;
+			default:
+				this.defaultKeymapItems = defaultKeymapItems.default.slice();
+				this.modifiersRegExp = modifiersRegExp.default;
 		}
 
 		for (const name of additionalDefaultCommandNames) {
+			// console.log('additionalDefaultCommandName', name)
 			if (this.defaultKeymapItems.find((item: KeymapItem) => item.command === name)) continue;
 			this.defaultKeymapItems.push({
 				command: name,
@@ -167,10 +168,10 @@ export default class KeymapService extends BaseService {
 	// Reset keymap back to its default values
 	public resetKeymap() {
 		this.keymap = {};
-		for (let i = 0; i < this.defaultKeymapItems.length; i++) {
+		for (let i = 0; i < this.defaultKeymapItems!.length; i++) {
 			// Keep the original defaultKeymapItems array untouched
 			// Makes it possible to retrieve the original accelerator later, if needed
-			this.keymap[this.defaultKeymapItems[i].command] = { ...this.defaultKeymapItems[i] };
+			this.keymap[this.defaultKeymapItems![i].command] = { ...this.defaultKeymapItems![i] };
 		}
 	}
 
@@ -178,7 +179,7 @@ export default class KeymapService extends BaseService {
 		this.customKeymapPath = customKeymapPath; // Useful for saving the changes later
 
 		if (await shim.fsDriver().exists(customKeymapPath)) {
-			this.logger().info(`KeymapService: Loading keymap from file: ${customKeymapPath}`);
+			BaseService.logger().info(`KeymapService: Loading keymap from file: ${customKeymapPath}`);
 
 			const customKeymapFile = (await shim.fsDriver().readFile(customKeymapPath, 'utf-8')).trim();
 			if (!customKeymapFile) return;
@@ -189,7 +190,7 @@ export default class KeymapService extends BaseService {
 	}
 
 	public async saveCustomKeymap(customKeymapPath: string = this.customKeymapPath) {
-		this.logger().info(`KeymapService: Saving keymap to file: ${customKeymapPath}`);
+		BaseService.logger().info(`KeymapService: Saving keymap to file: ${customKeymapPath}`);
 
 		try {
 			// Only the customized keymap items should be saved to the disk
@@ -201,7 +202,7 @@ export default class KeymapService extends BaseService {
 			// Refresh the menu items so that the changes are reflected
 			eventManager.emit('keymapChange');
 		} catch (error) {
-			const message = error.message || '';
+			const message = (error as Error).message || '';
 			throw new Error(_('Error: %s', message));
 		}
 	}
@@ -217,7 +218,7 @@ export default class KeymapService extends BaseService {
 			.replace(/Alt/g, this.platform === 'darwin' ? 'Option' : 'Alt');
 	}
 
-	public registerCommandAccelerator(commandName: string, accelerator: string) {
+	public registerCommandAccelerator(commandName: string, accelerator: string | null) {
 		// If the command is already registered, we don't register it again and
 		// we don't update the accelerator. This is because it might have been
 		// modified by the user and we don't want the plugin to overwrite this.
@@ -230,11 +231,11 @@ export default class KeymapService extends BaseService {
 
 		this.keymap[commandName] = {
 			command: commandName,
-			accelerator: validatedAccelerator,
+			accelerator: validatedAccelerator ?? '',
 		};
 	}
 
-	public setAccelerator(command: string, accelerator: string) {
+	public setAccelerator(command: string, accelerator: string | null) {
 		this.keymap[command].accelerator = accelerator;
 	}
 
@@ -246,7 +247,7 @@ export default class KeymapService extends BaseService {
 	}
 
 	public getDefaultAccelerator(command: string) {
-		const defaultItem = this.defaultKeymapItems.find((item => item.command === command));
+		const defaultItem = this.defaultKeymapItems?.find((item => item.command === command));
 		if (!defaultItem) throw new Error(`KeymapService: "${command}" command does not exist!`);
 
 		return defaultItem.accelerator;
@@ -262,8 +263,8 @@ export default class KeymapService extends BaseService {
 
 	public getCustomKeymapItems() {
 		const customkeymapItems: KeymapItem[] = [];
-		// eslint-disable-next-line github/array-foreach -- Old code before rule was applied
-		this.defaultKeymapItems.forEach(({ command, accelerator }) => {
+
+		this.defaultKeymapItems?.forEach(({ command, accelerator }) => {
 			const currentAccelerator = this.getAccelerator(command);
 
 			// Only the customized/changed keymap items are neccessary for the custom keymap
@@ -274,7 +275,7 @@ export default class KeymapService extends BaseService {
 		});
 
 		for (const commandName in this.keymap) {
-			if (!this.defaultKeymapItems.find((item: KeymapItem) => item.command === commandName)) {
+			if (!this.defaultKeymapItems?.find((item: KeymapItem) => item.command === commandName)) {
 				customkeymapItems.push(this.keymap[commandName]);
 			}
 		}
@@ -283,7 +284,7 @@ export default class KeymapService extends BaseService {
 	}
 
 	public getDefaultKeymapItems() {
-		return [...this.defaultKeymapItems];
+		return [...this.defaultKeymapItems!];
 	}
 
 	public overrideKeymap(customKeymapItems: KeymapItem[]) {
@@ -315,13 +316,13 @@ export default class KeymapService extends BaseService {
 	private validateKeymapItem(item: KeymapItem) {
 		if (!item.hasOwnProperty('command')) {
 			throw new Error(_('"%s" is missing the required "%s" property.', JSON.stringify(item), _('command')));
-		// } else if (!this.keymap.hasOwnProperty(item.command)) {
-		// 	throw new Error(_('Invalid %s: %s.', _('command'), item.command));
+			// } else if (!this.keymap.hasOwnProperty(item.command)) {
+			// 	throw new Error(_('Invalid %s: %s.', _('command'), item.command));
 		}
 
 		if (!item.hasOwnProperty('accelerator')) {
 			throw new Error(_('"%s" is missing the required "%s" property.', JSON.stringify(item), _('accelerator')));
-		} else if (item.accelerator !== null) {
+		} else if (item.accelerator) {
 			try {
 				this.validateAccelerator(item.accelerator);
 			} catch {
@@ -330,7 +331,7 @@ export default class KeymapService extends BaseService {
 		}
 	}
 
-	public validateKeymap(proposedKeymapItem: KeymapItem = null) {
+	public validateKeymap(proposedKeymapItem: KeymapItem | null = null) {
 		const usedAccelerators = new Set();
 
 		// Validate as if the proposed change is already present in the current keymap
@@ -343,13 +344,12 @@ export default class KeymapService extends BaseService {
 
 			if (usedAccelerators.has(itemAccelerator)) {
 				const originalItem = (proposedKeymapItem && proposedKeymapItem.accelerator === itemAccelerator)
-					? proposedKeymapItem
-					: Object.values(this.keymap).find(_item => _item.accelerator === itemAccelerator);
+					? proposedKeymapItem : Object.values(this.keymap).find(_item => _item.accelerator === itemAccelerator);
 
 				throw new Error(_(
 					'Accelerator "%s" is used for "%s" and "%s" commands. This may lead to unexpected behaviour.',
 					itemAccelerator,
-					originalItem.command,
+					originalItem?.command,
 					itemCommand,
 				));
 			} else if (itemAccelerator) {
@@ -391,14 +391,14 @@ export default class KeymapService extends BaseService {
 		// We have to use the following js events, because modifiers won't stick otherwise
 		if (ctrlKey) parts.push('Ctrl');
 		switch (this.platform) {
-		case 'darwin':
-			if (altKey) parts.push('Option');
-			if (shiftKey) parts.push('Shift');
-			if (metaKey) parts.push('Cmd');
-			break;
-		default:
-			if (altKey) parts.push('Alt');
-			if (shiftKey) parts.push('Shift');
+			case 'darwin':
+				if (altKey) parts.push('Option');
+				if (shiftKey) parts.push('Shift');
+				if (metaKey) parts.push('Cmd');
+				break;
+			default:
+				if (altKey) parts.push('Alt');
+				if (shiftKey) parts.push('Shift');
 		}
 
 		// Finally, the key
@@ -410,17 +410,15 @@ export default class KeymapService extends BaseService {
 		return parts.join('+');
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public on(eventName: string, callback: Function) {
 		eventManager.on(eventName, callback);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public off(eventName: string, callback: Function) {
 		eventManager.off(eventName, callback);
 	}
 
-	private static instance_: KeymapService = null;
+	private static instance_: KeymapService | null = null;
 
 	public static destroyInstance() {
 		this.instance_ = null;

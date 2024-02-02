@@ -41,10 +41,10 @@ const createEditor = (
 	let searchVisible = false;
 
 	// Handles firing an event when the undo/redo stack changes
-	let schedulePostUndoRedoDepthChangeId_: ReturnType<typeof setTimeout>|null = null;
+	let schedulePostUndoRedoDepthChangeId_: ReturnType<typeof setTimeout> | null = null;
 	let lastUndoDepth = 0;
 	let lastRedoDepth = 0;
-	const schedulePostUndoRedoDepthChange = (editor: EditorView, doItNow = false) => {
+	const schedulePostUndoRedoDepthChange = (editor: EditorView, doItNow = false): void => {
 		if (schedulePostUndoRedoDepthChangeId_ !== null) {
 			if (doItNow) {
 				clearTimeout(schedulePostUndoRedoDepthChangeId_);
@@ -71,7 +71,8 @@ const createEditor = (
 	};
 
 	let currentDocText = props.initialText;
-	const notifyDocChanged = (viewUpdate: ViewUpdate) => {
+
+	const notifyDocChanged = (viewUpdate: ViewUpdate): void => {
 		if (viewUpdate.docChanged) {
 			currentDocText = editor.state.doc.toString();
 			props.onEvent({
@@ -83,13 +84,13 @@ const createEditor = (
 		}
 	};
 
-	const notifyLinkEditRequest = () => {
+	const notifyLinkEditRequest = (): void => {
 		props.onEvent({
 			kind: EditorEventType.EditLink,
 		});
 	};
 
-	const onSearchDialogUpdate = () => {
+	const onSearchDialogUpdate = (): void => {
 		const query = getSearchQuery(editor.state);
 		const searchState: SearchState = {
 			searchText: query.search,
@@ -104,7 +105,7 @@ const createEditor = (
 		});
 	};
 
-	const showSearchDialog = () => {
+	const showSearchDialog = (): void => {
 		if (!searchVisible) {
 			openSearchPanel(editor);
 		}
@@ -112,7 +113,7 @@ const createEditor = (
 		onSearchDialogUpdate();
 	};
 
-	const hideSearchDialog = () => {
+	const hideSearchDialog = (): void => {
 		if (searchVisible) {
 			closeSearchPanel(editor);
 		}
@@ -120,11 +121,11 @@ const createEditor = (
 		onSearchDialogUpdate();
 	};
 
-	const globalSpellcheckEnabled = () => {
+	const globalSpellcheckEnabled = (): boolean => {
 		return editor.contentDOM.spellcheck;
 	};
 
-	const notifySelectionChange = (viewUpdate: ViewUpdate) => {
+	const notifySelectionChange = (viewUpdate: ViewUpdate): void => {
 		if (!viewUpdate.state.selection.eq(viewUpdate.startState.selection)) {
 			const mainRange = viewUpdate.state.selection.main;
 			const event: SelectionRangeChangeEvent = {
@@ -139,7 +140,7 @@ const createEditor = (
 		}
 	};
 
-	const notifySelectionFormattingChange = (viewUpdate?: ViewUpdate) => {
+	const notifySelectionFormattingChange = (viewUpdate?: ViewUpdate): void => {
 		const spellcheck = globalSpellcheckEnabled();
 
 		// If we can't determine the previous formatting, post the update regardless

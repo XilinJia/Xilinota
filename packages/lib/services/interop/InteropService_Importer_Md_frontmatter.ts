@@ -96,7 +96,7 @@ export default class InteropService_Importer_Md_frontmatter extends InteropServi
 
 		const { header, body } = this.getNoteHeader(note);
 
-		const md: Record<string, any> = this.toLowerCase(yaml.load(header, { schema: yaml.FAILSAFE_SCHEMA }));
+		const md: Record<string, any> = this.toLowerCase(yaml.load(header, { schema: yaml.FAILSAFE_SCHEMA }) ?? {});
 		const metadata: NoteEntity = {
 			title: md['title'] || '',
 			source_url: md['source'] || '',
@@ -131,7 +131,7 @@ export default class InteropService_Importer_Md_frontmatter extends InteropServi
 				metadata['todo_completed'] = metadata['user_updated_time'];
 			}
 			if ('due' in md) {
-				const due_date = time.anythingToMs(md['due'], null);
+				const due_date = time.anythingToMs(md['due'], 0);
 				if (due_date) { metadata['todo_due'] = due_date; }
 			}
 		}
@@ -156,13 +156,13 @@ export default class InteropService_Importer_Md_frontmatter extends InteropServi
 
 	public async importFile(filePath: string, parentFolderId: string) {
 		const note = await super.importFile(filePath, parentFolderId);
-		const { metadata, tags } = this.parseYamlNote(note.body);
+		const { metadata, tags } = this.parseYamlNote(note.body??'');
 
 		const updatedNote = { ...note, ...metadata };
 
 		const noteItem = await Note.save(updatedNote, { isNew: false, autoTimestamp: false });
 
-		for (const tag of tags) { await Tag.addNoteTagByTitle(noteItem.id, tag); }
+		if (noteItem.id) for (const tag of tags) { await Tag.addNoteTagByTitle(noteItem.id, tag); }
 
 		return noteItem;
 	}

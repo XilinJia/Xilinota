@@ -13,8 +13,9 @@ export const declaration: CommandDeclaration = {
 
 export const runtime = (comp: any): CommandRuntime => {
 	return {
-		execute: async (context: CommandContext, noteId: string = null) => {
-			noteId = noteId || stateUtils.selectedNoteId(context.state);
+		execute: async (context: CommandContext, noteId: string = '') => {
+			noteId = noteId || (stateUtils.selectedNoteId(context.state) ?? '');
+			if (!noteId) return;
 
 			const note = await Note.load(noteId);
 
@@ -27,25 +28,25 @@ export const runtime = (comp: any): CommandRuntime => {
 					label: _('Set alarm:'),
 					inputType: 'datetime',
 					buttons: ['ok', 'cancel', 'clear'],
-					value: note.todo_due ? new Date(note.todo_due) : defaultDate,
+					value: note && note.todo_due ? new Date(note.todo_due) : defaultDate,
 					onClose: async (answer: any, buttonType: string) => {
 						let newNote = null;
 
 						if (buttonType === 'clear') {
 							newNote = {
-								id: note.id,
+								id: note ? note.id : '',
 								todo_due: 0,
 							};
-						} else if (answer !== null) {
+						} else if (answer) {
 							newNote = {
-								id: note.id,
+								id: note ? note.id : '',
 								todo_due: answer.getTime(),
 							};
 						}
 
 						if (newNote) {
 							await Note.save(newNote);
-							eventManager.emit('alarmChange', { noteId: note.id, note: newNote });
+							eventManager.emit('alarmChange', { noteId: note ? note.id : '', note: newNote });
 						}
 
 						comp.setState({ promptOptions: null });
@@ -58,7 +59,7 @@ export const runtime = (comp: any): CommandRuntime => {
 
 		mapStateToTitle: (state: any) => {
 			const note = stateUtils.selectedNote(state);
-			return note && note.todo_due ? time.formatMsToLocal(note.todo_due) : null;
+			return note && note.todo_due ? time.formatMsToLocal(note.todo_due) : '';
 		},
 	};
 };

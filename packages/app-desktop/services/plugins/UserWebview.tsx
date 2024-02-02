@@ -23,11 +23,8 @@ export interface Props {
 	fitToContent?: boolean;
 	borderBottom?: boolean;
 	theme?: any;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	onSubmit?: Function;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	onDismiss?: Function;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	onReady?: Function;
 }
 
@@ -62,17 +59,17 @@ function serializeForms(document: any) {
 	return output;
 }
 
-function UserWebview(props: Props, ref: any) {
+function UserWebview(props: Props, ref: any): React.JSX.Element {
 	const minWidth = props.minWidth ? props.minWidth : 200;
 	const minHeight = props.minHeight ? props.minHeight : 20;
 
-	const viewRef = useRef(null);
+	const viewRef = useRef<HTMLIFrameElement | null>(null);
 	const isReady = useViewIsReady(viewRef);
 	const cssFilePath = useThemeCss({ pluginId: props.pluginId, themeId: props.themeId });
 
 	useEffect(() => {
 		if (isReady && props.onReady) props.onReady();
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [isReady]);
 
 	function frameWindow() {
@@ -93,7 +90,7 @@ function UserWebview(props: Props, ref: any) {
 		return {
 			formData: function() {
 				if (viewRef.current) {
-					return serializeForms(frameWindow().document);
+					return serializeForms(frameWindow()?.document);
 				} else {
 					return null;
 				}
@@ -116,11 +113,11 @@ function UserWebview(props: Props, ref: any) {
 		htmlHash,
 		minWidth,
 		minHeight,
-		props.fitToContent,
+		props.fitToContent ?? false,
 		isReady,
 	);
 
-	useSubmitHandler(
+	if (props.onSubmit && props.onDismiss) useSubmitHandler(
 		frameWindow(),
 		props.onSubmit,
 		props.onDismiss,
@@ -146,10 +143,10 @@ function UserWebview(props: Props, ref: any) {
 		id={props.viewId}
 		width={contentSize.width}
 		height={contentSize.height}
-		fitToContent={props.fitToContent}
+		fitToContent={props.fitToContent ?? false}
 		ref={viewRef}
 		src="services/plugins/UserWebviewIndex.html"
-		borderBottom={props.borderBottom}
+		borderBottom={props.borderBottom ?? false}
 	></StyledFrame>;
 }
 

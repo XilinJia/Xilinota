@@ -11,7 +11,7 @@ export interface ShortcutRecorderProps {
 	onSave: (event: { commandName: string; accelerator: string })=> void;
 	onReset: (event: { commandName: string })=> void;
 	onCancel: (event: { commandName: string })=> void;
-	onError: (event: { recorderError: Error })=> void;
+	onError: (event: { recorderError: Error|null })=> void;
 	initialAccelerator: string;
 	commandName: string;
 	themeId: number;
@@ -36,10 +36,10 @@ export const ShortcutRecorder = ({ onSave, onReset, onCancel, onError, initialAc
 			onError({ recorderError: null });
 			setSaveAllowed(true);
 		} catch (recorderError) {
-			onError({ recorderError });
+			if (recorderError instanceof Error) onError({ recorderError });
 			setSaveAllowed(false);
 		}
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+		
 	}, [accelerator]);
 
 	const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {

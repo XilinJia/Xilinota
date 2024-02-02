@@ -1,10 +1,10 @@
 import * as React from 'react';
-import { useCallback } from 'react';
+import { FocusEventHandler, KeyboardEventHandler, MouseEventHandler, useCallback } from 'react';
 import CommandService from '@xilinota/lib/services/CommandService';
 import { _ } from '@xilinota/lib/locale';
 
 import StyledInput from '../../style/StyledInput';
-const styled = require('styled-components').default;
+import styled from 'styled-components';
 
 export const Root = styled.div`
 	position: relative;
@@ -36,14 +36,10 @@ interface Props {
 	inputRef?: any;
 	value: string;
 	onChange(event: OnChangeEvent): void;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	onFocus?: Function;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	onBlur?: Function;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	onKeyDown?: Function;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	onSearchButtonClick: Function;
+	onFocus?: FocusEventHandler<HTMLInputElement>;
+	onBlur?: FocusEventHandler<HTMLInputElement>;
+	onKeyDown?: KeyboardEventHandler<HTMLInputElement>;
+	onSearchButtonClick: MouseEventHandler<HTMLButtonElement>;
 	searchStarted: boolean;
 	placeholder?: string;
 	disabled?: boolean;

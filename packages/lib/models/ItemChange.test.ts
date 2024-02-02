@@ -5,7 +5,7 @@ import ItemChangeUtils from '../services/ItemChangeUtils';
 import Note from '../models/Note';
 import ItemChange from '../models/ItemChange';
 
-let searchEngine: SearchEngine = null;
+let searchEngine: SearchEngine;
 
 describe('models/ItemChange', () => {
 

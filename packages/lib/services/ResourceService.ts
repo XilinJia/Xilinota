@@ -9,7 +9,8 @@ import Resource from '../models/Resource';
 import SearchEngine from './searchengine/SearchEngine';
 import ItemChangeUtils from './ItemChangeUtils';
 import time from '../time';
-const { sprintf } = require('sprintf-js');
+import { NoteEntity } from './database/types';
+import { sprintf } from 'sprintf-js';
 
 export default class ResourceService extends BaseService {
 
@@ -20,11 +21,11 @@ export default class ResourceService extends BaseService {
 	private maintenanceTimer1_: any = null;
 	private maintenanceTimer2_: any = null;
 
-	public async indexNoteResources() {
-		this.logger().info('ResourceService::indexNoteResources: Start');
+	public async indexNoteResources(): Promise<void> {
+		BaseService.logger().info('ResourceService::indexNoteResources: Start');
 
 		if (this.isIndexing_) {
-			this.logger().info('ResourceService::indexNoteResources: Already indexing - waiting for it to finish');
+			BaseService.logger().info('ResourceService::indexNoteResources: Already indexing - waiting for it to finish');
 			await time.waitTillCondition(() => !this.isIndexing_);
 			return;
 		}
@@ -52,7 +53,7 @@ export default class ResourceService extends BaseService {
 				const noteIds = changes.map((a: any) => a.item_id);
 				const notes = await Note.modelSelectAll(`SELECT id, title, body, encryption_applied FROM notes WHERE id IN ("${noteIds.join('","')}")`);
 
-				const noteById = (noteId: string) => {
+				const noteById = (noteId: string): NoteEntity | null => {
 					for (let i = 0; i < notes.length; i++) {
 						if (notes[i].id === noteId) return notes[i];
 					}
@@ -80,9 +81,9 @@ export default class ResourceService extends BaseService {
 								break;
 							}
 
-							await this.setAssociatedResources(note.id, note.body);
+							if (note.id && note.body) await this.setAssociatedResources(note.id, note.body);
 						} else {
-							this.logger().warn(`ResourceService::indexNoteResources: A change was recorded for a note that has been deleted: ${change.item_id}`);
+							BaseService.logger().warn(`ResourceService::indexNoteResources: A change was recorded for a note that has been deleted: ${change.item_id}`);
 						}
 					} else if (change.type === ItemChange.TYPE_DELETE) {
 						await NoteResource.remove(change.item_id);
@@ -102,30 +103,30 @@ export default class ResourceService extends BaseService {
 
 			await ItemChangeUtils.deleteProcessedChanges();
 		} catch (error) {
-			this.logger().error('ResourceService::indexNoteResources:', error);
+			BaseService.logger().error('ResourceService::indexNoteResources:', error);
 		}
 
 		this.isIndexing_ = false;
 
-		this.logger().info('ResourceService::indexNoteResources: Completed');
+		BaseService.logger().info('ResourceService::indexNoteResources: Completed');
 	}
 
-	public async setAssociatedResources(noteId: string, noteBody: string) {
+	public async setAssociatedResources(noteId: string, noteBody: string): Promise<void> {
 		const resourceIds = await Note.linkedResourceIds(noteBody);
 		await NoteResource.setAssociatedResources(noteId, resourceIds);
 	}
 
-	public async deleteOrphanResources(expiryDelay: number = null) {
-		if (expiryDelay === null) expiryDelay = Setting.value('revisionService.ttlDays') * 24 * 60 * 60 * 1000;
+	public async deleteOrphanResources(expiryDelay: number = -1): Promise<void> {
+		if (expiryDelay === -1) expiryDelay = Setting.value('revisionService.ttlDays') * 24 * 60 * 60 * 1000;
 		const resourceIds = await NoteResource.orphanResources(expiryDelay);
-		this.logger().info('ResourceService::deleteOrphanResources:', resourceIds);
+		BaseService.logger().info('ResourceService::deleteOrphanResources:', resourceIds);
 		for (let i = 0; i < resourceIds.length; i++) {
 			const resourceId = resourceIds[i];
 			const results = await SearchEngine.instance().search(resourceId);
-			if (results.length) {
+			if (results && results.length) {
 				const note = await Note.load(results[0].id);
-				if (note) {
-					this.logger().info(sprintf('ResourceService::deleteOrphanResources: Skipping deletion of resource %s because it is still referenced in note %s. Re-indexing note content to fix the issue.', resourceId, note.id));
+				if (note && note.id && note.body) {
+					BaseService.logger().info(sprintf('ResourceService::deleteOrphanResources: Skipping deletion of resource %s because it is still referenced in note %s. Re-indexing note content to fix the issue.', resourceId, note.id));
 					await this.setAssociatedResources(note.id, note.body);
 				}
 			} else {
@@ -134,25 +135,25 @@ export default class ResourceService extends BaseService {
 		}
 	}
 
-	private static async autoSetFileSize(resourceId: string, filePath: string, waitTillExists = true) {
+	private static async autoSetFileSize(resourceId: string, filePath: string, waitTillExists = true): Promise<void> {
 		const itDoes = await shim.fsDriver().waitTillExists(filePath, waitTillExists ? 10000 : 0);
 		if (!itDoes) {
 			// this.logger().warn('Trying to set file size on non-existent resource:', resourceId, filePath);
 			return;
 		}
 		const fileStat = await shim.fsDriver().stat(filePath);
-		await Resource.setFileSizeOnly(resourceId, fileStat.size);
+		await Resource.setFileSizeOnly(resourceId, fileStat?.size ?? 0);
 	}
 
-	public static async autoSetFileSizes() {
+	public static async autoSetFileSizes(): Promise<void> {
 		const resources = await Resource.needFileSizeSet();
 
 		for (const r of resources) {
-			await this.autoSetFileSize(r.id, Resource.fullPath(r), false);
+			if (r.id) await this.autoSetFileSize(r.id, Resource.fullPath(r), false);
 		}
 	}
 
-	public async maintenance() {
+	public async maintenance(): Promise<void> {
 		this.maintenanceCalls_.push(true);
 		try {
 			await this.indexNoteResources();
@@ -162,7 +163,7 @@ export default class ResourceService extends BaseService {
 		}
 	}
 
-	public static runInBackground() {
+	public static runInBackground(): void {
 		if (this.isRunningInBackground_) return;
 
 		this.isRunningInBackground_ = true;
@@ -177,7 +178,7 @@ export default class ResourceService extends BaseService {
 		}, 1000 * 60 * 60 * 4);
 	}
 
-	public async cancelTimers() {
+	public async cancelTimers(): Promise<void> {
 		if (this.maintenanceTimer1_) {
 			shim.clearTimeout(this.maintenanceTimer1_);
 			this.maintenanceTimer1_ = null;
@@ -187,7 +188,7 @@ export default class ResourceService extends BaseService {
 			this.maintenanceTimer2_ = null;
 		}
 
-		return new Promise((resolve) => {
+		new Promise((resolve) => {
 			const iid = shim.setInterval(() => {
 				if (!this.maintenanceCalls_.length) {
 					shim.clearInterval(iid);
@@ -197,7 +198,7 @@ export default class ResourceService extends BaseService {
 		});
 	}
 
-	public static instance_: ResourceService = null;
+	public static instance_: ResourceService;
 
 	public static instance() {
 		if (this.instance_) return this.instance_;

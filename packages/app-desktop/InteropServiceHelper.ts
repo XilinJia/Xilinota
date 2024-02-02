@@ -9,9 +9,9 @@ import { PluginStates } from '@xilinota/lib/services/plugins/reducer';
 const bridge = require('@electron/remote').require('./bridge').default;
 import Setting from '@xilinota/lib/models/Setting';
 import Note from '@xilinota/lib/models/Note';
-const { friendlySafeFilename } = require('@xilinota/lib/path-utils');
+import { friendlySafeFilename } from '@xilinota/lib/path-utils';
 import time from '@xilinota/lib/time';
-const md5 = require('md5');
+import md5 from 'md5';
 const url = require('url');
 
 interface ExportNoteOptions {
@@ -27,26 +27,28 @@ interface ExportNoteOptions {
 
 export default class InteropServiceHelper {
 
-	private static async exportNoteToHtmlFile(noteId: string, exportOptions: ExportNoteOptions) {
-		const tempFile = `${Setting.value('tempDir')}/${md5(Date.now() + Math.random())}.html`;
+	private static async exportNoteToHtmlFile(noteId: string, exportOptions: ExportNoteOptions): Promise<string> {
+		const tempFile = `${Setting.value('tempDir')}/${md5(Date.now().toString() + Math.random())}.html`;
 
-		const fullExportOptions: ExportOptions = { path: tempFile,
+		const fullExportOptions: ExportOptions = {
+			path: tempFile,
 			format: 'html',
 			target: FileSystemItem.File,
 			sourceNoteIds: [noteId],
-			customCss: '', ...exportOptions };
+			customCss: '', ...exportOptions
+		};
 
 		const service = InteropService.instance();
 
 		const result = await service.export(fullExportOptions);
-		// eslint-disable-next-line no-console
+
 		console.info('Export HTML result: ', result);
 		return tempFile;
 	}
 
-	private static async exportNoteTo_(target: string, noteId: string, options: ExportNoteOptions = {}) {
+	private static async exportNoteTo_(target: string, noteId: string, options: ExportNoteOptions = {}): Promise<string | null> {
 		let win: any = null;
-		let htmlFile: string = null;
+		let htmlFile: string = '';
 
 		const cleanup = () => {
 			if (win) win.destroy();
@@ -84,7 +86,7 @@ export default class InteropServiceHelper {
 								// pdfs.
 								// https://github.com/XilinJia/Xilinota/issues/6254.
 								win.webContents.executeJavaScript('document.querySelectorAll(\'details\').forEach(el=>el.setAttribute(\'open\',\'\'))');
-								const data = await win.webContents.printToPDF(options);
+								const data: string = await win.webContents.printToPDF(options);
 								resolve(data);
 							} catch (error) {
 								reject(error);
@@ -130,15 +132,15 @@ export default class InteropServiceHelper {
 		}
 	}
 
-	public static async exportNoteToPdf(noteId: string, options: ExportNoteOptions = {}) {
+	public static async exportNoteToPdf(noteId: string, options: ExportNoteOptions = {}): Promise<string | null> {
 		return this.exportNoteTo_('pdf', noteId, options);
 	}
 
-	public static async printNote(noteId: string, options: ExportNoteOptions = {}) {
+	public static async printNote(noteId: string, options: ExportNoteOptions = {}): Promise<string | null> {
 		return this.exportNoteTo_('printer', noteId, options);
 	}
 
-	public static async defaultFilename(noteId: string, fileExtension: string) {
+	public static async defaultFilename(noteId: string, fileExtension: string): Promise<string> {
 		// Default filename is just the date
 		const date = time.formatMsToLocal(new Date().getTime(), time.dateFormat());
 		let filename = friendlySafeFilename(`${date}`, 100);
@@ -146,21 +148,18 @@ export default class InteropServiceHelper {
 		if (noteId) {
 			const note = await Note.load(noteId);
 			// In a rare case the passed note will be null, use the id for filename
-			filename = friendlySafeFilename(note ? note.title : noteId, 100);
+			filename = friendlySafeFilename(note && note.title ? note.title : noteId, 100);
 		}
 
 		return `${filename}.${fileExtension}`;
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	public static async export(_dispatch: Function, module: ExportModule, options: ExportNoteOptions = null) {
-		if (!options) options = {};
-
+	public static async export(_dispatch: Function, module: ExportModule, options: ExportNoteOptions = {}): Promise<void> {
 		let path = null;
 
 		if (module.target === 'file') {
 			const noteId = options.sourceNoteIds && options.sourceNoteIds.length ? options.sourceNoteIds[0] : null;
-			path = await bridge().showSaveDialog({
+			if (noteId) path = await bridge().showSaveDialog({
 				filters: [{ name: module.description, extensions: module.fileExtensions }],
 				defaultPath: await this.defaultFilename(noteId, module.fileExtensions[0]),
 			});
@@ -191,11 +190,11 @@ export default class InteropServiceHelper {
 
 		try {
 			const result = await service.export(exportOptions);
-			// eslint-disable-next-line no-console
+
 			console.info('Export result: ', result);
 		} catch (error) {
 			console.error(error);
-			bridge().showErrorMessageBox(_('Could not export notes: %s', error.message));
+			bridge().showErrorMessageBox(_('Could not export notes: %s', (error as Error).message));
 		}
 
 		void CommandService.instance().execute('hideModalMessage');

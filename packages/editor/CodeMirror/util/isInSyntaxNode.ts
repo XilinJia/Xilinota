@@ -6,7 +6,7 @@ interface Range {
 	to: number;
 }
 
-const intersectsSyntaxNode = (state: EditorState, range: Range, nodeName: string) => {
+const intersectsSyntaxNode = (state: EditorState, range: Range, nodeName: string): boolean => {
 	let foundNode = false;
 
 	syntaxTree(state).iterate({

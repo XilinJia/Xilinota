@@ -17,7 +17,8 @@ export default class SyncTargetNone extends BaseSyncTarget {
 	}
 
 	public async fileApi(): Promise<FileApi> {
-		return null;
+		throw('no file api for target None')
+		// return null;
 	}
 
 	protected async initFileApi() {

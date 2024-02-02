@@ -9,7 +9,7 @@ function clearTranspiledFiles(directory) {
 			return;
 		}
 
-		// eslint-disable-next-line github/array-foreach
+		
 		files.forEach((file) => {
 			const filePath = path.join(directory, file);
 

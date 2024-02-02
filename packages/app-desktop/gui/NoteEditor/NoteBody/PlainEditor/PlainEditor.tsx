@@ -7,13 +7,13 @@ import { useEffect, useCallback, useRef, forwardRef, useImperativeHandle } from 
 import { NoteBodyEditorProps, NoteBodyEditorRef } from '../../utils/types';
 
 const PlainEditor = (props: NoteBodyEditorProps, ref: ForwardedRef<NoteBodyEditorRef>) => {
-	const editorRef = useRef<HTMLTextAreaElement>();
+	const editorRef: React.MutableRefObject<HTMLTextAreaElement | null> = useRef<HTMLTextAreaElement | null>(null);;
 
 	useImperativeHandle(ref, () => {
 		return {
 			content: () => editorRef.current?.value ?? '',
 			resetScroll: () => {
-				editorRef.current.scrollTop = 0;
+				if (editorRef.current) editorRef.current.scrollTop = 0;
 			},
 			scrollTo: () => {
 				// Not supported
@@ -37,7 +37,7 @@ const PlainEditor = (props: NoteBodyEditorProps, ref: ForwardedRef<NoteBodyEdito
 	}, [props.content]);
 
 	const onChange = useCallback((event: any) => {
-		props.onChange({ changeId: null, content: event.target.value });
+		props.onChange({ changeId: 0, content: event.target.value });
 	}, [props.onChange]);
 
 	return (

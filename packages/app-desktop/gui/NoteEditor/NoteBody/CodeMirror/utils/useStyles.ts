@@ -7,7 +7,7 @@ import { useMemo } from 'react';
 
 const useStyles = (props: NoteBodyEditorProps) => {
 	return useMemo(() => {
-		return buildStyle(['CodeMirror', props.fontSize], props.themeId, (theme: Theme) => {
+		return buildStyle(['CodeMirror', props.fontSize.toString()], props.themeId, (theme: Theme) => {
 			return {
 				root: {
 					position: 'relative',

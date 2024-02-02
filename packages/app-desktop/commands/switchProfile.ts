@@ -12,6 +12,7 @@ export const runtime = (): CommandRuntime => {
 	return {
 		execute: async (context: CommandContext, profileId: string) => {
 			const currentConfig = context.state.profileConfig;
+			if (!currentConfig) return;
 			if (currentConfig.currentProfileId === profileId) return;
 
 			const newConfig: ProfileConfig = {

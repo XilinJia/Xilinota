@@ -2,9 +2,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { isInsideContainer } from '@xilinota/lib/dom';
 
 interface Props {
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	onOkButtonClick: Function;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	onCancelButtonClick: Function;
 }
 
@@ -18,10 +16,10 @@ export default (props: Props) => {
 		globalKeydownHandlersRef.current.push(elementId);
 		return () => {
 			const idx = globalKeydownHandlersRef.current.findIndex(e => e === elementId);
-			// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 			globalKeydownHandlersRef.current.splice(idx, 1);
 		};
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, []);
 
 	const isTopDialog = () => {
@@ -53,7 +51,7 @@ export default (props: Props) => {
 		} else if (event.keyCode === 27) {
 			props.onCancelButtonClick();
 		}
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [props.onOkButtonClick, props.onCancelButtonClick]);
 
 	useEffect(() => {

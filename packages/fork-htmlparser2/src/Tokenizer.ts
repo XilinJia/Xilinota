@@ -1,3 +1,4 @@
+// XJ upgrade to entities 4.5.0 breaks
 import decodeCodePoint from "entities/lib/decode_codepoint";
 import entityMap from "entities/lib/maps/entities.json";
 import legacyMap from "entities/lib/maps/legacy.json";
@@ -575,7 +576,7 @@ export default class Tokenizer {
         if (limit > 6) limit = 6; // The max length of legacy entities is 6
         while (limit >= 2) {
             // The min length of legacy entities is 2
-            const entity = this._buffer.substr(start, limit);
+            const entity = this._buffer.substring(start, limit);
             if (Object.prototype.hasOwnProperty.call(legacyMap, entity)) {
                 this._emitPartial((legacyMap as any)[entity]);
                 this._sectionStart += limit + 1;
@@ -662,7 +663,7 @@ export default class Tokenizer {
         } else if (this._running) {
             if (this._state === State.Text) {
                 if (this._sectionStart !== this._index) {
-                    this._cbs.ontext(this._buffer.substr(this._sectionStart));
+                    this._cbs.ontext(this._buffer.substring(this._sectionStart));
                 }
                 this._buffer = "";
                 this._bufferOffset += this._index;
@@ -674,7 +675,7 @@ export default class Tokenizer {
                 this._index = 0;
             } else {
                 //remove everything unnecessary
-                this._buffer = this._buffer.substr(this._sectionStart);
+                this._buffer = this._buffer.substring(this._sectionStart);
                 this._index -= this._sectionStart;
                 this._bufferOffset += this._sectionStart;
             }
@@ -837,7 +838,7 @@ export default class Tokenizer {
         this._cbs.onend();
     }
     _handleTrailingData() {
-        const data = this._buffer.substr(this._sectionStart);
+        const data = this._buffer.substring(this._sectionStart);
         if (
             this._state === State.InCdata ||
             this._state === State.AfterCdata1 ||

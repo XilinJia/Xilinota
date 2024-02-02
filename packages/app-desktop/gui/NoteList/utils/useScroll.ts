@@ -8,7 +8,7 @@ const useScroll = (itemsPerLine: number, noteCount: number, itemSize: Size, list
 	const lastScrollSetTime = useRef(0);
 
 	const maxScrollTop = useMemo(() => {
-		return Math.max(0, itemSize.height * noteCount - listSize.height);
+		return Math.max(0, itemSize.height??50 * noteCount - (listSize.height??50));
 	}, [itemSize.height, noteCount, listSize.height]);
 
 	// This ugly hack is necessary because setting scrollTop at a high
@@ -29,7 +29,7 @@ const useScroll = (itemsPerLine: number, noteCount: number, itemSize: Size, list
 	// but still fails now and then. Setting it after 500ms would probably work
 	// reliably but it's too slow so it makes sense to do it in an interval.
 
-	const setScrollTopLikeYouMeanItTimer = useRef(null);
+	const setScrollTopLikeYouMeanItTimer = useRef('');
 	const setScrollTopLikeYouMeanItStartTime = useRef(0);
 	const setScrollTopLikeYouMeanIt = useCallback((newScrollTop: number) => {
 		if (setScrollTopLikeYouMeanItTimer.current) shim.clearInterval(setScrollTopLikeYouMeanItTimer.current);
@@ -38,7 +38,7 @@ const useScroll = (itemsPerLine: number, noteCount: number, itemSize: Size, list
 		setScrollTopLikeYouMeanItTimer.current = shim.setInterval(() => {
 			if (!listRef.current) {
 				shim.clearInterval(setScrollTopLikeYouMeanItTimer.current);
-				setScrollTopLikeYouMeanItTimer.current = null;
+				setScrollTopLikeYouMeanItTimer.current = '';
 				return;
 			}
 
@@ -47,17 +47,19 @@ const useScroll = (itemsPerLine: number, noteCount: number, itemSize: Size, list
 
 			if (Date.now() - setScrollTopLikeYouMeanItStartTime.current > 500) {
 				shim.clearInterval(setScrollTopLikeYouMeanItTimer.current);
-				setScrollTopLikeYouMeanItTimer.current = null;
+				setScrollTopLikeYouMeanItTimer.current = '';
 			}
 		}, 10);
 	}, [listRef]);
 
 	useEffect(() => {
 		if (setScrollTopLikeYouMeanItTimer.current) shim.clearInterval(setScrollTopLikeYouMeanItTimer.current);
-		setScrollTopLikeYouMeanItTimer.current = null;
+		setScrollTopLikeYouMeanItTimer.current = '';
 	}, []);
 
 	const makeItemIndexVisible = useCallback((itemIndex: number) => {
+		itemSize.height = itemSize.height ? itemSize.height : 50;
+		listSize.height = listSize.height ? listSize.height : 50;
 		const lineTopFloat = scrollTop / itemSize.height;
 		const topFloat = lineTopFloat * itemsPerLine; // scrollTop / itemSize.height;
 		const lineBottomFloat = (scrollTop + listSize.height - itemSize.height) / itemSize.height;

@@ -55,7 +55,7 @@ const defaultBaseMetadata = {
 	separatorAfter: false,
 };
 
-const moduleFullLabel = (metadata: ImportMetadata|ExportMetadata, moduleSource: FileSystemItem = null) => {
+const moduleFullLabel = (metadata: ImportMetadata|ExportMetadata, moduleSource: FileSystemItem|null = null) => {
 	const format = metadata.format.split('_')[0];
 	const label = [`${format.toUpperCase()} - ${metadata.description}`];
 	if (moduleSource && metadata.type === ModuleType.Importer && metadata.sources.length > 1) {
@@ -87,7 +87,7 @@ export const makeImportModule = (
 		...fullMetadata,
 		factory: (options: ImportOptions = {}) => {
 			const result = factory();
-			result.setMetadata({ ...fullMetadata, ...(options ?? {}) });
+			result.setMetadata({ ...fullMetadata, ...options });
 
 			return result;
 		},
@@ -116,7 +116,7 @@ export const makeExportModule = (
 		...fullMetadata,
 		factory: (options: ExportOptions = {}) => {
 			const result = factory();
-			result.setMetadata({ ...fullMetadata, ...(options ?? {}) });
+			result.setMetadata({ ...fullMetadata, ...options });
 
 			return result;
 		},

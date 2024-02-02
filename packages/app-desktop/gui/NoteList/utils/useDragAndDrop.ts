@@ -19,10 +19,10 @@ const useDragAndDrop = (
 	flow: ItemFlow,
 	itemsPerLine: number,
 ) => {
-	const [dragOverTargetNoteIndex, setDragOverTargetNoteIndex] = useState(null);
+	const [dragOverTargetNoteIndex, setDragOverTargetNoteIndex] = useState<number>(0);
 
 	const onGlobalDrop = useCallback(() => {
-		setDragOverTargetNoteIndex(null);
+		setDragOverTargetNoteIndex(0);
 	}, []);
 
 	useEffect(() => {
@@ -59,12 +59,12 @@ const useDragAndDrop = (
 
 	const dragTargetNoteIndex = useCallback((event: React.DragEvent) => {
 		const rect = listRef.current.getBoundingClientRect();
-		const lineIndexFloat = (event.clientY - rect.top + scrollTop) / itemSize.height;
+		const lineIndexFloat = (event.clientY - rect.top + scrollTop) / (itemSize.height??50);
 		if (flow === ItemFlow.TopToBottom) {
 			return Math.abs(Math.round(lineIndexFloat));
 		} else {
 			const lineIndex = Math.floor(lineIndexFloat);
-			const rowIndexFloat = (event.clientX - rect.left) / itemSize.width;
+			const rowIndexFloat = (event.clientX - rect.left) / (itemSize.width??50);
 			const rowIndex = Math.round(rowIndexFloat);
 			return lineIndex * itemsPerLine + rowIndex;
 		}
@@ -88,7 +88,7 @@ const useDragAndDrop = (
 		if (!canManuallySortNotes(notesParentType, noteSortOrder)) return;
 
 		const dt = event.dataTransfer;
-		setDragOverTargetNoteIndex(null);
+		setDragOverTargetNoteIndex(0);
 
 		const targetNoteIndex = dragTargetNoteIndex(event);
 		const noteIds: string[] = JSON.parse(dt.getData('text/x-jop-note-ids'));

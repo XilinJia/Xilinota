@@ -3,7 +3,7 @@ import { ResourceEntity } from './services/database/types';
 import { htmlentities } from '@xilinota/utils/html';
 const stringPadding = require('string-padding');
 const stringToStream = require('string-to-stream');
-const resourceUtils = require('./resourceUtils.js');
+import resourceUtils from './resourceUtils.js';
 const cssParser = require('css');
 
 const BLOCK_OPEN = '[[BLOCK_OPEN]]';
@@ -24,7 +24,7 @@ enum SectionType {
 
 interface Section {
 	type: SectionType;
-	parent: Section;
+	parent: Section|null;
 	lines: any[];
 	isHeader?: boolean;
 }
@@ -319,8 +319,8 @@ function simplifyString(s: string): string {
 		previousWhite = isWhite;
 	}
 
-	while (output.length && isWhiteSpace(output[0])) output = output.substr(1);
-	while (output.length && isWhiteSpace(output[output.length - 1])) output = output.substr(0, output.length - 1);
+	while (output.length && isWhiteSpace(output[0])) output = output.substring(1);
+	while (output.length && isWhiteSpace(output[output.length - 1])) output = output.substring(0, output.length - 1);
 
 	return output;
 }
@@ -330,8 +330,8 @@ function collapseWhiteSpaceAndAppend(lines: string[], state: any, text: string) 
 		lines.push(text);
 	} else {
 		// Remove all \n and \r from the left and right of the text
-		while (text.length && (text[0] === '\n' || text[0] === '\r')) text = text.substr(1);
-		while (text.length && (text[text.length - 1] === '\n' || text[text.length - 1] === '\r')) text = text.substr(0, text.length - 1);
+		while (text.length && (text[0] === '\n' || text[0] === '\r')) text = text.substring(1);
+		while (text.length && (text[text.length - 1] === '\n' || text[text.length - 1] === '\r')) text = text.substring(0, text.length - 1);
 
 		// Collapse all white spaces to just one. If there are spaces to the left and right of the string
 		// also collapse them to just one space.
@@ -408,8 +408,8 @@ const addResourceTag = (lines: string[], src: string, mime: string, options: Add
 
 const altFromResource = (resource: ResourceEntity): string => {
 	let alt = '';
-	if (!alt) alt = resource.title;
-	if (!alt) alt = resource.filename;
+	if (!alt) alt = resource.title??'';
+	if (!alt) alt = resource.filename??'';
 	return alt;
 };
 
@@ -465,23 +465,23 @@ function attributeToLowerCase(node: any) {
 }
 
 function cssValue(context: any, style: string, propName: string | string[]): string {
-	if (!style) return null;
+	if (!style) return '';
 
 	const propNames = Array.isArray(propName) ? propName : [propName];
 
 	try {
 		const o = cssParser.parse(`pre {${style}}`);
-		if (!o.stylesheet.rules.length) return null;
+		if (!o.stylesheet.rules.length) return '';
 
 		for (const propName of propNames) {
 			const prop = o.stylesheet.rules[0].declarations.find((d: any) => d.property.toLowerCase() === propName);
 			if (prop && prop.value) return prop.value.trim().toLowerCase();
 		}
 
-		return null;
+		return '';
 	} catch (error) {
-		displaySaxWarning(context, `Invalid CSS value: ${error.message}`);
-		return null;
+		displaySaxWarning(context, `Invalid CSS value: ${(error as Error).message}`);
+		return '';
 	}
 }
 
@@ -586,8 +586,9 @@ function isHighlight(context: any, _nodeName: string, attributes: any) {
 	return false;
 }
 
-function enexXmlToMdArray(stream: any, resources: ResourceEntity[], tasks: ExtractedTask[]): Promise<EnexXmlToMdArrayResult> {
+function enexXmlToMdArray(this: any, stream: any, resources: ResourceEntity[], tasks: ExtractedTask[]): Promise<EnexXmlToMdArrayResult> {
 	const remainingResources = resources.slice();
+	const self = this;
 
 	const removeRemainingResource = (id: string) => {
 		for (let i = 0; i < remainingResources.length; i++) {
@@ -663,12 +664,12 @@ function enexXmlToMdArray(stream: any, resources: ResourceEntity[], tasks: Extra
 		saxStream.on('opentag', function(node: any) {
 			const nodeAttributes = attributeToLowerCase(node);
 			const n = node.name.toLowerCase();
-			const isVisible = !isInvisibleBlock(this, nodeAttributes);
+			const isVisible = !isInvisibleBlock(self, nodeAttributes);
 			const tagInfo: ParserStateTag = {
 				name: n,
 				visible: isVisible,
-				isCodeBlock: isCodeBlock(this, n, nodeAttributes),
-				isHighlight: isHighlight(this, n, nodeAttributes),
+				isCodeBlock: isCodeBlock(self, n, nodeAttributes),
+				isHighlight: isHighlight(self, n, nodeAttributes),
 			};
 
 			state.tags.push(tagInfo);
@@ -716,7 +717,7 @@ function enexXmlToMdArray(stream: any, resources: ResourceEntity[], tasks: Extra
 				//
 				// https://discourse.xilinotaapp.org/t/not-all-notes-imported-from-evernote/13056/12?u=laurent
 				if (section.type !== 'table') {
-					displaySaxWarning(this, 'Found a <tr> tag outside of a table');
+					displaySaxWarning(self, 'Found a <tr> tag outside of a table');
 					// return;
 				}
 
@@ -731,7 +732,7 @@ function enexXmlToMdArray(stream: any, resources: ResourceEntity[], tasks: Extra
 				section = newSection;
 			} else if (n === 'td' || n === 'th') {
 				if (section.type !== 'tr') {
-					displaySaxWarning(this, 'Found a <td> tag outside of a <tr>');
+					displaySaxWarning(self, 'Found a <td> tag outside of a <tr>');
 					// return;
 				}
 
@@ -747,7 +748,7 @@ function enexXmlToMdArray(stream: any, resources: ResourceEntity[], tasks: Extra
 				section = newSection;
 			} else if (n === 'caption') {
 				if (section.type !== 'table') {
-					displaySaxWarning(this, 'Found a <caption> tag outside of a <table>');
+					displaySaxWarning(self, 'Found a <caption> tag outside of a <table>');
 				}
 
 				const newSection: Section = {
@@ -779,9 +780,9 @@ function enexXmlToMdArray(stream: any, resources: ResourceEntity[], tasks: Extra
 				section.lines.push(newSection);
 				section = newSection;
 			} else if (isBlockTag(n)) {
-				const isTodosList = cssValue(this, nodeAttributes.style, '--en-task-group') === 'true';
+				const isTodosList = cssValue(self, nodeAttributes.style, '--en-task-group') === 'true';
 				if (isTodosList) {
-					const todoGroup = cssValue(this, nodeAttributes.style, '--en-id');
+					const todoGroup = cssValue(self, nodeAttributes.style, '--en-id');
 					section.lines.push(BLOCK_OPEN);
 					for (const t of tasks) {
 						if (t.groupId === todoGroup) {
@@ -795,13 +796,13 @@ function enexXmlToMdArray(stream: any, resources: ResourceEntity[], tasks: Extra
 				}
 			} else if (isListTag(n)) {
 				section.lines.push(BLOCK_OPEN);
-				const isCheckboxList = cssValue(this, nodeAttributes.style, '--en-todo') === 'true';
+				const isCheckboxList = cssValue(self, nodeAttributes.style, '--en-todo') === 'true';
 				const tag = isCheckboxList ? ListTag.CheckboxList : n as ListTag;
 				state.lists.push({ tag: tag, counter: 1, startedText: false });
 			} else if (n === 'li') {
 				section.lines.push(BLOCK_OPEN);
 				if (!state.lists.length) {
-					displaySaxWarning(this, 'Found <li> tag without being inside a list');
+					displaySaxWarning(self, 'Found <li> tag without being inside a list');
 					return;
 				}
 
@@ -811,7 +812,7 @@ function enexXmlToMdArray(stream: any, resources: ResourceEntity[], tasks: Extra
 				const indent = '    '.repeat(state.lists.length - 1);
 
 				if (container.tag === ListTag.CheckboxList) {
-					const x = cssValue(this, nodeAttributes.style, '--en-checked') === 'true' ? 'X' : ' ';
+					const x = cssValue(self, nodeAttributes.style, '--en-checked') === 'true' ? 'X' : ' ';
 					section.lines.push(`${indent}- [${x}] `);
 				} else if (container.tag === ListTag.Ul) {
 					section.lines.push(`${indent}- `);
@@ -887,7 +888,7 @@ function enexXmlToMdArray(stream: any, resources: ResourceEntity[], tasks: Extra
 				let resource = null;
 				for (let i = 0; i < resources.length; i++) {
 					const r = resources[i];
-					if (r.id === hash) {
+					if (r.id && r.id === hash) {
 						resource = r;
 						removeRemainingResource(r.id);
 						break;
@@ -953,7 +954,7 @@ function enexXmlToMdArray(stream: any, resources: ResourceEntity[], tasks: Extra
 				// If the resource does not appear among the note's resources, it
 				// means it's an attachement. It will be appended along with the
 				// other remaining resources at the bottom of the markdown text.
-				if (resource && !!resource.id) {
+				if (resource && resource.mime && !!resource.id) {
 					section.lines = addResourceTag(section.lines, `:/${resource.id}`, resource.mime, {
 						alt: nodeAttributes.alt ? nodeAttributes.alt : altFromResource(resource),
 						width: nodeAttributes.width ? Number(nodeAttributes.width) : 0,
@@ -987,11 +988,11 @@ function enexXmlToMdArray(stream: any, resources: ResourceEntity[], tasks: Extra
 
 			if (n === 'en-note') {
 				// End of note
-			} else if (!poppedTag.visible) {
+			} else if (poppedTag && !poppedTag.visible) {
 				if (section && section.parent) section = section.parent;
-			} else if (poppedTag.isHighlight) {
+			} else if (poppedTag && poppedTag.isHighlight) {
 				section.lines.push('==');
-			} else if (poppedTag.isCodeBlock) {
+			} else if (poppedTag && poppedTag.isCodeBlock) {
 				state.inCode.pop();
 
 				if (!state.inCode.length) {
@@ -1014,7 +1015,7 @@ function enexXmlToMdArray(stream: any, resources: ResourceEntity[], tasks: Extra
 					if (section && section.parent) section = section.parent;
 				}
 			} else if (isNewLineOnlyEndTag(n)) {
-				if (poppedTag.name === ListTag.TaskList) {
+				if (poppedTag && poppedTag.name === ListTag.TaskList) {
 					state.lists.pop();
 				}
 				section.lines.push(BLOCK_CLOSE);
@@ -1441,7 +1442,7 @@ async function enexXmlToMd(xmlString: string, resources: ResourceEntity[], tasks
 		const r = result.resources[i];
 		if (firstAttachment) mdLines.push(NEWLINE);
 		mdLines.push(NEWLINE);
-		mdLines = addResourceTag(mdLines, `:/${r.id}`, r.mime, {
+		mdLines = addResourceTag(mdLines, `:/${r.id}`, r.mime??'', {
 			alt: altFromResource(r),
 		});
 		firstAttachment = false;

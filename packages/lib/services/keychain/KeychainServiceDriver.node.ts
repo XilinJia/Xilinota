@@ -10,7 +10,7 @@ export default class KeychainServiceDriver extends KeychainServiceDriverBase {
 	}
 
 	public async password(name: string): Promise<string> {
-		if (!shim.keytar()) return null;
+		if (!shim.keytar()) return '';
 		return shim.keytar().getPassword(`${this.appId}.${name}`, `${this.clientId}@xilinota`);
 	}
 

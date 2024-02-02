@@ -13,14 +13,14 @@ export const declaration: CommandDeclaration = {
 
 export const runtime = (): CommandRuntime => {
 	return {
-		execute: async (context: CommandContext, noteId: string = null) => {
-			noteId = noteId || stateUtils.selectedNoteId(context.state);
-
+		execute: async (context: CommandContext, noteId: string = '') => {
+			noteId = noteId || (stateUtils.selectedNoteId(context.state) ?? '');
+			if (!noteId) return;
 			try {
 				const note = await Note.load(noteId);
-				void ExternalEditWatcher.instance().openAndWatch(note);
+				if (note) void ExternalEditWatcher.instance().openAndWatch(note);
 			} catch (error) {
-				bridge().showErrorMessageBox(_('Error opening note in editor: %s', error.message));
+				bridge().showErrorMessageBox(_('Error opening note in editor: %s', (error as Error).message));
 			}
 		},
 		enabledCondition: 'oneNoteSelected && !noteIsReadOnly',

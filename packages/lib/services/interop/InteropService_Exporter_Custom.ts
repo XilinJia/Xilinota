@@ -11,8 +11,8 @@ interface CustomImporter {
 
 export default class InteropService_Exporter_Custom extends InteropService_Exporter_Base {
 
-	private customContext_: ExportContext;
-	private module_: CustomImporter = null;
+	private customContext_: ExportContext|undefined;
+	private module_: CustomImporter;
 
 	public constructor(module: CustomImporter) {
 		super();

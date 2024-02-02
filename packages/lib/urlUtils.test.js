@@ -1,5 +1,5 @@
 
-const urlUtils = require('./urlUtils.js');
+import urlUtils from './urlUtils';
 
 describe('urlUtils', () => {
 

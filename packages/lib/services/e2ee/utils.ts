@@ -13,7 +13,7 @@ import ShareService from '../share/ShareService';
 
 const logger = Logger.create('e2ee/utils');
 
-export async function setupAndEnableEncryption(service: EncryptionService, masterKey: MasterKeyEntity = null, masterPassword: string = null) {
+export async function setupAndEnableEncryption(service: EncryptionService, masterKey: MasterKeyEntity | null = null, masterPassword: string = '') {
 	if (!masterKey) {
 		// May happen for example if there are master keys in info.json but none
 		// of them is set as active. But in fact, unless there is a bug in the
@@ -21,7 +21,7 @@ export async function setupAndEnableEncryption(service: EncryptionService, maste
 		logger.warn('Setting up E2EE without a master key - user will need to either generate one or select one of the existing ones as active');
 	}
 
-	setEncryptionEnabled(true, masterKey ? masterKey.id : null);
+	setEncryptionEnabled(true, masterKey ? masterKey.id ?? '' : '');
 
 	if (masterPassword) {
 		Setting.setValue('encryption.masterPassword', masterPassword);
@@ -49,7 +49,7 @@ export async function setupAndDisableEncryption(service: EncryptionService) {
 	await loadMasterKeysFromSettings(service);
 }
 
-export async function toggleAndSetupEncryption(service: EncryptionService, enabled: boolean, masterKey: MasterKeyEntity, password: string) {
+export async function toggleAndSetupEncryption(service: EncryptionService, enabled: boolean, masterKey: MasterKeyEntity | null, password: string) {
 	logger.info('toggleAndSetupEncryption: enabled:', enabled, ' Master key', masterKey);
 
 	if (!enabled) {
@@ -92,7 +92,7 @@ export async function migrateMasterPassword() {
 	logger.info('Master password is not set - trying to get it from the active master key...');
 
 	const mk = getActiveMasterKey();
-	if (!mk) return;
+	if (!mk || !mk.id) return;
 
 	const masterPassword = Setting.value('encryption.passwordCache')[mk.id];
 	if (masterPassword) {
@@ -117,7 +117,7 @@ export async function migrateMasterPassword() {
 // previously any master key could be encrypted with any password, so to support
 // this legacy case, we first check if the MK decrypts with the master password.
 // If not, try with the master key specific password, if any is defined.
-export async function findMasterKeyPassword(service: EncryptionService, masterKey: MasterKeyEntity, passwordCache: Record<string, string> = null): Promise<string> {
+export async function findMasterKeyPassword(service: EncryptionService, masterKey: MasterKeyEntity, passwordCache: Record<string, string> = {}): Promise<string> {
 	const masterPassword = Setting.value('encryption.masterPassword');
 	if (masterPassword && await service.checkMasterKeyPassword(masterKey, masterPassword)) {
 		logger.info('findMasterKeyPassword: Using master password');
@@ -127,7 +127,7 @@ export async function findMasterKeyPassword(service: EncryptionService, masterKe
 	logger.info('findMasterKeyPassword: No master password is defined - trying to get master key specific password');
 
 	const passwords = passwordCache ? passwordCache : Setting.value('encryption.passwordCache');
-	return passwords[masterKey.id];
+	return passwords[masterKey.id ?? ''];
 }
 
 export async function loadMasterKeysFromSettings(service: EncryptionService) {
@@ -136,7 +136,7 @@ export async function loadMasterKeysFromSettings(service: EncryptionService) {
 	const masterKeys = await MasterKey.all();
 	const activeMasterKeyId = getActiveMasterKeyId();
 
-	logger.info(`Trying to load ${masterKeys.length} master keys...`);
+	// logger.info(`Trying to load ${masterKeys.length} master keys...`);
 
 	for (let i = 0; i < masterKeys.length; i++) {
 		const mk = masterKeys[i];
@@ -172,7 +172,7 @@ export const activeMasterKeySanityCheck = () => {
 	logger.info('activeMasterKeySanityCheck: Active key is **not** an enabled key - selecting a different key as the active key...');
 
 	const latestMasterKey = enabledMasterKeys.reduce((acc: MasterKeyEntity, current: MasterKeyEntity) => {
-		if (current.created_time > acc.created_time) {
+		if (current.created_time && acc.created_time && current.created_time > acc.created_time) {
 			return current;
 		} else {
 			return acc;
@@ -181,7 +181,7 @@ export const activeMasterKeySanityCheck = () => {
 
 	logger.info('activeMasterKeySanityCheck: Selected new active key:', latestMasterKey);
 
-	setActiveMasterKeyId(latestMasterKey.id);
+	setActiveMasterKeyId(latestMasterKey.id ?? '');
 };
 
 export function showMissingMasterKeyMessage(syncInfo: SyncInfo, notLoadedMasterKeys: string[]) {
@@ -205,7 +205,7 @@ export function showMissingMasterKeyMessage(syncInfo: SyncInfo, notLoadedMasterK
 	return !!notLoadedMasterKeys.length;
 }
 
-export function getDefaultMasterKey(): MasterKeyEntity {
+export function getDefaultMasterKey(): MasterKeyEntity | null {
 	let mk = getActiveMasterKey();
 	if (!mk || masterKeyEnabled(mk)) {
 		mk = MasterKey.latest();
@@ -238,21 +238,22 @@ export async function updateMasterPassword(currentPassword: string, newPassword:
 		const reencryptedMasterKeys: MasterKeyEntity[] = [];
 		let reencryptedPpk = null;
 
-		for (const mk of localSyncInfo().masterKeys) {
+		const lSyncInfo = localSyncInfo();
+		for (const mk of lSyncInfo.masterKeys) {
 			try {
 				reencryptedMasterKeys.push(await EncryptionService.instance().reencryptMasterKey(mk, currentPassword, newPassword));
 			} catch (error) {
 				if (!masterKeyEnabled(mk)) continue; // Ignore if the master key is disabled, because the password is probably forgotten
-				error.message = `Key ${mk.id} could not be reencrypted - this is most likely due to an incorrect password. Please try again. Error was: ${error.message}`;
+				if (error instanceof Error) error.message = `Key ${mk.id} could not be reencrypted - this is most likely due to an incorrect password. Please try again. Error was: ${error.message}`;
 				throw error;
 			}
 		}
 
-		if (localSyncInfo().ppk) {
+		if (lSyncInfo.ppk) {
 			try {
-				reencryptedPpk = await pkReencryptPrivateKey(EncryptionService.instance(), localSyncInfo().ppk, currentPassword, newPassword);
+				reencryptedPpk = await pkReencryptPrivateKey(EncryptionService.instance(), lSyncInfo.ppk, currentPassword, newPassword);
 			} catch (error) {
-				error.message = `Private key could not be reencrypted - this is most likely due to an incorrect password. Please try again. Error was: ${error.message}`;
+				if (error instanceof Error) error.message = `Private key could not be reencrypted - this is most likely due to an incorrect password. Please try again. Error was: ${error.message}`;
 				throw error;
 			}
 		}
@@ -276,6 +277,7 @@ export async function updateMasterPassword(currentPassword: string, newPassword:
 const unshareEncryptedFolders = async (shareService: ShareService, masterKeyId: string) => {
 	const rootFolders = await Folder.rootShareFoldersByKeyId(masterKeyId);
 	for (const folder of rootFolders) {
+		if (!folder.id) continue;
 		const isOwner = shareService.isSharedFolderOwner(folder.id);
 		if (isOwner) {
 			await shareService.unshareFolder(folder.id);
@@ -285,14 +287,14 @@ const unshareEncryptedFolders = async (shareService: ShareService, masterKeyId: 
 	}
 };
 
-export async function resetMasterPassword(encryptionService: EncryptionService, kvStore: KvStore, shareService: ShareService, newPassword: string) {
+export async function resetMasterPassword(encryptionService: EncryptionService, kvStore: KvStore, shareService: ShareService | null, newPassword: string) {
 	// First thing we do is to unshare all shared folders. If that fails, which
 	// may happen in particular if no connection is available, then we don't
 	// proceed. `unshareEncryptedFolders` will throw if something cannot be
 	// done.
 	if (shareService) {
 		for (const mk of localSyncInfo().masterKeys) {
-			if (!masterKeyEnabled(mk)) continue;
+			if (!mk.id || !masterKeyEnabled(mk)) continue;
 			await unshareEncryptedFolders(shareService, mk.id);
 		}
 	}
@@ -325,15 +327,15 @@ export enum MasterPasswordStatus {
 	Valid = 4,
 }
 
-export async function getMasterPasswordStatus(password: string = null): Promise<MasterPasswordStatus> {
-	password = password === null ? getMasterPassword(false) : password;
+export async function getMasterPasswordStatus(password: string = ''): Promise<MasterPasswordStatus> {
+	password = !password ? getMasterPassword(false) : password;
 	if (!password) return MasterPasswordStatus.NotSet;
 
 	const isValid = await masterPasswordIsValid(password);
 	return isValid ? MasterPasswordStatus.Valid : MasterPasswordStatus.Invalid;
 }
 
-export async function checkHasMasterPasswordEncryptedData(syncInfo: SyncInfo = null): Promise<boolean> {
+export async function checkHasMasterPasswordEncryptedData(syncInfo: SyncInfo | null = null): Promise<boolean> {
 	syncInfo = syncInfo ? syncInfo : localSyncInfo();
 	return !!syncInfo.ppk || !!syncInfo.masterKeys.length;
 }
@@ -350,7 +352,7 @@ export function getMasterPasswordStatusMessage(status: MasterPasswordStatus): st
 	return masterPasswordStatusMessages[status];
 }
 
-export async function masterPasswordIsValid(masterPassword: string, activeMasterKey: MasterKeyEntity = null): Promise<boolean> {
+export async function masterPasswordIsValid(masterPassword: string, activeMasterKey: MasterKeyEntity | null = null): Promise<boolean> {
 	// A valid password is basically one that decrypts the private key, but due
 	// to backward compatibility not all users have a PPK yet, so we also check
 	// based on the active master key.
@@ -382,7 +384,7 @@ export async function masterKeysWithoutPassword(): Promise<string[]> {
 
 	const output: string[] = [];
 	for (const mk of syncInfo.masterKeys) {
-		if (!masterKeyEnabled(mk)) continue;
+		if (!mk.id || !masterKeyEnabled(mk)) continue;
 		const password = await findMasterKeyPassword(EncryptionService.instance(), mk, passwordCache);
 		if (!password) output.push(mk.id);
 	}

@@ -1,15 +1,15 @@
-import BaseModel from '../BaseModel';
+import BaseModel, { ModelType } from '../BaseModel';
 import { MasterKeyEntity } from '../services/e2ee/types';
 import { localSyncInfo, saveLocalSyncInfo } from '../services/synchronizer/syncInfoUtils';
 import BaseItem from './BaseItem';
 import uuid from '../uuid_';
 
 export default class MasterKey extends BaseItem {
-	public static tableName() {
+	public static tableName() : string {
 		return 'master_keys';
 	}
 
-	public static modelType() {
+	public static modelType() : ModelType {
 		return BaseModel.TYPE_MASTER_KEY;
 	}
 
@@ -17,19 +17,19 @@ export default class MasterKey extends BaseItem {
 		return false;
 	}
 
-	public static latest() {
-		let output: MasterKeyEntity = null;
+	public static latest() : MasterKeyEntity {
+		let output: MasterKeyEntity = {};
 		const syncInfo = localSyncInfo();
 		for (const mk of syncInfo.masterKeys) {
-			if (!output || output.updated_time < mk.updated_time) {
+			if (!output || (output.updated_time && mk.updated_time && output.updated_time < mk.updated_time)) {
 				output = mk;
 			}
 		}
 		return output;
 	}
 
-	public static allWithoutEncryptionMethod(masterKeys: MasterKeyEntity[], methods: number[]) {
-		return masterKeys.filter(m => !methods.includes(m.encryption_method));
+	public static allWithoutEncryptionMethod(masterKeys: MasterKeyEntity[], methods: number[]) : MasterKeyEntity[] {
+		return masterKeys.filter(m => !methods.includes(m.encryption_method??0));
 	}
 
 	public static async all(): Promise<MasterKeyEntity[]> {
@@ -37,7 +37,7 @@ export default class MasterKey extends BaseItem {
 	}
 
 	public static async allIds(): Promise<string[]> {
-		return localSyncInfo().masterKeys.map(k => k.id);
+		return localSyncInfo().masterKeys.map(k => k.id??'');
 	}
 
 	public static async count(): Promise<number> {
@@ -45,7 +45,7 @@ export default class MasterKey extends BaseItem {
 	}
 
 	public static async load(id: string): Promise<MasterKeyEntity> {
-		return localSyncInfo().masterKeys.find(mk => mk.id === id);
+		return localSyncInfo().masterKeys.find(mk => mk.id === id) || {};
 	}
 
 	public static async save(o: MasterKeyEntity): Promise<MasterKeyEntity> {

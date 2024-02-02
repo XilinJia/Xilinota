@@ -1,5 +1,6 @@
 import AsyncActionQueue from '../AsyncActionQueue';
-const EventEmitter = require('events');
+import EventEmitter from 'events';
+import BaseService from './BaseService';
 
 class UndoQueue {
 
@@ -27,7 +28,7 @@ class UndoQueue {
 
 }
 
-export default class UndoRedoService {
+export default class UndoRedoService extends BaseService {
 
 	private pushAsyncQueue: AsyncActionQueue = new AsyncActionQueue(700);
 	private undoStates: UndoQueue = new UndoQueue();
@@ -36,15 +37,14 @@ export default class UndoRedoService {
 	private isUndoing = false;
 
 	public constructor() {
+		super();
 		this.push = this.push.bind(this);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public on(eventName: string, callback: Function) {
 		return this.eventEmitter.on(eventName, callback);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public off(eventName: string, callback: Function) {
 		return this.eventEmitter.removeListener(eventName, callback);
 	}

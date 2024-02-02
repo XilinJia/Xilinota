@@ -17,6 +17,6 @@ export function timerPush(name: string) {
 
 export function timerPop() {
 	const t = perfTimers_.pop() as PerfTimer;
-	// eslint-disable-next-line no-console
+
 	console.info(`Time: ${t.name}: ${Date.now() - t.startTime}`);
 }

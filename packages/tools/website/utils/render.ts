@@ -3,7 +3,7 @@ import { filename } from '@xilinota/lib/path-utils';
 import * as fs from 'fs-extra';
 import { Partials, TemplateParams } from './types';
 import { headerAnchor } from '@xilinota/renderer';
-import * as MarkdownIt from 'markdown-it';
+import MarkdownIt from 'markdown-it';
 
 export async function loadMustachePartials(partialDir: string) {
 	const output: Partials = {};
@@ -17,14 +17,14 @@ export async function loadMustachePartials(partialDir: string) {
 }
 
 export function renderMustache(contentHtml: string, templateParams: TemplateParams) {
-	return Mustache.render(templateParams.templateHtml, {
+	return Mustache.render(templateParams.templateHtml ?? '', {
 		...templateParams,
 		contentHtml,
 	}, templateParams.partials);
 }
 
 export function getMarkdownIt() {
-	const markdownIt = new MarkdownIt({
+	const markdownIt = MarkdownIt({
 		breaks: true,
 		linkify: true,
 		html: true,

@@ -1,11 +1,11 @@
-import produce from 'immer';
-import path = require('path');
+import { produce } from 'immer';
+import path from 'path';
 import Setting from '../../../models/Setting';
 import shim from '../../../shim';
 import PluginService, { defaultPluginSetting, DefaultPluginsInfo, PluginSettings } from '../PluginService';
 import Logger from '@xilinota/utils/Logger';
 import * as React from 'react';
-const shared = require('../../../components/shared/config/config-shared.js');
+import { shared } from '../../../components/shared/config/config-shared';
 
 const logger = Logger.create('defaultPluginsUtils');
 
@@ -31,8 +31,8 @@ export async function installDefaultPlugins(service: PluginService, defaultPlugi
 
 	const installedPlugins = Setting.value('installedDefaultPlugins');
 
-	for (let pluginId of defaultPluginsPaths) {
-		pluginId = pluginId.path;
+	for (let pluginPath of defaultPluginsPaths) {
+		const pluginId = pluginPath.path;
 
 		// if pluginId is present in 'installedDefaultPlugins' array or it doesn't have default plugin ID, then we won't install it again as default plugin
 		if (installedPlugins.includes(pluginId) || !defaultPluginsId.includes(pluginId)) continue;
@@ -51,10 +51,11 @@ export function setSettingsForDefaultPlugins(defaultPluginsInfo: DefaultPluginsI
 
 	// only set initial settings if the plugin is not present in installedDefaultPlugins array
 	for (const pluginId of Object.keys(defaultPluginsInfo)) {
-		if (!defaultPluginsInfo[pluginId].settings) continue;
-		for (const settingName of Object.keys(defaultPluginsInfo[pluginId].settings)) {
+		const settings = defaultPluginsInfo[pluginId].settings;
+		if (!settings) continue;
+		for (const settingName of Object.keys(settings)) {
 			if (!installedDefaultPlugins.includes(pluginId) && Setting.keyExists(`plugin-${pluginId}.${settingName}`)) {
-				Setting.setValue(`plugin-${pluginId}.${settingName}`, defaultPluginsInfo[pluginId].settings[settingName]);
+				Setting.setValue(`plugin-${pluginId}.${settingName}`, settings[settingName]);
 			}
 		}
 	}

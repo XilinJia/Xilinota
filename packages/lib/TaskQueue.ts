@@ -4,7 +4,6 @@ import Logger from '@xilinota/utils/Logger';
 
 interface Task {
 	id: string;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	callback: Function;
 }
 
@@ -24,7 +23,7 @@ export default class TaskQueue {
 	private name_: string;
 	private logger_: Logger;
 
-	public constructor(name: string, logger: Logger = null) {
+	public constructor(name: string, logger: Logger | null = null) {
 		this.name_ = name;
 		this.logger_ = logger ? logger : new Logger();
 	}
@@ -33,7 +32,6 @@ export default class TaskQueue {
 		return Setting.value('sync.maxConcurrentConnections');
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public push(id: string, callback: Function) {
 		if (this.stopping_) throw new Error('Cannot push task when queue is stopping');
 
@@ -49,7 +47,7 @@ export default class TaskQueue {
 
 		this.processingQueue_ = true;
 
-		const completeTask = (task: Task, result: any, error: Error) => {
+		const completeTask = (task: Task, result: any, error: Error | null) => {
 			delete this.processingTasks_[task.id];
 
 			const r: TaskResult = {
@@ -72,11 +70,11 @@ export default class TaskQueue {
 
 			task
 				.callback()
-			// eslint-disable-next-line promise/prefer-await-to-then -- Old code before rule was applied
+
 				.then((result: any) => {
 					completeTask(task, result, null);
 				})
-			// eslint-disable-next-line promise/prefer-await-to-then -- Old code before rule was applied
+
 				.catch((error: Error) => {
 					if (!error) error = new Error('Unknown error');
 					completeTask(task, null, error);

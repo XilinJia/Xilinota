@@ -6,8 +6,9 @@ import BaseItem from '../../models/BaseItem';
 import MasterKey from '../../models/MasterKey';
 import EncryptionService, { EncryptionMethod } from './EncryptionService';
 import { setEncryptionEnabled } from '../synchronizer/syncInfoUtils';
+import { BaseItemEntity } from '../database/types';
 
-let service: EncryptionService = null;
+let service: EncryptionService;
 
 describe('services_EncryptionService', () => {
 
@@ -218,8 +219,8 @@ describe('services_EncryptionService', () => {
 		await service.loadMasterKey(masterKey, '123456', true);
 
 		const folder = await Folder.save({ title: 'folder' });
-		const note = await Note.save({ title: 'encrypted note', body: 'something', parent_id: folder.id });
-		const serialized = await Note.serializeForSync(note);
+		const note = await Note.save({ title: 'encrypted note', body: 'something', parent_id: folder.id! });
+		const serialized = await Note.serializeForSync(note as BaseItemEntity);
 		const deserialized = Note.filter(await Note.unserialize(serialized));
 
 		// Check that required properties are not encrypted
@@ -267,14 +268,14 @@ describe('services_EncryptionService', () => {
 
 		// First check that we can replicate the error with the old encryption method
 		service.defaultEncryptionMethod_ = EncryptionMethod.SJCL;
-		const hasThrown = await checkThrowAsync(async () => await service.encryptString('🐶🐶🐶'.substr(0, 5)));
+		const hasThrown = await checkThrowAsync(async () => await service.encryptString('🐶🐶🐶'.substring(0, 5)));
 		expect(hasThrown).toBe(true);
 
 		// Now check that the new one fixes the problem
 		service.defaultEncryptionMethod_ = EncryptionMethod.SJCL1a;
-		const cipherText = await service.encryptString('🐶🐶🐶'.substr(0, 5));
+		const cipherText = await service.encryptString('🐶🐶🐶'.substring(0, 5));
 		const plainText = await service.decryptString(cipherText);
-		expect(plainText).toBe('🐶🐶🐶'.substr(0, 5));
+		expect(plainText).toBe('🐶🐶🐶'.substring(0, 5));
 	}));
 
 	it('should check if a master key is loaded', (async () => {

@@ -50,8 +50,8 @@ export default function FullViewer(props: FullViewerProps) {
 	const [zoom, setZoom] = useState<number>(1);
 	const [startPage, setStartPage] = useState<number>(props.startPage || 1);
 	const [selectedPage, setSelectedPage] = useState<number>(startPage);
-	const mainViewerRef = useRef<HTMLDivElement>(null);
-	const thubmnailRef = useRef<HTMLDivElement>(null);
+	const mainViewerRef = useRef<HTMLDivElement>(document.createElement('div'));
+	const thubmnailRef = useRef<HTMLDivElement>(document.createElement('div'));
 
 	const onActivePageChange = useCallback((pageNo: number) => {
 		setSelectedPage(pageNo);

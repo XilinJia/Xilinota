@@ -45,14 +45,14 @@ cliUtils.parseFlags = function(flags) {
 	for (let i = 0; i < flags.length; i++) {
 		let f = flags[i].trim();
 
-		if (f.substr(0, 2) === '--') {
+		if (f.substring(0, 2) === '--') {
 			f = f.split(' ');
-			output.long = f[0].substr(2).trim();
+			output.long = f[0].substring(2).trim();
 			if (f.length === 2) {
 				output.arg = cliUtils.parseCommandArg(f[1].trim());
 			}
-		} else if (f.substr(0, 1) === '-') {
-			output.short = f.substr(1);
+		} else if (f.substring(0, 1) === '-') {
+			output.short = f.substring(1);
 		}
 	}
 	return output;
@@ -63,7 +63,7 @@ cliUtils.parseCommandArg = function(arg) {
 
 	const c1 = arg[0];
 	const c2 = arg[arg.length - 1];
-	const name = arg.substr(1, arg.length - 2);
+	const name = arg.substring(1, arg.length - 2);
 
 	if (c1 === '<' && c2 === '>') {
 		return { required: true, name: name };
@@ -196,7 +196,7 @@ cliUtils.promptConfirm = function(message, answers = null) {
 // Note: initialText is there to have the same signature as statusBar.prompt() so that
 // it can be a drop-in replacement, however initialText is not used (and cannot be
 // with readline.question?).
-// eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
+
 cliUtils.prompt = function(initialText = '', promptString = ':', options = null) {
 	if (!options) options = {};
 

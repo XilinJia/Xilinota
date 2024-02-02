@@ -9,14 +9,14 @@
 
 	let browser_ = null;
 	if (typeof browser !== 'undefined') {
-		// eslint-disable-next-line no-undef
+		
 		browser_ = browser;
-		// eslint-disable-next-line no-undef
+		
 		browserSupportsPromises_ = true;
 	} else if (typeof chrome !== 'undefined') {
-		// eslint-disable-next-line no-undef
+		
 		browser_ = chrome;
-		// eslint-disable-next-line no-undef
+		
 		browserSupportsPromises_ = false;
 	}
 
@@ -341,7 +341,7 @@
 
 		if (isPagePdf()) throw new Error('Could not parse PDF document with Readability');
 
-		// eslint-disable-next-line no-undef
+		
 		const readability = new Readability(documentForReadability());
 		const article = readability.parse();
 
@@ -401,7 +401,7 @@
 
 		} else if (command.name === 'isProbablyReaderable') {
 
-			// eslint-disable-next-line no-undef
+			
 			const ok = isProbablyReaderable(documentForReadability());
 			return { name: 'isProbablyReaderable', value: ok };
 

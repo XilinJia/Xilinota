@@ -102,13 +102,13 @@ export function loadStripeConfig(env: string, filePath: string): StripePublicCon
 }
 
 export function findPrice(config: StripePublicConfig, query: FindPriceQuery): StripePublicConfigPrice {
-	let output: StripePublicConfigPrice = null;
+	let output: StripePublicConfigPrice|null = null;
 
 	for (const prices of [config.prices, config.archivedPrices]) {
 		if (query.accountType && query.period) {
-			output = prices.filter(p => p.accountType === query.accountType).find(p => p.period === query.period);
+			output = prices.filter(p => p.accountType === query.accountType).find(p => p.period === query.period) || null;
 		} else if (query.priceId) {
-			output = prices.find(p => p.id === query.priceId);
+			output = prices.find(p => p.id === query.priceId) || null;
 		} else {
 			throw new Error(`Invalid query: ${JSON.stringify(query)}`);
 		}

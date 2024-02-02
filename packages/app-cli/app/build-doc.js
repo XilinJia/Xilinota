@@ -24,7 +24,7 @@ function renderOptions(options) {
 		const indent = INDENT + INDENT + ' '.repeat(optionColWidth + 2);
 
 		let r = wrap(option[1], indent);
-		r = r.substr(flag.length + (INDENT + INDENT).length);
+		r = r.substring(flag.length + (INDENT + INDENT).length);
 		r = INDENT + INDENT + flag + r;
 		output.push(r);
 	}
@@ -49,7 +49,7 @@ function renderCommand(cmd) {
 
 function getCommands() {
 	const output = [];
-	// eslint-disable-next-line github/array-foreach -- Old code before rule was applied
+	 
 	fs.readdirSync(__dirname).forEach(path => {
 		if (path.indexOf('command-') !== 0) return;
 		const ext = fileExtension(path);
@@ -132,7 +132,7 @@ async function main() {
 	const commandsText = commandBlocks.join('\n\n');
 	const footerText = getFooter();
 
-	// eslint-disable-next-line no-console
+	
 	console.info(`${headerText}\n\n` + 'USAGE' + `\n\n${commandsText}\n\n${footerText}`);
 }
 

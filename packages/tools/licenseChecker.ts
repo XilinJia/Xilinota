@@ -25,7 +25,7 @@ const createCsvLine = (items: string[]) => {
 	try {
 		return `"${items.map(i => i.replace(/"/g, '""')).join('", "')}"`;
 	} catch (error) {
-		error.message = `Could not process line: ${JSON.stringify(items)}: ${error.message}`;
+		if (error instanceof Error) error.message = `Could not process line: ${JSON.stringify(items)}: ${error.message}`;
 		throw error;
 	}
 };
@@ -59,7 +59,7 @@ async function main() {
 		console.info(`Processing ${dir}...`);
 		const dirLicenses = await getLicenses(dir);
 		for (const [, v] of Object.entries(dirLicenses)) {
-			v.path = dir.substr(rootDir.length);
+			v.path = dir.substring(rootDir.length);
 		}
 		licenses = { ...licenses, ...dirLicenses };
 	}

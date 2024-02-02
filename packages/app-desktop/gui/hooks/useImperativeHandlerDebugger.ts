@@ -20,10 +20,10 @@ export default function useImperativeHandleDebugger(ref: any, effectHook: any, d
 	}, {});
 
 	if (Object.keys(changedDeps).length) {
-		// eslint-disable-next-line no-console
+
 		console.log('[use-imperativeHandler-debugger] ', changedDeps);
 	}
 
-	// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	useImperativeHandle(ref, effectHook, dependencies);
 }

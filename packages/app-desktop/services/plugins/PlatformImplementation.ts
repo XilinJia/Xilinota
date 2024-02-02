@@ -6,7 +6,8 @@ import Setting from '@xilinota/lib/models/Setting';
 import { reg } from '@xilinota/lib/registry';
 import BasePlatformImplementation, { Joplin } from '@xilinota/lib/services/plugins/BasePlatformImplementation';
 import { Implementation as ImagingImplementation } from '@xilinota/lib/services/plugins/api/JoplinImaging';
-const { clipboard, nativeImage } = require('electron');
+import { clipboard, nativeImage } from 'electron';
+
 const packageInfo = require('../../packageInfo');
 
 interface Components {

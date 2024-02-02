@@ -129,8 +129,8 @@ export default class NoteResource extends BaseModel {
 		await this.db().exec({ sql: 'UPDATE note_resources SET is_associated = 0 WHERE note_id = ?', params: [noteId] });
 	}
 
-	public static async orphanResources(expiryDelay: number = null) {
-		if (expiryDelay === null) expiryDelay = 1000 * 60 * 60 * 24 * 10;
+	public static async orphanResources(expiryDelay: number = 0) {
+		if (!expiryDelay) expiryDelay = 1000 * 60 * 60 * 24 * 10;
 		const cutOffTime = Date.now() - expiryDelay;
 		const output = await this.modelSelectAll(
 			`

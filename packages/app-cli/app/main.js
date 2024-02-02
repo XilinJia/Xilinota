@@ -26,10 +26,10 @@ const sharp = require('sharp');
 const { shimInit } = require('@xilinota/lib/shim-init-node.js');
 const shim = require('@xilinota/lib/shim').default;
 const { _ } = require('@xilinota/lib/locale');
-const { FileApiDriverLocal } = require('@xilinota/lib/file-api-driver-local');
+const FileApiDriverLocal = require('@xilinota/lib/file-api-driver-local').default;
 const EncryptionService = require('@xilinota/lib/services/e2ee/EncryptionService').default;
 const envFromArgs = require('@xilinota/lib/envFromArgs');
-const nodeSqlite = require('sqlite3');
+const nodeSqlite = require('sqlite3').verbose();
 const initLib = require('@xilinota/lib/initLib').default;
 
 const env = envFromArgs(process.argv);
@@ -49,6 +49,7 @@ BaseItem.loadClass('Tag', Tag);
 BaseItem.loadClass('NoteTag', NoteTag);
 BaseItem.loadClass('MasterKey', MasterKey);
 BaseItem.loadClass('Revision', Revision);
+BaseItem.loadClass('Setting', Setting);
 
 Setting.setConstant('appId', `ac.mdiq.xilinota${env === 'dev' ? 'dev' : ''}-cli`);
 Setting.setConstant('appType', 'cli');

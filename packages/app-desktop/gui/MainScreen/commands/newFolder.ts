@@ -10,7 +10,7 @@ export const declaration: CommandDeclaration = {
 
 export const runtime = (): CommandRuntime => {
 	return {
-		execute: async (_context: CommandContext, parentId: string = null) => {
+		execute: async (_context: CommandContext, parentId: string = '') => {
 			const options: Options = {
 				isNew: true,
 				parentId: parentId,

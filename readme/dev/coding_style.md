@@ -251,8 +251,9 @@ You need to convert special characters to HTML entities, which we usually do usi
 // We generally use this rather verbose pattern, but there
 // are also helper functions that you may be able to use
 // depending on the package.
-const Entities = require('html-entities').AllHtmlEntities;
-const htmlentities = new Entities().encode;
+// const Entities = require('html-entities').AllHtmlEntities;
+// const htmlentities = new Entities().encode;
+const htmlentities = require('html-entities').encode;
 const html = `<a href="${htmlentities(attributes)}">${htmlentities(content)}</a>`;
 ```
 

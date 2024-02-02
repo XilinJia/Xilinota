@@ -1,11 +1,11 @@
-const React = require('react');
+import React from 'react';
 import { _ } from '@xilinota/lib/locale';
 import Logger from '@xilinota/utils/Logger';
 import Setting from '@xilinota/lib/models/Setting';
 import shim from '@xilinota/lib/shim';
 import { themeStyle } from '@xilinota/lib/theme';
 import { Theme } from '@xilinota/lib/themes/type';
-import { MutableRefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, BackHandler } from 'react-native';
 import { WebViewMessageEvent } from 'react-native-webview';
 import ExtendedWebView, { WebViewControl } from '../../ExtendedWebView';
@@ -81,7 +81,7 @@ const useCss = (editorTheme: Theme) => {
 
 const ImageEditor = (props: Props) => {
 	const editorTheme: Theme = themeStyle(props.themeId);
-	const webviewRef: MutableRefObject<WebViewControl>|null = useRef(null);
+	const webviewRef = useRef<WebViewControl>({injectJS: (_: string)=>{}});
 	const [imageChanged, setImageChanged] = useState(false);
 
 	const onRequestCloseEditor = useCallback((promptIfUnsaved: boolean) => {
@@ -107,7 +107,7 @@ const ImageEditor = (props: Props) => {
 					onPress: () => {
 						// saveDrawing calls props.onSave(...) which may close the
 						// editor.
-						webviewRef.current.injectJS('window.editorControl.saveThenExit()');
+						webviewRef?.current?.injectJS('window.editorControl.saveThenExit()');
 					},
 				},
 			],
@@ -244,7 +244,7 @@ const ImageEditor = (props: Props) => {
 
 		// It can take some time for initialSVGData to be transferred to the WebView.
 		// Thus, do so after the main content has been loaded.
-		webviewRef.current.injectJS(`(async () => {
+		webviewRef?.current?.injectJS(`(async () => {
 			if (window.editorControl) {
 				const initialSVGData = ${JSON.stringify(initialSVGData)};
 				const initialTemplateData = ${JSON.stringify(Setting.value('imageeditor.imageTemplate'))};

@@ -5,7 +5,7 @@ import Setting from '../../models/Setting';
 import { State } from '../../reducer';
 import { PublicPrivateKeyPair } from '../e2ee/ppk';
 import { MasterKeyEntity } from '../e2ee/types';
-const fastDeepEqual = require('fast-deep-equal');
+import fastDeepEqual from 'fast-deep-equal';
 
 const logger = Logger.create('syncInfoUtils');
 
@@ -20,7 +20,7 @@ export interface SyncInfoValueString {
 }
 
 export interface SyncInfoValuePublicPrivateKeyPair {
-	value: PublicPrivateKeyPair;
+	value: PublicPrivateKeyPair | null;
 	updatedTime: number;
 }
 
@@ -174,7 +174,7 @@ export function mergeSyncInfos(s1: SyncInfo, s2: SyncInfo): SyncInfo {
 			output.masterKeys.push(mk);
 		} else {
 			const mk2 = output.masterKeys[idx];
-			output.masterKeys[idx] = mk.updated_time > mk2.updated_time ? mk : mk2;
+			output.masterKeys[idx] = mk.updated_time && mk2.updated_time && mk.updated_time > mk2.updated_time ? mk : mk2;
 		}
 	}
 
@@ -193,7 +193,7 @@ export class SyncInfo {
 	private masterKeys_: MasterKeyEntity[] = [];
 	private ppk_: SyncInfoValuePublicPrivateKeyPair;
 
-	public constructor(serialized: string = null) {
+	public constructor(serialized: string = '') {
 		this.e2ee_ = { value: false, updatedTime: 0 };
 		this.activeMasterKeyId_ = { value: '', updatedTime: 0 };
 		this.ppk_ = { value: null, updatedTime: 0 };
@@ -249,7 +249,7 @@ export class SyncInfo {
 		this.version_ = v;
 	}
 
-	public get ppk() {
+	public get ppk(): PublicPrivateKeyPair | null {
 		return this.ppk_.value;
 	}
 
@@ -326,10 +326,10 @@ export function setActiveMasterKeyId(id: string) {
 	saveLocalSyncInfo(s);
 }
 
-export function getActiveMasterKey(s: SyncInfo = null): MasterKeyEntity | null {
+export function getActiveMasterKey(s: SyncInfo | null = null): MasterKeyEntity | null {
 	s = s || localSyncInfo();
-	if (!s.activeMasterKeyId) return null;
-	return s.masterKeys.find(mk => mk.id === s.activeMasterKeyId);
+	if (!s || !s.activeMasterKeyId) return null;
+	return s!.masterKeys.find(mk => mk.id === s!.activeMasterKeyId) || null;
 }
 
 export function setMasterKeyEnabled(mkId: string, enabled = true) {

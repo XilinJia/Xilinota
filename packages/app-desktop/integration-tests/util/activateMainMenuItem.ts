@@ -29,7 +29,7 @@ const activateMainMenuItem = (electronApp: ElectronApplication, menuItemLabel: s
 		};
 
 		const appMenu = Menu.getApplicationMenu();
-		return activateItemInSubmenu(appMenu.items);
+		return activateItemInSubmenu(appMenu ? appMenu.items : []);
 	}, menuItemLabel);
 };
 

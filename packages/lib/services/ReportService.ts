@@ -8,7 +8,8 @@ import DecryptionWorker from './DecryptionWorker';
 import ResourceFetcher from './ResourceFetcher';
 import Resource from '../models/Resource';
 import { _ } from '../locale';
-const { toTitleCase } = require('../string-utils.js');
+import { toTitleCase } from '../string-utils';
+import BaseService from './BaseService';
 
 enum CanRetryType {
 	E2EE = 'e2ee',
@@ -23,12 +24,12 @@ enum ReportItemType {
 
 type RerportItemOrString = ReportItem | string;
 
-interface ReportSection {
+export interface ReportSection {
 	title: string;
 	body: RerportItemOrString[];
 	name?: string;
 	canRetryAll?: boolean;
-	retryAllHandler?: ()=> void;
+	retryAllHandler?: () => void;
 }
 
 interface ReportItem {
@@ -37,10 +38,10 @@ interface ReportItem {
 	text?: string;
 	canRetry?: boolean;
 	canRetryType?: CanRetryType;
-	retryHandler?: ()=> void;
+	retryHandler?: () => void;
 }
 
-export default class ReportService {
+export default class ReportService extends BaseService {
 	public csvEscapeCell(cell: string) {
 		cell = this.csvValueToString(cell);
 		const output = cell.replace(/"/, '""');
@@ -58,7 +59,6 @@ export default class ReportService {
 	}
 
 	public csvValueToString(v: string) {
-		if (v === undefined || v === null) return '';
 		return v.toString();
 	}
 
@@ -143,13 +143,12 @@ export default class ReportService {
 	}
 
 	private addRetryAllHandler(section: ReportSection): ReportSection {
-		// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 		const retryHandlers: Function[] = [];
 
 		for (let i = 0; i < section.body.length; i++) {
 			const item: RerportItemOrString = section.body[i];
 			if (typeof item !== 'string' && item.canRetry) {
-				retryHandlers.push(item.retryHandler);
+				if (item.retryHandler) retryHandlers.push(item.retryHandler);
 			}
 		}
 
@@ -168,7 +167,7 @@ export default class ReportService {
 	public async status(syncTarget: number): Promise<ReportSection[]> {
 		const r = await this.syncStatus(syncTarget);
 		const sections: ReportSection[] = [];
-		let section: ReportSection = null;
+		let section: ReportSection;
 
 		const disabledItems = await BaseItem.syncDisabledItems(syncTarget);
 
@@ -208,7 +207,7 @@ export default class ReportService {
 		const decryptionDisabledItems = await DecryptionWorker.instance().decryptionDisabledItems();
 
 		if (decryptionDisabledItems.length) {
-			section = { title: _('Items that cannot be decrypted'), body: [], name: 'failedDecryption', canRetryAll: false, retryAllHandler: null };
+			section = { title: _('Items that cannot be decrypted'), body: [], name: 'failedDecryption', canRetryAll: false, retryAllHandler: undefined };
 
 			section.body.push(_('Xilinota failed to decrypt these items multiple times, possibly because they are corrupted or too large. These items will remain on the device but Xilinota will no longer attempt to decrypt them.'));
 
@@ -297,7 +296,8 @@ export default class ReportService {
 		});
 
 		for (let i = 0; i < folders.length; i++) {
-			section.body.push(_('%s: %d notes', folders[i].title, await Folder.noteCount(folders[i].id)));
+			const f = folders[i];
+			if (f.id) section.body.push(_('%s: %d notes', f.title, await Folder.noteCount(f.id)));
 		}
 
 		sections.push(section);
@@ -310,7 +310,7 @@ export default class ReportService {
 			for (let i = 0; i < alarms.length; i++) {
 				const alarm = alarms[i];
 				const note = await Note.load(alarm.note_id);
-				section.body.push(_('On %s: %s', time.formatMsToLocal(alarm.trigger_time), note.title));
+				if (note) section.body.push(_('On %s: %s', time.formatMsToLocal(alarm.trigger_time), note.title));
 			}
 
 			sections.push(section);

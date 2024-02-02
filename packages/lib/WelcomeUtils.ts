@@ -6,7 +6,8 @@ import shim from './shim';
 import uuid from './uuid_';
 import { fileExtension, basename } from './path-utils';
 import { _ } from './locale';
-const { pregQuote } = require('./string-utils');
+import { pregQuote } from './string-utils';
+import { FolderEntity } from './services/database/types';
 
 export interface ItemMetadatum {
 	id: string;
@@ -44,11 +45,11 @@ export interface AssetContent {
 
 export type WelcomeAssets = Record<string, AssetContent>;
 
-class WelcomeUtils {
+export default class WelcomeUtils {
 
 	public static async createWelcomeItems(locale: string): Promise<CreateWelcomeItemsResult> {
 		const output: CreateWelcomeItemsResult = {
-			defaultFolderId: null,
+			defaultFolderId: '',
 		};
 
 		const allWelcomeAssets = welcomeAssetsAny as WelcomeAssets;
@@ -58,10 +59,15 @@ class WelcomeUtils {
 		const folderAssets = welcomeAssets.folders;
 		const tempDir = Setting.value('resourceDir');
 
+		const existFolder: FolderEntity | null = await Folder.loadByTitle('Welcome!');
+		if (existFolder && existFolder.id) {
+			await Folder.delete(existFolder.id);
+		}
+
 		// Actually we don't really support mutiple folders at this point, because not needed
 		for (let i = 0; i < folderAssets.length; i++) {
 			const folder = await Folder.save({ title: _('Welcome!') });
-			if (!output.defaultFolderId) output.defaultFolderId = folder.id;
+			if (folder.id && !output.defaultFolderId) output.defaultFolderId = folder.id;
 		}
 
 		const noteAssets = welcomeAssets.notes;
@@ -99,8 +105,7 @@ class WelcomeUtils {
 		return output;
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	public static async install(locale: string, dispatch: Function) {
+	public static async install(locale: string, dispatch: Function): Promise<void> {
 		if (!Setting.value('welcome.enabled')) {
 			Setting.setValue('welcome.wasBuilt', true);
 			return;
@@ -119,5 +124,3 @@ class WelcomeUtils {
 		}
 	}
 }
-
-export default WelcomeUtils;

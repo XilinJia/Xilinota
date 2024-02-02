@@ -24,7 +24,7 @@ export default class JoplinViewsMenuItems {
 	/**
 	 * Creates a new menu item and associate it with the given command. You can specify under which menu the item should appear using the `location` parameter.
 	 */
-	public async create(id: string, commandName: string, location: MenuItemLocation = MenuItemLocation.Tools, options: CreateMenuItemOptions = null) {
+	public async create(id: string, commandName: string, location: MenuItemLocation = MenuItemLocation.Tools, options: CreateMenuItemOptions|null = null) {
 		if (typeof location !== 'string') {
 			this.plugin.deprecationNotice('1.5', 'Creating a view without an ID is deprecated. To fix it, change your call to `joplin.views.menuItem.create("my-unique-id", ...)`', true);
 			options = location as any;
@@ -47,7 +47,7 @@ export default class JoplinViewsMenuItems {
 		if (options && options.accelerator) {
 			KeymapService.instance().registerCommandAccelerator(commandName, options.accelerator);
 		} else {
-			KeymapService.instance().registerCommandAccelerator(commandName, null);
+			KeymapService.instance().registerCommandAccelerator(commandName, '');
 		}
 	}
 

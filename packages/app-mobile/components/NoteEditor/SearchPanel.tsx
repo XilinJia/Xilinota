@@ -1,8 +1,7 @@
 // Displays a find/replace dialog
 
-const React = require('react');
-const { useMemo, useState, useEffect } = require('react');
-const MaterialCommunityIcon = require('react-native-vector-icons/MaterialCommunityIcons').default;
+import React, { useMemo, useState, useEffect } from 'react';
+import MaterialCommunityIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 import { EditorSettings } from './types';
 import { _ } from '@xilinota/lib/locale';
@@ -14,8 +13,8 @@ import { SearchControl } from './types';
 
 const buttonSize = 48;
 
-type OnChangeCallback = (text: string)=> void;
-type Callback = ()=> void;
+type OnChangeCallback = (text: string) => void;
+type Callback = () => void;
 
 export const defaultSearchState: SearchState = {
 	useRegex: false,
@@ -50,7 +49,7 @@ const ActionButton = (
 			onPress={props.onPress}
 			description={props.title}
 		>
-			<MaterialCommunityIcon name={props.iconName} style={props.styles.buttonText}/>
+			<MaterialCommunityIcon name={props.iconName} style={props.styles.buttonText} />
 		</CustomButton>
 	);
 };
@@ -84,7 +83,7 @@ const ToggleButton = (props: ToggleButtonProps) => {
 		>
 			<MaterialCommunityIcon name={props.iconName} style={
 				active ? props.styles.activeButtonText : props.styles.buttonText
-			}/>
+			} />
 		</CustomButton>
 	);
 };
@@ -177,7 +176,7 @@ export const SearchPanel = (props: SearchPanelProps) => {
 	useEffect(() => {
 		// Only register the listener if the dialog is visible
 		if (!state.dialogVisible) {
-			return () => {};
+			return () => { };
 		}
 
 		const backListener = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -186,7 +185,7 @@ export const SearchPanel = (props: SearchPanelProps) => {
 		});
 
 		return () => backListener.remove();
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [state.dialogVisible]);
 
 
@@ -250,14 +249,14 @@ export const SearchPanel = (props: SearchPanelProps) => {
 	const labeledSearchInput = (
 		<View style={styles.labeledInput} accessible>
 			<Text style={styles.text}>{_('Find: ')}</Text>
-			{ searchTextInput }
+			{searchTextInput}
 		</View>
 	);
 
 	const labeledReplaceInput = (
 		<View style={styles.labeledInput} accessible>
 			<Text style={styles.text}>{_('Replace: ')}</Text>
-			{ replaceTextInput }
+			{replaceTextInput}
 		</View>
 	);
 
@@ -333,29 +332,29 @@ export const SearchPanel = (props: SearchPanelProps) => {
 
 	const simpleLayout = (
 		<View style={{ flexDirection: 'row' }}>
-			{ closeButton }
-			{ searchTextInput }
-			{ showDetailsButton }
-			{ toPrevButton }
-			{ toNextButton }
+			{closeButton}
+			{searchTextInput}
+			{showDetailsButton}
+			{toPrevButton}
+			{toNextButton}
 		</View>
 	);
 
 	const advancedLayout = (
 		<View style={{ flexDirection: 'column', alignItems: 'center' }}>
 			<View style={{ flexDirection: 'row' }}>
-				{ closeButton }
-				{ labeledSearchInput }
-				{ hideDetailsButton }
-				{ toPrevButton }
-				{ toNextButton }
+				{closeButton}
+				{labeledSearchInput}
+				{hideDetailsButton}
+				{toPrevButton}
+				{toNextButton}
 			</View>
 			<View style={{ flexDirection: 'row' }}>
-				{ regexpButton }
-				{ caseSensitiveButton }
-				{ labeledReplaceInput }
-				{ replaceButton }
-				{ replaceAllButton }
+				{regexpButton}
+				{caseSensitiveButton}
+				{labeledReplaceInput}
+				{replaceButton}
+				{replaceAllButton}
 			</View>
 		</View>
 	);

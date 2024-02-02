@@ -16,14 +16,14 @@ export interface ScaledSizeParams {
 }
 
 const useScaledSize = ({ pdfDocument, pdfId, containerWidth, rememberScroll, anchorPage, container, innerContainerEl, pageGap, zoom }: ScaledSizeParams) => {
-	const [scaledSize, setScaledSize] = useState<ScaledSize>(null);
+	const [scaledSize, setScaledSize] = useState<ScaledSize>();
 	const currentScaleSize = useRef(scaledSize);
 
 	useAsyncEffect(async (event: AsyncEffectEvent) => {
 		if (!pdfDocument || !containerWidth) return;
 		// console.log('scaledSize calculation triggered');
 		const effectiveWidth = Math.min(containerWidth - 20, 900) * (zoom || 1);
-		const scaledSize_ = await pdfDocument.getScaledSize(null, effectiveWidth);
+		const scaledSize_ = await pdfDocument.getScaledSize(0, effectiveWidth);
 		if (event.cancelled) return;
 
 		const oldScaleSize = currentScaleSize.current;
@@ -41,7 +41,7 @@ const useScaledSize = ({ pdfDocument, pdfId, containerWidth, rememberScroll, anc
 
 		// If loading after note rerender, try to retirive the old scroll position
 		if (rememberScroll && pdfId && !oldScaleSize && !anchorPage) {
-			const scrollOffset = parseInt(sessionStorage.getItem(`pdf.${pdfId}.scrollTop`), 10) || null;
+			const scrollOffset = parseInt(sessionStorage.getItem(`pdf.${pdfId}.scrollTop`)??'', 10);
 			if (scrollOffset) {
 				// Adjusting it according to the new scale
 				container.current.scrollTop = scrollOffset * scaledSize_.scale;

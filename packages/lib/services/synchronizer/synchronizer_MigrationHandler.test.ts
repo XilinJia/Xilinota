@@ -17,8 +17,8 @@ import { fetchSyncInfo } from './syncInfoUtils';
 
 const specTimeout = 60000 * 10; // Nextcloud tests can be slow
 
-let lockHandler_: LockHandler = null;
-let migrationHandler_: MigrationHandler = null;
+let lockHandler_: LockHandler | null = null;
+let migrationHandler_: MigrationHandler | null = null;
 
 function lockHandler(): LockHandler {
 	if (lockHandler_) return lockHandler_;
@@ -33,7 +33,6 @@ function migrationHandler(clientId = 'abcd'): MigrationHandler {
 }
 
 interface MigrationTests {
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	[key: string]: Function;
 }
 
@@ -118,7 +117,7 @@ async function testMigrationE2EE(migrationVersion: number, maxSyncVersion: numbe
 
 	// Decrypt the data
 	const masterKey = (await MasterKey.all())[0];
-	Setting.setObjectValue('encryption.passwordCache', masterKey.id, '123456');
+	Setting.setObjectValue('encryption.passwordCache', masterKey.id ?? '', '123456');
 	await loadMasterKeysFromSettings(encryptionService());
 	await decryptionWorker().start();
 
@@ -134,7 +133,7 @@ async function testMigrationE2EE(migrationVersion: number, maxSyncVersion: numbe
 	await expectThrow(async () => await checkTestData(testData));
 
 	// Enable E2EE and decrypt
-	Setting.setObjectValue('encryption.passwordCache', masterKey.id, '123456');
+	Setting.setObjectValue('encryption.passwordCache', masterKey.id ?? '', '123456');
 	await loadMasterKeysFromSettings(encryptionService());
 	await decryptionWorker().start();
 

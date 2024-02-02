@@ -57,7 +57,7 @@ export const loadProfileConfig = async (profileConfigPath: string): Promise<Prof
 		if (!output.profiles.find(p => p.id === output.currentProfileId)) throw new Error(`Current profile ID is invalid: ${output.currentProfileId}`);
 		return output;
 	} catch (error) {
-		error.message = `Could not parse profile configuration: ${profileConfigPath}: ${error.message}`;
+		if (error instanceof Error) error.message = `Could not parse profile configuration: ${profileConfigPath}: ${error.message}`;
 		throw error;
 	}
 };
@@ -67,7 +67,12 @@ export const saveProfileConfig = async (profileConfigPath: string, config: Profi
 };
 
 export const getCurrentProfile = (config: ProfileConfig): Profile => {
-	return config.profiles.find(p => p.id === config.currentProfileId);
+	const curProf = config.profiles.find(p => p.id === config.currentProfileId);
+	if (!curProf) {
+		console.error(`Profile id not existsSync, resort to default ${config.currentProfileId}`);
+		return defaultProfile();
+	}
+	return curProf;
 };
 
 export const getProfileFullPath = (profile: Profile, rootProfilePath: string): string => {

@@ -65,7 +65,7 @@ class ResourceServer {
 				if (!done) throw new Error(`Unhandled resource: ${resourceId}`);
 			} catch (error) {
 				response.setHeader('Content-Type', 'text/plain');
-				// eslint-disable-next-line require-atomic-updates
+				
 				response.statusCode = 400;
 				response.write(error.message);
 			}

@@ -2,10 +2,9 @@
 
 import { execCommand, getRootDir } from '@xilinota/utils';
 import { readFile, readdir, stat, writeFile } from 'fs/promises';
-import * as MarkdownIt from 'markdown-it';
 import { htmlentities, isSelfClosingTag } from '@xilinota/utils/html';
 import { compileWithFrontMatter, stripOffFrontMatter } from './utils/frontMatter';
-import StateCore = require('markdown-it/lib/rules_core/state_core');
+import StateCore from 'markdown-it/lib/rules_core/state_core';
 import { copy, mkdirp, remove, pathExists } from 'fs-extra';
 import { basename, dirname } from 'path';
 import markdownUtils, { MarkdownTable } from '@xilinota/lib/markdownUtils';
@@ -14,10 +13,11 @@ import { chdir } from 'process';
 import yargs = require('yargs');
 import { extractOpenGraphTags } from './utils/openGraph';
 
-const md5File = require('md5-file');
+import md5File from 'md5-file';
+import crypto from 'crypto';
+import styleToJs from 'style-to-js';
+
 const htmlparser2 = require('@xilinota/fork-htmlparser2');
-const styleToJs = require('style-to-js').default;
-const crypto = require('crypto');
 
 interface Config {
 	baseUrl: string;
@@ -157,13 +157,13 @@ const processToken = (token: any, output: string[], context: Context): void => {
 		content.push(`\`\`\`${token.info || ''}\n`);
 	} else if (type === 'html_block') {
 		contentProcessed = true,
-		content.push(parseHtml(token.content.trim()));
+			content.push(parseHtml(token.content.trim()));
 	} else if (type === 'html_inline') {
 		contentProcessed = true,
-		content.push(parseHtml(token.content.trim()));
+			content.push(parseHtml(token.content.trim()));
 	} else if (type === 'code_inline') {
 		contentProcessed = true,
-		content.push(`\`${token.content}\``);
+			content.push(`\`${token.content}\``);
 	} else if (type === 'code_block') {
 		contentProcessed = true;
 		content.push(`\`\`\`\n${token.content}\`\`\``);
@@ -181,7 +181,7 @@ const processToken = (token: any, output: string[], context: Context): void => {
 		};
 		context.currentTableContent = [];
 	} else if (type === 'th_open') {
-		context.currentTable.header.push({
+		if (context.currentTable) context.currentTable.header.push({
 			label: '',
 			name: `${context.currentTable.header.length}`,
 			disableHtmlEscape: true,
@@ -191,27 +191,33 @@ const processToken = (token: any, output: string[], context: Context): void => {
 	} else if (type === 'thead_close') {
 		context.inHeader = false;
 	} else if (type === 'th_close') {
-		context.currentTable.header[context.currentTable.header.length - 1].label = context.currentTableContent.join('');
+		if (context.currentTable && context.currentTableContent) context.currentTable.header[context.currentTable.header.length - 1].label = context.currentTableContent.join('');
 		context.currentTableContent = [];
 	} else if (type === 'tr_open') {
-		if (!context.inHeader) {
+		if (!context.inHeader && context.currentTable) {
 			context.currentTable.rows.push({});
 			context.currentTableCellIndex = 0;
 		}
 	} else if (type === 'td_open') {
-		const row = context.currentTable.rows[context.currentTable.rows.length - 1];
-		row[`${context.currentTableCellIndex}`] = '';
+		if (context.currentTable) {
+			const row = context.currentTable.rows[context.currentTable.rows.length - 1];
+			row[`${context.currentTableCellIndex}`] = '';
+		}
 	} else if (type === 'td_close') {
-		const row = context.currentTable.rows[context.currentTable.rows.length - 1];
-		row[`${context.currentTableCellIndex}`] = context.currentTableContent.join('');
-		context.currentTableCellIndex++;
-		context.currentTableContent = [];
+		if (context.currentTable && context.currentTableCellIndex && context.currentTableContent) {
+			const row = context.currentTable.rows[context.currentTable.rows.length - 1];
+			row[`${context.currentTableCellIndex}`] = context.currentTableContent.join('');
+			context.currentTableCellIndex++;
+			context.currentTableContent = [];
+		}
 	} else if (type === 'table_close') {
-		const tableMd = markdownUtils.createMarkdownTable(context.currentTable.header, context.currentTable.rows);
-		content.push(paragraphBreak);
-		content.push(tableMd);
-		content.push(paragraphBreak);
-		context.currentTable = null;
+		if (context.currentTable) {
+			const tableMd = markdownUtils.createMarkdownTable(context.currentTable.header, context.currentTable.rows);
+			content.push(paragraphBreak);
+			content.push(tableMd);
+			content.push(paragraphBreak);
+			context.currentTable = undefined;
+		}
 	} else if (type === 'bullet_list_open') {
 		context.listStarting = !context.listStack.length;
 		context.listStack.push({ type: 'bullet' });
@@ -225,10 +231,10 @@ const processToken = (token: any, output: string[], context: Context): void => {
 		if (!context.listStarting) content.push('\n');
 		context.listStarting = false;
 		const indent = '\t'.repeat((context.listStack.length - 1));
-		if (currentList.type === 'bullet') content.push(`${indent}- `);
-		if (currentList.type === 'number') content.push(`${indent + token.info}. `);
+		if (currentList && currentList.type === 'bullet') content.push(`${indent}- `);
+		if (currentList && currentList.type === 'number') content.push(`${indent + token.info}. `);
 	} else if (type === 'image') {
-		(context.currentTable ? context.currentTableContent : content).push('![');
+		(context.currentTable ? (context.currentTableContent ? context.currentTableContent : content) : content).push('![');
 	} else if (type === 'link_open') {
 		content.push('[');
 		context.currentLinkAttrs = token.attrs;
@@ -260,7 +266,7 @@ const processToken = (token: any, output: string[], context: Context): void => {
 
 	for (const c of content) {
 		if (context.currentTable) {
-			context.currentTableContent.push(c);
+			context.currentTableContent?.push(c);
 		} else {
 			output.push(c);
 		}
@@ -322,7 +328,7 @@ export const processUrls = (md: string) => {
 };
 
 export const processMarkdownDoc = (sourceContent: string, context: Context): string => {
-	const markdownIt = new MarkdownIt({
+	const markdownIt = markdownit({
 		breaks: true,
 		linkify: true,
 		html: true,
@@ -354,7 +360,7 @@ export const processMarkdownDoc = (sourceContent: string, context: Context): str
 };
 
 const processMarkdownFile = async (sourcePath: string, destPath: string, context: Context) => {
-	context.processedFiles.push(destPath);
+	context.processedFiles?.push(destPath);
 
 	const sourceContent = await readFile(sourcePath, 'utf-8');
 	const destContent = processMarkdownDoc(sourceContent, context);
@@ -490,16 +496,16 @@ async function main() {
 		`${readmeDir}/news`,
 	], mainContext);
 
-	await deleteUnprocessedFiles(destHelpDir, mainContext.processedFiles);
+	if (mainContext.processedFiles) await deleteUnprocessedFiles(destHelpDir, mainContext.processedFiles);
 
 	const newsContext: Context = { isNews: true, donateLinks };
 	await processDocFiles(`${readmeDir}/news`, newsDestDir, [], newsContext);
-	await deleteUnprocessedFiles(newsDestDir, newsContext.processedFiles);
+	if (newsContext.processedFiles) await deleteUnprocessedFiles(newsDestDir, newsContext.processedFiles);
 
 	if (await pathExists(`${readmeDir}/i18n`)) {
 		const localeContext: Context = { donateLinks };
 		await processDocFiles(`${readmeDir}/i18n`, `${docBuilderDir}/i18n`, [], localeContext);
-		await deleteUnprocessedFiles(`${docBuilderDir}/i18n`, localeContext.processedFiles);
+		if (localeContext.processedFiles) await deleteUnprocessedFiles(`${docBuilderDir}/i18n`, localeContext.processedFiles);
 	} else {
 		console.info('i18n folder is missing - skipping it');
 	}
@@ -514,7 +520,7 @@ async function main() {
 }
 
 if (require.main === module) {
-	// eslint-disable-next-line promise/prefer-await-to-then
+
 	main().catch((error) => {
 		console.error('Fatal error');
 		console.error(error);

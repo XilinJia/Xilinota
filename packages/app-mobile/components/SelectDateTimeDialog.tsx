@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { themeStyle } from '@xilinota/lib/theme';
 import { _ } from '@xilinota/lib/locale';
-const { Modal, View, Button, Text, StyleSheet } = require('react-native');
+import { Modal, View, Button, Text, StyleSheet } from 'react-native';
 import time from '@xilinota/lib/time';
 const DateTimePickerModal = require('react-native-modal-datetime-picker').default;
 
@@ -137,11 +137,15 @@ export default class SelectDateTimeDialog extends React.PureComponent<any, any> 
 				>
 					<View style={styles.centeredView}>
 						<View style={{ ...styles.modalView, backgroundColor: theme.backgroundColor }}>
-							<View style={{ padding: 15, paddingBottom: 0, flex: 0, width: '100%', borderBottomWidth: 1, borderBottomColor: theme.dividerColor, borderBottomStyle: 'solid' }}>
+							{/*  borderBottomStyle not exist */}
+							{/* <View style={{ padding: 15, paddingBottom: 0, flex: 0, width: '100%', borderBottomWidth: 1, borderBottomColor: theme.dividerColor, borderBottomStyle: 'solid' }}> */}
+							<View style={{ padding: 15, paddingBottom: 0, flex: 0, width: '100%', borderBottomWidth: 1, borderBottomColor: theme.dividerColor}}>
 								<Text style={{ ...styles.modalText, color: theme.color, fontSize: 14, fontWeight: 'bold' }}>{_('Set alarm')}</Text>
 							</View>
 							{this.renderContent()}
-							<View style={{ padding: 20, borderTopWidth: 1, borderTopStyle: 'solid', borderTopColor: theme.dividerColor }}>
+							{/* borderTopStyle doesn't exist */}
+							{/* <View style={{ padding: 20, borderTopWidth: 1, borderTopStyle: 'solid', borderTopColor: theme.dividerColor }}> */}
+							<View style={{ padding: 20, borderTopWidth: 1, borderTopColor: theme.dividerColor }}>
 								<View style={{ marginBottom: 10 }}>
 									<Button title={_('Save alarm')} onPress={() => this.onAccept()} key="saveButton" />
 								</View>

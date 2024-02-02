@@ -8,7 +8,7 @@
 import { Decoration, EditorView } from '@codemirror/view';
 import { ViewPlugin, DecorationSet, ViewUpdate } from '@codemirror/view';
 import { ensureSyntaxTree } from '@codemirror/language';
-import { RangeSetBuilder } from '@codemirror/state';
+import { RangeSet, RangeSetBuilder } from '@codemirror/state';
 
 const regionStartDecoration = Decoration.line({
 	attributes: { class: 'cm-regionFirstLine' },
@@ -76,7 +76,7 @@ type DecorationDescription = { pos: number; length?: number; decoration: Decorat
 
 // Returns a set of [Decoration]s, associated with block syntax groups that require
 // full-line styling.
-const computeDecorations = (view: EditorView) => {
+const computeDecorations = (view: EditorView): RangeSet<Decoration> => {
 	const decorations: DecorationDescription[] = [];
 
 	// Add a decoration to all lines between the document position [from] up to
@@ -117,57 +117,57 @@ const computeDecorations = (view: EditorView) => {
 				const viewTo = Math.min(to, node.to);
 
 				switch (node.name) {
-				case 'FencedCode':
-				case 'CodeBlock':
-					addDecorationToLines(viewFrom, viewTo, codeBlockDecoration);
-					blockDecorated = true;
-					break;
-				case 'BlockMath':
-					addDecorationToLines(viewFrom, viewTo, mathBlockDecoration);
-					blockDecorated = true;
-					break;
-				case 'Blockquote':
-					addDecorationToLines(viewFrom, viewTo, blockQuoteDecoration);
-					blockDecorated = true;
-					break;
-				case 'InlineMath':
-					addDecorationToRange(viewFrom, viewTo, inlineMathDecoration);
-					break;
-				case 'InlineCode':
-					addDecorationToRange(viewFrom, viewTo, inlineCodeDecoration);
-					break;
-				case 'URL':
-					addDecorationToRange(viewFrom, viewTo, urlDecoration);
-					break;
-				case 'SetextHeading1':
-				case 'SetextHeading2':
-				case 'ATXHeading1':
-				case 'ATXHeading2':
-				case 'ATXHeading3':
-				case 'ATXHeading4':
-				case 'ATXHeading5':
-				case 'ATXHeading6':
-					addDecorationToLines(viewFrom, viewTo, headerLineDecoration);
-					break;
-				case 'HTMLTag':
-				case 'TagName':
-					addDecorationToRange(viewFrom, viewTo, htmlTagNameDecoration);
-					break;
-				case 'TableHeader':
-					addDecorationToLines(viewFrom, viewTo, tableHeaderDecoration);
-					break;
-				case 'TableDelimiter':
-					addDecorationToLines(viewFrom, viewTo, tableDelimiterDecoration);
-					break;
-				case 'TableRow':
-					addDecorationToLines(viewFrom, viewTo, tableBodyDecoration);
-					break;
-				case 'HorizontalRule':
-					addDecorationToRange(viewFrom, viewTo, horizontalRuleDecoration);
-					break;
-				case 'TaskMarker':
-					addDecorationToRange(viewFrom, viewTo, taskMarkerDecoration);
-					break;
+					case 'FencedCode':
+					case 'CodeBlock':
+						addDecorationToLines(viewFrom, viewTo, codeBlockDecoration);
+						blockDecorated = true;
+						break;
+					case 'BlockMath':
+						addDecorationToLines(viewFrom, viewTo, mathBlockDecoration);
+						blockDecorated = true;
+						break;
+					case 'Blockquote':
+						addDecorationToLines(viewFrom, viewTo, blockQuoteDecoration);
+						blockDecorated = true;
+						break;
+					case 'InlineMath':
+						addDecorationToRange(viewFrom, viewTo, inlineMathDecoration);
+						break;
+					case 'InlineCode':
+						addDecorationToRange(viewFrom, viewTo, inlineCodeDecoration);
+						break;
+					case 'URL':
+						addDecorationToRange(viewFrom, viewTo, urlDecoration);
+						break;
+					case 'SetextHeading1':
+					case 'SetextHeading2':
+					case 'ATXHeading1':
+					case 'ATXHeading2':
+					case 'ATXHeading3':
+					case 'ATXHeading4':
+					case 'ATXHeading5':
+					case 'ATXHeading6':
+						addDecorationToLines(viewFrom, viewTo, headerLineDecoration);
+						break;
+					case 'HTMLTag':
+					case 'TagName':
+						addDecorationToRange(viewFrom, viewTo, htmlTagNameDecoration);
+						break;
+					case 'TableHeader':
+						addDecorationToLines(viewFrom, viewTo, tableHeaderDecoration);
+						break;
+					case 'TableDelimiter':
+						addDecorationToLines(viewFrom, viewTo, tableDelimiterDecoration);
+						break;
+					case 'TableRow':
+						addDecorationToLines(viewFrom, viewTo, tableBodyDecoration);
+						break;
+					case 'HorizontalRule':
+						addDecorationToRange(viewFrom, viewTo, horizontalRuleDecoration);
+						break;
+					case 'TaskMarker':
+						addDecorationToRange(viewFrom, viewTo, taskMarkerDecoration);
+						break;
 				}
 
 				// Only block decorations will have differing first and last lines

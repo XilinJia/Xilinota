@@ -6,7 +6,7 @@ import { connect } from 'react-redux';
 import { AppState } from '../../../../app.reducer';
 import ToolbarButtonUtils, { ToolbarButtonInfo } from '@xilinota/lib/services/commands/ToolbarButtonUtils';
 import stateToWhenClauseContext from '../../../../services/commands/stateToWhenClauseContext';
-const { buildStyle } = require('@xilinota/lib/theme');
+import { buildStyle } from '@xilinota/lib/theme';
 
 interface ToolbarProps {
 	themeId: number;
@@ -14,7 +14,7 @@ interface ToolbarProps {
 	disabled?: boolean;
 }
 
-function styles_(props: ToolbarProps) {
+function styles_(props: ToolbarProps): Record<string, any> {
 	return buildStyle('CodeMirrorToolbar', props.themeId, () => {
 		return {
 			root: {
@@ -27,12 +27,12 @@ function styles_(props: ToolbarProps) {
 
 const toolbarButtonUtils = new ToolbarButtonUtils(CommandService.instance());
 
-function Toolbar(props: ToolbarProps) {
+function Toolbar(props: ToolbarProps): React.JSX.Element {
 	const styles = styles_(props);
 	return <ToolbarBase style={styles.root} items={props.toolbarButtonInfos} disabled={!!props.disabled} />;
 }
 
-const mapStateToProps = (state: AppState) => {
+const mapStateToProps = (state: AppState): { toolbarButtonInfos: ToolbarButtonInfo[]; } => {
 	const whenClauseContext = stateToWhenClauseContext(state);
 
 	const commandNames = [

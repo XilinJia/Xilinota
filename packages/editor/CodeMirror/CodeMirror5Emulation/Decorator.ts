@@ -13,7 +13,7 @@ interface DecorationRange {
 
 const mapRangeConfig = {
 	// Updates a range based on some change to the document
-	map: <T extends DecorationRange> (range: T, change: ChangeDesc): T => {
+	map: <T extends DecorationRange>(range: T, change: ChangeDesc): T => {
 		const from = change.mapPos(range.from);
 		const to = change.mapPos(range.to);
 		return {
@@ -55,7 +55,7 @@ class WidgetDecorationWrapper extends WidgetType {
 		super();
 	}
 
-	public override toDOM() {
+	public override toDOM(): HTMLDivElement {
 		const container = document.createElement('div');
 		this.element.remove();
 		container.appendChild(this.element);
@@ -68,7 +68,7 @@ class WidgetDecorationWrapper extends WidgetType {
 	}
 }
 
-interface LineWidgetControl {
+export interface LineWidgetControl {
 	node: HTMLElement;
 	clear(): void;
 	changed(): void;
@@ -111,7 +111,10 @@ export default class Decorator {
 		];
 	}
 
-	public static create(editor: EditorView) {
+	public static create(editor: EditorView): {
+		decorator: Decorator;
+		extension: Extension;
+	} {
 		const decorator = new Decorator(editor);
 
 		return { decorator, extension: decorator._extension };
@@ -120,7 +123,7 @@ export default class Decorator {
 	private _decorationCache: Record<string, Decoration> = Object.create(null);
 	private _overlays: (StreamParser<any>)[] = [];
 
-	private classNameToCssDecoration(className: string, isLineDecoration: boolean) {
+	private classNameToCssDecoration(className: string, isLineDecoration: boolean): Decoration {
 		let decoration;
 
 		if (className in this._decorationCache) {
@@ -140,7 +143,7 @@ export default class Decorator {
 		return decoration;
 	}
 
-	private updateEffectDecorations(transactions: Transaction[]) {
+	private updateEffectDecorations(transactions: Transaction[]): DecorationSet {
 		let decorations = this._effectDecorations;
 
 		// Update decoration positions
@@ -298,7 +301,7 @@ export default class Decorator {
 		this._overlays.push(modeObject);
 	}
 
-	private addRemoveLineClass(lineNumber: number, className: string, add: boolean) {
+	private addRemoveLineClass(lineNumber: number, className: string, add: boolean): void {
 		// + 1: Convert from zero-indexed to one-indexed
 		const line = this.editor.state.doc.line(lineNumber + 1);
 
@@ -312,15 +315,15 @@ export default class Decorator {
 		});
 	}
 
-	public addLineClass(lineNumber: number, _where: string, className: string) {
+	public addLineClass(lineNumber: number, _where: string, className: string): void {
 		this.addRemoveLineClass(lineNumber, className, true);
 	}
 
-	public removeLineClass(lineNumber: number, _where: string, className: string) {
+	public removeLineClass(lineNumber: number, _where: string, className: string): void {
 		this.addRemoveLineClass(lineNumber, className, false);
 	}
 
-	public getLineClasses(lineNumber: number) {
+	public getLineClasses(lineNumber: number): string[] {
 		const line = this.editor.state.doc.line(lineNumber + 1);
 		const lineClasses: string[] = [];
 

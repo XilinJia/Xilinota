@@ -15,7 +15,7 @@ function renderTwoColumnData(options, baseIndent, width) {
 		const indent = baseIndent + INDENT + ' '.repeat(optionColWidth + 2);
 
 		let r = wrap(option[1], indent, width);
-		r = r.substr(flag.length + (baseIndent + INDENT).length);
+		r = r.substring(flag.length + (baseIndent + INDENT).length);
 		r = baseIndent + INDENT + flag + r;
 		output.push(r);
 	}
@@ -23,8 +23,8 @@ function renderTwoColumnData(options, baseIndent, width) {
 	return output.join('\n');
 }
 
-function renderCommandHelp(cmd, width = null) {
-	if (width === null) width = MAX_WIDTH;
+function renderCommandHelp(cmd, width = 0) {
+	if (!width) width = MAX_WIDTH;
 
 	const baseIndent = '';
 

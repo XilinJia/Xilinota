@@ -1,5 +1,5 @@
 import time from './time';
-const fs = require('fs-extra');
+import fs from 'fs-extra';
 import { basicDelta, MultiPutItem } from './file-api';
 
 export default class FileApiDriverMemory {
@@ -12,7 +12,7 @@ export default class FileApiDriverMemory {
 		this.deletedItems_ = [];
 	}
 
-	private encodeContent_(content: any) {
+	private encodeContent_(content: any): string {
 		if (content instanceof Buffer) {
 			return content.toString('base64');
 		} else {
@@ -20,19 +20,19 @@ export default class FileApiDriverMemory {
 		}
 	}
 
-	public get supportsMultiPut() {
+	public get supportsMultiPut(): boolean {
 		return true;
 	}
 
-	public get supportsAccurateTimestamp() {
+	public get supportsAccurateTimestamp(): boolean {
 		return true;
 	}
 
-	private decodeContent_(content: any) {
+	private decodeContent_(content: any): string {
 		return Buffer.from(content, 'base64').toString('utf-8');
 	}
 
-	public itemIndexByPath(path: string) {
+	public itemIndexByPath(path: string): number {
 		for (let i = 0; i < this.items_.length; i++) {
 			if (this.items_[i].path === path) return i;
 		}
@@ -44,7 +44,12 @@ export default class FileApiDriverMemory {
 		return index < 0 ? null : this.items_[index];
 	}
 
-	public newItem(path: string, isDir = false) {
+	public newItem(path: string, isDir = false): {
+		path: string;
+		isDir: boolean;
+		updated_time: number;
+		content: string;
+	} {
 		const now = time.unixMs();
 		return {
 			path: path,
@@ -66,17 +71,21 @@ export default class FileApiDriverMemory {
 		item.updated_time = timestampMs;
 	}
 
-	public async list(path: string) {
+	public async list(path: string): Promise<{
+		items: any[];
+		hasMore: boolean;
+		context: null;
+	}> {
 		const output = [];
 
 		for (let i = 0; i < this.items_.length; i++) {
 			const item = this.items_[i];
 			if (item.path === path) continue;
 			if (item.path.indexOf(`${path}/`) === 0) {
-				const s = item.path.substr(path.length + 1);
+				const s = item.path.substring(path.length + 1);
 				if (s.split('/').length === 1) {
 					const it = { ...item };
-					it.path = it.path.substr(path.length + 1);
+					it.path = it.path.substring(path.length + 1);
 					output.push(it);
 				}
 			}
@@ -89,7 +98,7 @@ export default class FileApiDriverMemory {
 		});
 	}
 
-	public async get(path: string, options: any) {
+	public async get(path: string, options: any): Promise<string | null> {
 		const item = this.itemByPath(path);
 		if (!item) return Promise.resolve(null);
 		if (item.isDir) return Promise.reject(new Error(`${path} is a directory, not a file`));
@@ -105,7 +114,7 @@ export default class FileApiDriverMemory {
 		return output;
 	}
 
-	public async mkdir(path: string) {
+	public async mkdir(path: string): Promise<void> {
 		const index = this.itemIndexByPath(path);
 		if (index >= 0) return;
 		this.items_.push(this.newItem(path, true));
@@ -152,7 +161,7 @@ export default class FileApiDriverMemory {
 		return output;
 	}
 
-	public async delete(path: string) {
+	public async delete(path: string): Promise<void> {
 		const index = this.itemIndexByPath(path);
 		if (index >= 0) {
 			const item = { ...this.items_[index] };
@@ -170,16 +179,26 @@ export default class FileApiDriverMemory {
 		sourceItem.path = newPath;
 	}
 
-	public async format() {
+	public async format(): Promise<void> {
 		this.items_ = [];
 	}
 
-	public async delta(path: string, options: any = null) {
+	public async delta(path: string, options: any = null): Promise<{
+		hasMore: boolean;
+		context: {
+			timestamp: any;
+			filesAtTimestamp: any;
+			statsCache: any;
+			statIdsCache: any;
+			deletedItemsProcessed: any;
+		};
+		items: any[];
+	}> {
 		const getStatFn = async (path: string) => {
 			const output = this.items_.slice();
 			for (let i = 0; i < output.length; i++) {
 				const item = { ...output[i] };
-				item.path = item.path.substr(path.length + 1);
+				item.path = item.path.substring(path.length + 1);
 				output[i] = item;
 			}
 			return output;
@@ -189,7 +208,7 @@ export default class FileApiDriverMemory {
 		return output;
 	}
 
-	public async clearRoot() {
+	public async clearRoot(): Promise<void> {
 		this.items_ = [];
 	}
 }

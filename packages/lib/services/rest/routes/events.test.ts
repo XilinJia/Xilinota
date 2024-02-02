@@ -5,7 +5,7 @@ import { expectThrow, setupDatabaseAndSynchronizer, switchClient } from '../../.
 import { ItemChangeEntity } from '../../database/types';
 import Api, { RequestMethod } from '../Api';
 
-let api: Api = null;
+let api: Api;
 
 describe('routes/events', () => {
 

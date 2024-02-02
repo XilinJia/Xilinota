@@ -2,18 +2,20 @@ import * as React from 'react';
 import ButtonBar from './ConfigScreen/ButtonBar';
 import { _ } from '@xilinota/lib/locale';
 
-const { connect } = require('react-redux');
+import { connect } from 'react-redux';
 import { reg } from '@xilinota/lib/registry';
 import Setting from '@xilinota/lib/models/Setting';
+import { Dispatch } from 'redux';
 const bridge = require('@electron/remote').require('./bridge').default;
-const { themeStyle } = require('@xilinota/lib/theme');
+import { themeStyle } from '@xilinota/lib/theme';
 const { OneDriveApiNodeUtils } = require('@xilinota/lib/onedrive-api-node-utils.js');
 
 interface Props {
-	themeId: string;
+	themeId: number;
+	dispatch: Dispatch;
 }
 
-class OneDriveLoginScreenComponent extends React.Component<any, any> {
+class OneDriveLoginScreenComponent extends React.Component<Props, any> {
 	public constructor(props: Props) {
 		super(props);
 

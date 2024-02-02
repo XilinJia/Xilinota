@@ -9,47 +9,53 @@ import htmlUtils from '@xilinota/lib/htmlUtils';
 import rendererHtmlUtils, { extractHtmlBody } from '@xilinota/renderer/htmlUtils';
 import Logger from '@xilinota/utils/Logger';
 import { fileUriToPath } from '@xilinota/utils/url';
-const xilinotaRendererUtils = require('@xilinota/renderer').utils;
-const { clipboard } = require('electron');
-const mimeUtils = require('@xilinota/lib/mime-utils.js').mime;
-const md5 = require('md5');
-const path = require('path');
+import xilinotaRendererUtils from '@xilinota/renderer/utils';
+import { clipboard } from 'electron';
+import mimeUtils from '@xilinota/lib/mime-utils';
+import md5 from 'md5';
+import path from 'path';
+import { ResourceEntity, ResourceLocalStateEntity } from '@xilinota/lib/services/database/types';
 
 const logger = Logger.create('resourceHandling');
 
-export async function handleResourceDownloadMode(noteBody: string) {
+export async function handleResourceDownloadMode(noteBody: string): Promise<void> {
 	if (noteBody && Setting.value('sync.resourceDownloadMode') === 'auto') {
 		const resourceIds = await Note.linkedResourceIds(noteBody);
 		await ResourceFetcher.instance().markForDownload(resourceIds);
 	}
 }
 
-let resourceCache_: any = {};
+interface ResourceProps {
+	item: ResourceEntity | null;
+	localState: ResourceLocalStateEntity;
+};
 
-export function clearResourceCache() {
+type ResourceCache = { [id: string]: ResourceProps };
+let resourceCache_: ResourceCache = {};
+
+export function clearResourceCache(): void {
 	resourceCache_ = {};
 }
 
-export async function attachedResources(noteBody: string, _resourceIds: string[] = []): Promise<any> {
-	if (!noteBody) return {};
-	const resourceIds = _resourceIds ? _resourceIds : await Note.linkedResourceIds(noteBody);
+export async function attachedResources(noteBody: string, _resourceIds: string[] = []): Promise<ResourceCache> {
+	if (!noteBody && !_resourceIds.length) return {};
+	const resourceIds = _resourceIds.length ? _resourceIds : await Note.linkedResourceIds(noteBody);
 
-	const output: any = {};
+	const output: ResourceCache = {};
 	for (let i = 0; i < resourceIds.length; i++) {
 		const id = resourceIds[i];
 
 		if (resourceCache_[id]) {
 			output[id] = resourceCache_[id];
 		} else {
-			const resource = await Resource.load(id);
-			const localState = await Resource.localState(resource);
+			const resource: ResourceEntity | null = await Resource.load(id);
+			const localState: ResourceLocalStateEntity = resource ? await Resource.localState(resource) : {};
 
 			const o = {
 				item: resource,
 				localState: localState,
 			};
 
-			// eslint-disable-next-line require-atomic-updates
 			resourceCache_[id] = o;
 			output[id] = o;
 		}
@@ -58,7 +64,7 @@ export async function attachedResources(noteBody: string, _resourceIds: string[]
 	return output;
 }
 
-export async function commandAttachFileToBody(body: string, filePaths: string[] = null, options: any = null) {
+export async function commandAttachFileToBody(body: string, filePaths: string[] = [], options: any = null): Promise<string | null> {
 	options = {
 		createFileURL: false,
 		position: 0,
@@ -90,14 +96,14 @@ export async function commandAttachFileToBody(body: string, filePaths: string[] 
 			logger.info('File was attached.');
 		} catch (error) {
 			logger.error(error);
-			bridge().showErrorMessageBox(error.message);
+			bridge().showErrorMessageBox((error as Error).message);
 		}
 	}
 
 	return body;
 }
 
-export function resourcesStatus(resourceInfos: any) {
+export function resourcesStatus(resourceInfos: any): "ready" | "error" | "notDownloaded" | "downloading" | "encrypted" {
 	let lowestIndex = xilinotaRendererUtils.resourceStatusIndex('ready');
 	for (const id in resourceInfos) {
 		const s = xilinotaRendererUtils.resourceStatus(Resource, resourceInfos[id]);
@@ -107,7 +113,7 @@ export function resourcesStatus(resourceInfos: any) {
 	return xilinotaRendererUtils.resourceStatusName(lowestIndex);
 }
 
-export async function getResourcesFromPasteEvent(event: any) {
+export async function getResourcesFromPasteEvent(event: any): Promise<string[]> {
 	const output = [];
 	const formats = clipboard.availableFormats();
 	for (let i = 0; i < formats.length; i++) {
@@ -120,7 +126,7 @@ export async function getResourcesFromPasteEvent(event: any) {
 			const image = clipboard.readImage();
 
 			const fileExt = mimeUtils.toFileExtension(format);
-			const filePath = `${Setting.value('tempDir')}/${md5(Date.now())}.${fileExt}`;
+			const filePath = `${Setting.value('tempDir')}/${md5(Date.now().toString())}.${fileExt}`;
 
 			await shim.writeImageToFile(image, format, filePath);
 			const md = await commandAttachFileToBody('', [filePath]);
@@ -132,7 +138,7 @@ export async function getResourcesFromPasteEvent(event: any) {
 	return output;
 }
 
-export async function processPastedHtml(html: string) {
+export async function processPastedHtml(html: string): Promise<string> {
 	const allImageUrls: string[] = [];
 	const mappedResources: Record<string, string> = {};
 
@@ -164,7 +170,7 @@ export async function processPastedHtml(html: string) {
 					// Data URIs
 					mappedResources[imageSrc] = imageSrc;
 				} else {
-					const filePath = `${Setting.value('tempDir')}/${md5(Date.now() + Math.random())}`;
+					const filePath = `${Setting.value('tempDir')}/${md5(Date.now().toString() + Math.random())}`;
 					await shim.fetchBlob(imageSrc, { path: filePath });
 					const createdResource = await shim.createResourceFromPath(filePath);
 					await shim.fsDriver().remove(filePath);
@@ -179,7 +185,7 @@ export async function processPastedHtml(html: string) {
 
 	return extractHtmlBody(
 		rendererHtmlUtils.sanitizeHtml(
-			htmlUtils.replaceImageUrls(html, (src: string) => {
+			htmlUtils.replaceImageUrls(html, (src: string): string => {
 				return mappedResources[src];
 			}),
 			{

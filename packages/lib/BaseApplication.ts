@@ -1,7 +1,7 @@
 import Setting, { Env } from './models/Setting';
 import Logger, { TargetType, LoggerWrapper } from '@xilinota/utils/Logger';
 import shim from './shim';
-const { setupProxySettings } = require('./shim-init-node');
+import { setupProxySettings } from './shim-init-node';
 import BaseService from './services/BaseService';
 import reducer, { getNotesParent, serializeNotesParent, setStore, State } from './reducer';
 import KeychainServiceDriver from './services/keychain/KeychainServiceDriver.node';
@@ -10,11 +10,15 @@ import { _, setLocale } from './locale';
 import KvStore from './services/KvStore';
 import SyncTargetXilinotaServer from './SyncTargetXilinotaServer';
 import SyncTargetOneDrive from './SyncTargetOneDrive';
-import { createStore, applyMiddleware, Store } from 'redux';
-const { defaultState, stateUtils } = require('./reducer');
+// import { createStore, applyMiddleware, Store } from 'redux';
+import { Store, UnknownAction, configureStore } from '@reduxjs/toolkit';
+
+const { setAutoFreeze } = require('immer');
+import EventEmitter from 'events';
+
 import XilinotaDatabase from './XilinotaDatabase';
-const { FoldersScreenUtils } = require('./folders-screen-utils.js');
-const { DatabaseDriverNode } = require('./database-driver-node.js');
+import FoldersScreenUtils from './folders-screen-utils';
+import DatabaseDriverNode from './database-driver-node';
 import BaseModel from './BaseModel';
 import Folder from './models/Folder';
 import BaseItem from './models/BaseItem';
@@ -24,18 +28,21 @@ import { splitCommandString } from '@xilinota/utils';
 import { reg } from './registry';
 import time from './time';
 import BaseSyncTarget from './BaseSyncTarget';
-const reduxSharedMiddleware = require('./components/shared/reduxSharedMiddleware');
-const os = require('os');
-const fs = require('fs-extra');
+import os from 'os';
+import fs from 'fs-extra';
 import XilinotaError from './XilinotaError';
-const EventEmitter = require('events');
-const syswidecas = require('./vendor/syswide-cas');
 import SyncTargetRegistry from './SyncTargetRegistry';
+
+import reduxSharedMiddleware from './components/shared/reduxSharedMiddleware';
+import { defaultState, stateUtils } from './reducer';
+
+const syswidecas = require('./vendor/syswide-cas');
 const SyncTargetFilesystem = require('./SyncTargetFilesystem.js');
 const SyncTargetNextcloud = require('./SyncTargetNextcloud.js');
 const SyncTargetWebDAV = require('./SyncTargetWebDAV.js');
 const SyncTargetDropbox = require('./SyncTargetDropbox.js');
 const SyncTargetAmazonS3 = require('./SyncTargetAmazonS3.js');
+
 import EncryptionService from './services/e2ee/EncryptionService';
 import ResourceFetcher from './services/ResourceFetcher';
 import SearchEngineUtils from './services/searchengine/SearchEngineUtils';
@@ -48,8 +55,7 @@ import MigrationService from './services/MigrationService';
 import ShareService from './services/share/ShareService';
 import handleSyncStartupOperation from './services/synchronizer/utils/handleSyncStartupOperation';
 import SyncTargetJoplinCloud from './SyncTargetJoplinCloud';
-const { toSystemSlashes } = require('./path-utils');
-const { setAutoFreeze } = require('immer');
+import { toSystemSlashes } from './path-utils';
 import { getEncryptionEnabled } from './services/synchronizer/syncInfoUtils';
 import { loadMasterKeysFromSettings, migrateMasterPassword } from './services/e2ee/utils';
 import SyncTargetNone from './SyncTargetNone';
@@ -62,6 +68,9 @@ import { parseShareCache } from './services/share/reducer';
 import RotatingLogs from './RotatingLogs';
 import { initSocketIOServer, initUDPServer } from './socketio';
 import LocalFile from './models/LocalFiles';
+import { FolderEntity, NoteEntity } from './services/database/types';
+import path from 'path';
+import Database from './database';
 
 const appLogger: LoggerWrapper = Logger.create('App');
 
@@ -72,10 +81,10 @@ interface StartOptions {
 
 export default class BaseApplication {
 
-	private eventEmitter_: any;
-	private scheduleAutoAddResourcesIID_: any = null;
-	private database_: any = null;
-	private profileConfig_: ProfileConfig = null;
+	private eventEmitter_: EventEmitter | null;
+	private scheduleAutoAddResourcesIID_: string | number | null = null;
+	private database_: XilinotaDatabase | undefined;
+	private profileConfig_: ProfileConfig | undefined;
 
 	protected showStackTraces_ = false;
 	protected showPromptString_ = false;
@@ -83,18 +92,18 @@ export default class BaseApplication {
 	// Note: this is basically a cache of state.selectedFolderId. It should *only*
 	// be derived from the state and not set directly since that would make the
 	// state and UI out of sync.
-	private currentFolder_: any = null;
+	private currentFolder_: FolderEntity | null = null;
 
-	protected store_: Store<any> = null;
+	protected store_: Store<any> | undefined;
 
-	private rotatingLogs: RotatingLogs;
+	private rotatingLogs: RotatingLogs | undefined;
 
 	public constructor() {
 		this.eventEmitter_ = new EventEmitter();
 		this.decryptionWorker_resourceMetadataButNotBlobDecrypted = this.decryptionWorker_resourceMetadataButNotBlobDecrypted.bind(this);
 	}
 
-	public async destroy() {
+	public async destroy(): Promise<void> {
 		if (this.scheduleAutoAddResourcesIID_) {
 			shim.clearTimeout(this.scheduleAutoAddResourcesIID_);
 			this.scheduleAutoAddResourcesIID_ = null;
@@ -107,14 +116,14 @@ export default class BaseApplication {
 		await ResourceService.instance().cancelTimers();
 		await reg.cancelTimers();
 
-		this.eventEmitter_.removeAllListeners();
+		this.eventEmitter_?.removeAllListeners();
 		KvStore.destroyInstance();
 		BaseModel.setDb(null);
 		reg.setDb(null);
 
-		BaseItem.revisionService_ = null;
+		// BaseItem.revisionService_ = null;
 		RevisionService.instance_ = null;
-		ResourceService.instance_ = null;
+		// ResourceService.instance_ = null;
 		ResourceService.isRunningInBackground_ = false;
 		// ResourceService.isRunningInBackground_ = false;
 		ResourceFetcher.instance_ = null;
@@ -123,31 +132,36 @@ export default class BaseApplication {
 
 		appLogger.info('Base application terminated...');
 		this.eventEmitter_ = null;
-		this.decryptionWorker_resourceMetadataButNotBlobDecrypted = null;
+		// this.decryptionWorker_resourceMetadataButNotBlobDecrypted;
 	}
 
 	public logger(): LoggerWrapper {
 		return appLogger;
 	}
 
-	public store() {
+	public store(): Store {
+		if (!this.store_) this.store_ = configureStore({
+			reducer: this.reducer,
+			middleware: (getDefaultMiddleware) =>
+				getDefaultMiddleware().concat(this.generalMiddlewareFn()),
+		});
 		return this.store_;
 	}
 
-	public currentFolder() {
+	public currentFolder(): FolderEntity | null {
 		return this.currentFolder_;
 	}
 
-	public async refreshCurrentFolder() {
+	public async refreshCurrentFolder(): Promise<void> {
 		let newFolder = null;
 
-		if (this.currentFolder_) newFolder = await Folder.load(this.currentFolder_.id);
+		if (this.currentFolder_ && this.currentFolder_.id) newFolder = await Folder.load(this.currentFolder_.id);
 		if (!newFolder) newFolder = await Folder.defaultFolder();
 
 		this.switchCurrentFolder(newFolder);
 	}
 
-	public switchCurrentFolder(folder: any) {
+	public switchCurrentFolder(folder: FolderEntity): void {
 		if (!this.hasGui()) {
 			this.currentFolder_ = { ...folder };
 			Setting.setValue('activeFolderId', folder ? folder.id : '');
@@ -161,8 +175,8 @@ export default class BaseApplication {
 
 	// Handles the initial flags passed to main script and
 	// returns the remaining args.
-	private async handleStartFlags_(argv: string[], setDefaults = true) {
-		const matched: any = {};
+	private async handleStartFlags_(argv: string[], setDefaults = true): Promise<{ matched: Record<string, any>; argv: string[]; }> {
+		const matched: Record<string, any> = {};
 		argv = argv.slice(0);
 		argv.splice(0, 2); // First arguments are the node executable, and the node JS file
 
@@ -247,7 +261,7 @@ export default class BaseApplication {
 				continue;
 			}
 
-			if (arg === '--dev-plugins') {
+			if (nextArg && arg === '--dev-plugins') {
 				Setting.setConstant('startupDevPlugins', nextArg.split(',').map(p => p.trim()));
 				argv.splice(0, 2);
 				continue;
@@ -313,17 +327,16 @@ export default class BaseApplication {
 		};
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	public on(eventName: string, callback: Function) {
-		return this.eventEmitter_.on(eventName, callback);
+	public on(eventName: string, callback: (...args: any[]) => void) {
+		return this.eventEmitter_?.on(eventName, callback);
 	}
 
-	public async exit(code = 0) {
+	public async exit(code = 0): Promise<void> {
 		await Setting.saveAll();
 		process.exit(code);
 	}
 
-	public async refreshNotes(state: any, useSelectedNoteId = false, noteHash = '') {
+	public async refreshNotes(state: any, useSelectedNoteId = false, noteHash = ''): Promise<void> {
 		let parentType = state.notesParentType;
 		let parentId = null;
 
@@ -355,7 +368,7 @@ export default class BaseApplication {
 			parentId: parentId,
 		});
 
-		let notes = [];
+		let notes: NoteEntity[] = [];
 		let highlightedWords = [];
 
 		if (parentId) {
@@ -365,27 +378,29 @@ export default class BaseApplication {
 				notes = await Tag.notes(parentId, options);
 			} else if (parentType === BaseModel.TYPE_SEARCH) {
 				const search = BaseModel.byId(state.searches, parentId);
-				notes = await SearchEngineUtils.notesForQuery(search.query_pattern, true);
-				const parsedQuery = await SearchEngine.instance().parseQuery(search.query_pattern);
-				highlightedWords = SearchEngine.instance().allParsedQueryTerms(parsedQuery);
+				if (search) {
+					notes = await SearchEngineUtils.notesForQuery(search.query_pattern, true);
+					const parsedQuery = await SearchEngine.instance().parseQuery(search.query_pattern);
+					highlightedWords = SearchEngine.instance().allParsedQueryTerms(parsedQuery);
+				}
 			} else if (parentType === BaseModel.TYPE_SMART_FILTER) {
 				notes = await Note.previews(parentId, options);
 			}
 		}
 
-		this.store().dispatch({
+		this.store()?.dispatch({
 			type: 'SET_HIGHLIGHTED',
 			words: highlightedWords,
 		});
 
-		this.store().dispatch({
+		this.store()?.dispatch({
 			type: 'NOTE_UPDATE_ALL',
 			notes: notes,
 			notesSource: source,
 		});
 
 		if (useSelectedNoteId) {
-			this.store().dispatch({
+			this.store()?.dispatch({
 				type: 'NOTE_SELECT',
 				id: state.selectedNoteIds && state.selectedNoteIds.length ? state.selectedNoteIds[0] : null,
 				hash: noteHash,
@@ -412,24 +427,24 @@ export default class BaseApplication {
 				selectedNoteId = notes.length ? notes[0].id : null;
 			}
 
-			this.store().dispatch({
+			this.store()?.dispatch({
 				type: 'NOTE_SELECT',
 				id: selectedNoteId,
 			});
 		}
 	}
 
-	private resourceFetcher_downloadComplete(event: any) {
+	private resourceFetcher_downloadComplete(event: { encrypted: boolean; }): void {
 		if (event.encrypted) {
 			void DecryptionWorker.instance().scheduleStart();
 		}
 	}
 
-	private async decryptionWorker_resourceMetadataButNotBlobDecrypted() {
+	private async decryptionWorker_resourceMetadataButNotBlobDecrypted(): Promise<void> {
 		ResourceFetcher.instance().scheduleAutoAddResources();
 	}
 
-	public reducerActionToString(action: any) {
+	public reducerActionToString(action: { type: string; id: string; noteId: string; folderId: string; tagId: string; tag: { id: string; }; folder: { id: string; }; notesSource: any; }): string {
 		const o = [action.type];
 		if ('id' in action) o.push(action.id);
 		if ('noteId' in action) o.push(action.noteId);
@@ -441,15 +456,15 @@ export default class BaseApplication {
 		return o.join(', ');
 	}
 
-	public hasGui() {
+	public hasGui(): boolean {
 		return false;
 	}
 
-	public uiType() {
+	public uiType(): "gui" | "cli" {
 		return this.hasGui() ? 'gui' : 'cli';
 	}
 
-	public generalMiddlewareFn() {
+	public generalMiddlewareFn(): (store: any) => (next: any) => (action: any) => Promise<any> {
 		const middleware = (store: any) => (next: any) => (action: any) => {
 			return this.generalMiddleware(store, next, action);
 		};
@@ -457,8 +472,8 @@ export default class BaseApplication {
 		return middleware;
 	}
 
-	protected async applySettingsSideEffects(action: any = null) {
-		const sideEffects: any = {
+	protected async applySettingsSideEffects(action: { type?: string; hash?: any; value?: any; key: string; item?: any; changedFields?: any; state?: string; decryptedItemCounts?: { [x: string]: any; }; isFullSync?: boolean; id?: string; } | null = null): Promise<void> {
+		const sideEffects: Record<string, any> = {
 			'dateFormat': async () => {
 				time.setLocale(Setting.value('locale'));
 				time.setDateFormat(Setting.value('dateFormat'));
@@ -532,12 +547,12 @@ export default class BaseApplication {
 		}
 	}
 
-	protected async generalMiddleware(store: any, next: any, action: any) {
+	protected async generalMiddleware(store: Store, next: any, action: { type: string; hash?: string; value?: any; key: string; item?: any; changedFields: any; state: string; decryptedItemCounts: { [x: string]: any; }; isFullSync: boolean; id: string; }): Promise<any> {
 		// appLogger.debug('Reducer action', this.reducerActionToString(action));
 
 		const result = next(action);
 		let refreshNotes = false;
-		let refreshFolders: boolean | string = false;
+		let refreshFolders: boolean | 'now' = false;
 		// let refreshTags = false;
 		let refreshNotesUseSelectedNoteId = false;
 		let refreshNotesHash = '';
@@ -568,7 +583,7 @@ export default class BaseApplication {
 
 			if (action.type === 'FOLDER_AND_NOTE_SELECT') {
 				refreshNotesUseSelectedNoteId = true;
-				refreshNotesHash = action.hash;
+				if (action.hash) refreshNotesHash = action.hash;
 			}
 		}
 
@@ -673,24 +688,23 @@ export default class BaseApplication {
 	}
 
 	public dispatch(action: any) {
-		if (this.store()) return this.store().dispatch(action);
+		if (this.store()) return this.store()?.dispatch(action);
 	}
 
-	public reducer(state: any = defaultState, action: any) {
+	public reducer(state: State = defaultState, action: any): State | undefined {
 		return reducer(state, action);
 	}
 
-	public initRedux() {
-		this.store_ = createStore(this.reducer, applyMiddleware(this.generalMiddlewareFn() as any));
-		setStore(this.store_);
+	public initRedux(): void {
+		setStore(this.store());
 
-		this.store_.dispatch({
+		this.store_!.dispatch({
 			type: 'PROFILE_CONFIG_SET',
 			value: this.profileConfig_,
 		});
 
 		BaseModel.dispatch = this.store().dispatch;
-		FoldersScreenUtils.dispatch = this.store().dispatch;
+		FoldersScreenUtils.dispatch = this.store()?.dispatch;
 		// reg.dispatch = this.store().dispatch;
 		BaseSyncTarget.dispatch = this.store().dispatch;
 		DecryptionWorker.instance().dispatch = this.store().dispatch;
@@ -698,8 +712,8 @@ export default class BaseApplication {
 		ShareService.instance().initialize(this.store(), EncryptionService.instance());
 	}
 
-	public deinitRedux() {
-		this.store_ = null;
+	public deinitRedux(): void {
+		// this.store_ = null;
 		BaseModel.dispatch = function() { };
 		FoldersScreenUtils.dispatch = function() { };
 		// reg.dispatch = function() {};
@@ -708,23 +722,23 @@ export default class BaseApplication {
 		ResourceFetcher.instance().dispatch = function() { };
 	}
 
-	public async readFlagsFromFile(flagPath: string) {
+	public async readFlagsFromFile(flagPath: string): Promise<Record<string, any>> {
 		if (!fs.existsSync(flagPath)) return {};
 		let flagContent = fs.readFileSync(flagPath, 'utf8');
 		if (!flagContent) return {};
 
 		flagContent = flagContent.trim();
 
-		let flags: any = splitCommandString(flagContent);
+		let flags: string[] = splitCommandString(flagContent);
 		flags.splice(0, 0, 'cmd');
 		flags.splice(0, 0, 'node');
 
-		flags = await this.handleStartFlags_(flags, false);
+		const flags_ = await this.handleStartFlags_(flags, false);
 
-		return flags.matched;
+		return flags_.matched;
 	}
 
-	public determineProfileDir(initArgs: any) {
+	public determineProfileDir(initArgs: Record<string, string>): string {
 		let output = '';
 
 		if (initArgs.profileDir) {
@@ -738,12 +752,12 @@ export default class BaseApplication {
 		return toSystemSlashes(output, 'linux');
 	}
 
-	protected startRotatingLogMaintenance(profileDir: string) {
+	protected startRotatingLogMaintenance(profileDir: string): void {
 		this.rotatingLogs = new RotatingLogs(profileDir);
 		const processLogs = async () => {
 			try {
-				await this.rotatingLogs.cleanActiveLogFile();
-				await this.rotatingLogs.deleteNonActiveLogFiles();
+				await this.rotatingLogs!.cleanActiveLogFile();
+				await this.rotatingLogs!.deleteNonActiveLogFiles();
 			} catch (error) {
 				appLogger.error(error);
 			}
@@ -753,17 +767,20 @@ export default class BaseApplication {
 	}
 
 	// To be overriden to show progress bar
-	protected async populateFolder() {
+	protected async populateFolder(): Promise<void> {
 		await LocalFile.populateFolder();
 	}
 
 	// To be overriden to show progress bar
-	protected async syncFromSystem() {
+	protected async syncFromSystem(): Promise<void> {
 		await LocalFile.syncFromSystem();
 	}
 
-	protected async prepResourcesDir() {
-		const resourceDir = Setting.value('resourceDir');
+	protected async prepResourcesDir(): Promise<void> {
+		const resourceDirName = '.resources';
+		Setting.setConstant('resourceDirName', resourceDirName);
+		const resourceDir = `${Setting.value('localFilesDir')}${path.sep}${resourceDirName}`;
+		Setting.setConstant('resourceDir', resourceDir);
 
 		const profileDir = Setting.value('profileDir');
 		const resourceDirOld = `${profileDir}/resources`;
@@ -775,9 +792,13 @@ export default class BaseApplication {
 		}
 	}
 
-	protected async backupDB(profileDir: string) {
+	protected async backupDB(profileDir: string): Promise<void> {
 		let backupDB = false;
-		const dbStat = await shim.fsDriver().stat(`${profileDir}/database.sqlite.bak`);
+
+		let dbStat = await shim.fsDriver().stat(`${profileDir}/database.sqlite`);
+		if (!dbStat) return;	// on new install, db doesn't exist
+
+		dbStat = await shim.fsDriver().stat(`${profileDir}/database.sqlite.bak`);
 		if (dbStat) {
 			const updatedTime = new Date(dbStat.mtime).getTime();
 			const curTime = new Date().getTime();
@@ -791,13 +812,14 @@ export default class BaseApplication {
 		}
 	}
 
-	public async start(argv: string[], options: StartOptions = null): Promise<any> {
+	public async start(argv: string[], options: StartOptions = {}): Promise<string[]> {
 		options = {
 			keychainEnabled: true,
 			setupGlobalLogger: true,
 			...options,
 		};
 
+		console.log('BaseApplication start');
 		const startFlags = await this.handleStartFlags_(argv);
 
 		argv = startFlags.argv;
@@ -911,7 +933,7 @@ export default class BaseApplication {
 		}
 
 		if (Setting.value('firstStart')) {
-			const locale = shim.detectAndSetLocale(Setting);
+			const locale = shim.detectAndSetLocale();
 			reg.logger().info(`First start: detected locale as ${locale}`);
 			Setting.skipDefaultMigrations();
 
@@ -956,7 +978,7 @@ export default class BaseApplication {
 		if (!Setting.value('api.token')) {
 			void EncryptionService.instance()
 				.generateApiToken()
-				// eslint-disable-next-line promise/prefer-await-to-then -- Old code before rule was applied
+
 				.then((token: string) => {
 					Setting.setValue('api.token', token);
 				});
@@ -971,15 +993,6 @@ export default class BaseApplication {
 		LocalFile.populateFolderFunc = this.populateFolder;
 		LocalFile.syncFromSystemFunc = this.syncFromSystem;
 		await LocalFile.init(profileConfig.currentProfileId, true);
-
-		// const resourceDir = Setting.value('resourceDir');
-		// const resourceDirOld = `${profileDir}/resources`;
-		// const resOldStat = await fs.pathExists(resourceDirOld);
-		// if (resOldStat) {
-		// 	await fs.move(resourceDirOld, resourceDir);
-		// } else {
-		// 	await fs.mkdirp(resourceDir, 0o755);
-		// }
 
 		KvStore.instance().setDb(reg.db());
 

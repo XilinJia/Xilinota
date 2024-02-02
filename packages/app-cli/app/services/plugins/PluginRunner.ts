@@ -11,7 +11,7 @@ function createConsoleWrapper(pluginId: string) {
 	const wrapper: any = {};
 
 	for (const n in console) {
-		// eslint-disable-next-line no-console
+
 		if (!console.hasOwnProperty(n)) continue;
 		wrapper[n] = (...args: any[]) => {
 			const newArgs = args.slice();
@@ -51,7 +51,7 @@ export default class PluginRunner extends BasePluginRunner {
 			const callId = `${pluginId}::${path}::${uuid.createNano()}`;
 			this.activeSandboxCalls_[callId] = true;
 			const promise = executeSandboxCall(pluginId, sandbox, `xilinota.${path}`, mapEventHandlersToIds(args, this.eventHandlers_), this.eventHandler);
-			// eslint-disable-next-line promise/prefer-await-to-then -- Old code before rule was applied
+
 			promise.finally(() => {
 				delete this.activeSandboxCalls_[callId];
 			});
@@ -65,7 +65,6 @@ export default class PluginRunner extends BasePluginRunner {
 	}
 
 	public async run(plugin: Plugin, sandbox: Global): Promise<void> {
-		// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 		return new Promise((resolve: Function, reject: Function) => {
 			const onStarted = () => {
 				plugin.off('started', onStarted);
@@ -86,7 +85,6 @@ export default class PluginRunner extends BasePluginRunner {
 
 	public async waitForSandboxCalls(): Promise<void> {
 		const startTime = Date.now();
-		// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 		return new Promise((resolve: Function, reject: Function) => {
 			const iid = setInterval(() => {
 				if (!Object.keys(this.activeSandboxCalls_).length) {

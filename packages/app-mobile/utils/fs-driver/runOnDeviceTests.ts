@@ -142,7 +142,7 @@ const testReadFileChunkUtf8 = async (tempDir: string) => {
 
 		// A 0 length should return null and not advance
 		await expectToBe(
-			await fsDriver.readFileChunk(handle, 0, encoding), null,
+			await fsDriver.readFileChunk(handle, 0, encoding), '',
 		);
 
 		// Reading a different encoding (then switching back to the original)
@@ -158,11 +158,11 @@ const testReadFileChunkUtf8 = async (tempDir: string) => {
 
 		// Should not be able to read past the end
 		await expectToBe(
-			await fsDriver.readFileChunk(handle, 10, encoding), null,
+			await fsDriver.readFileChunk(handle, 10, encoding), '',
 		);
 
 		await expectToBe(
-			await fsDriver.readFileChunk(handle, 1, encoding), null,
+			await fsDriver.readFileChunk(handle, 1, encoding), '',
 		);
 
 		await fsDriver.close(filePath);

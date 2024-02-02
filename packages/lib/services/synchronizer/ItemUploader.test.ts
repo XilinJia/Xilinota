@@ -3,6 +3,7 @@ import BaseItem from '../../models/BaseItem';
 import Note from '../../models/Note';
 import { expectNotThrow, expectThrow, setupDatabaseAndSynchronizer, switchClient } from '../../testing/test-utils';
 import time from '../../time';
+import { BaseItemEntity } from '../database/types';
 import ItemUploader from './ItemUploader';
 import { ApiCallFunction } from './utils/types';
 
@@ -19,8 +20,8 @@ function newFakeApi(): FileApi {
 	return { supportsMultiPut: true } as any;
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-function newFakeApiCall(callRecorder: ApiCall[], itemBodyCallback: Function = null): ApiCallFunction {
+
+function newFakeApiCall(callRecorder: ApiCall[], itemBodyCallback: Function | null = null): ApiCallFunction {
 	const apiCall = async (callName: string, ...args: any[]): Promise<any> => {
 		callRecorder.push({ name: callName, args });
 
@@ -60,7 +61,7 @@ describe('synchronizer/ItemUploader', () => {
 			await Note.save({ title: '2' }),
 		];
 
-		await itemUploader.preUploadItems(notes);
+		await itemUploader.preUploadItems(notes as BaseItemEntity[]);
 
 		// There should be only one call to "multiPut" because the items have
 		// been batched.
@@ -71,13 +72,13 @@ describe('synchronizer/ItemUploader', () => {
 
 		// Now if we try to upload the item it shouldn't call the API because it
 		// will use the cached item.
-		await itemUploader.serializeAndUploadItem(Note, BaseItem.systemPath(notes[0]), notes[0]);
+		await itemUploader.serializeAndUploadItem(Note, BaseItem.systemPath(notes[0]), notes[0] as BaseItemEntity);
 		expect(callRecorder.length).toBe(0);
 
 		// Now try to process a note that hasn't been cached. In that case, it
 		// should call "PUT" directly.
 		const note3 = await Note.save({ title: '3' });
-		await itemUploader.serializeAndUploadItem(Note, BaseItem.systemPath(note3), note3);
+		await itemUploader.serializeAndUploadItem(Note, BaseItem.systemPath(note3), note3 as BaseItemEntity);
 		expect(callRecorder.length).toBe(1);
 		expect(callRecorder[0].name).toBe('put');
 	}));
@@ -92,7 +93,7 @@ describe('synchronizer/ItemUploader', () => {
 			await Note.save({ title: '2' }),
 		];
 
-		await itemUploader.preUploadItems(notes);
+		await itemUploader.preUploadItems(notes as BaseItemEntity[]);
 		expect(callRecorder.length).toBe(0);
 	}));
 
@@ -105,15 +106,15 @@ describe('synchronizer/ItemUploader', () => {
 			await Note.save({ title: '2' }),
 		];
 
-		await itemUploader.preUploadItems(notes);
+		await itemUploader.preUploadItems(notes as BaseItemEntity[]);
 		clearArray(callRecorder);
 
-		await itemUploader.serializeAndUploadItem(Note, BaseItem.systemPath(notes[0]), notes[0]);
+		await itemUploader.serializeAndUploadItem(Note, BaseItem.systemPath(notes[0]), notes[0] as BaseItemEntity);
 		expect(callRecorder.length).toBe(0);
 
 		await time.msleep(1);
 		notes[1] = await Note.save({ title: '22' }),
-		await itemUploader.serializeAndUploadItem(Note, BaseItem.systemPath(notes[1]), notes[1]);
+			await itemUploader.serializeAndUploadItem(Note, BaseItem.systemPath(notes[1]), notes[1] as BaseItemEntity);
 		expect(callRecorder.length).toBe(1);
 	}));
 
@@ -127,12 +128,12 @@ describe('synchronizer/ItemUploader', () => {
 			await Note.save({ title: '3' }),
 		];
 
-		const noteSize = BaseItem.systemPath(notes[0]).length + (await Note.serializeForSync(notes[0])).length;
+		const noteSize = BaseItem.systemPath(notes[0]).length + (await Note.serializeForSync(notes[0] as BaseItemEntity)).length;
 		itemUploader.maxBatchSize = noteSize * 2;
 
 		// It should send two batches - one with two notes, and the second with
 		// only one note.
-		await itemUploader.preUploadItems(notes);
+		await itemUploader.preUploadItems(notes as BaseItemEntity[]);
 		expect(callRecorder.length).toBe(2);
 		expect(callRecorder[0].args[0].length).toBe(2);
 		expect(callRecorder[1].args[0].length).toBe(1);
@@ -158,11 +159,11 @@ describe('synchronizer/ItemUploader', () => {
 
 		const itemUploader = new ItemUploader(newFakeApi(), newFakeApiCall(callRecorder, itemBodyCallback));
 
-		await itemUploader.preUploadItems(notes);
+		await itemUploader.preUploadItems(notes as BaseItemEntity[]);
 
-		await expectNotThrow(async () => itemUploader.serializeAndUploadItem(Note, BaseItem.systemPath(notes[0]), notes[0]));
-		await expectThrow(async () => itemUploader.serializeAndUploadItem(Note, BaseItem.systemPath(notes[1]), notes[1]), null);
-		await expectNotThrow(async () => itemUploader.serializeAndUploadItem(Note, BaseItem.systemPath(notes[2]), notes[2]));
+		await expectNotThrow(async () => itemUploader.serializeAndUploadItem(Note, BaseItem.systemPath(notes[0]), notes[0] as BaseItemEntity));
+		await expectThrow(async () => itemUploader.serializeAndUploadItem(Note, BaseItem.systemPath(notes[1]), notes[1] as BaseItemEntity), null);
+		await expectNotThrow(async () => itemUploader.serializeAndUploadItem(Note, BaseItem.systemPath(notes[2]), notes[2] as BaseItemEntity));
 	}));
 
 });

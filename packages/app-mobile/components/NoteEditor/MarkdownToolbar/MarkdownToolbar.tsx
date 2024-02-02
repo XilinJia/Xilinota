@@ -1,14 +1,14 @@
 // A toolbar for the markdown editor.
 
-const React = require('react');
+import React from 'react';
 import { Platform, StyleSheet } from 'react-native';
 import { useMemo, useState, useCallback } from 'react';
 
 // See https://oblador.github.io/react-native-vector-icons/ for a list of
 // available icons.
-const AntIcon = require('react-native-vector-icons/AntDesign').default;
-const FontAwesomeIcon = require('react-native-vector-icons/FontAwesome5').default;
-const MaterialIcon = require('react-native-vector-icons/MaterialIcons').default;
+import AntIcon from 'react-native-vector-icons/AntDesign';
+import FontAwesomeIcon from 'react-native-vector-icons/FontAwesome5';
+import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 
 import { _ } from '@xilinota/lib/locale';
 import time from '@xilinota/lib/time';
@@ -23,7 +23,7 @@ import ToggleSpaceButton from './ToggleSpaceButton';
 import { SearchState } from '@xilinota/editor/types';
 import SelectionFormatting from '@xilinota/editor/SelectionFormatting';
 
-type OnAttachCallback = ()=> void;
+type OnAttachCallback = () => void;
 
 interface MarkdownToolbarProps {
 	editorControl: EditorControl;
@@ -53,7 +53,6 @@ const MarkdownToolbar = (props: MarkdownToolbarProps) => {
 
 			// We only call addHeaderButton 5 times and in the same order, so
 			// the linter error is safe to ignore.
-			// eslint-disable-next-line @seiyab/react-hooks/rules-of-hooks
 			onPress: useCallback(() => {
 				editorControl.toggleHeaderLevel(level);
 			}, [editorControl, level]),
@@ -68,7 +67,7 @@ const MarkdownToolbar = (props: MarkdownToolbarProps) => {
 	const listButtons: ButtonSpec[] = [];
 	listButtons.push({
 		icon: (
-			<FontAwesomeIcon name="list-ul" style={styles.text}/>
+			<FontAwesomeIcon name="list-ul" style={styles.text} />
 		),
 		description: _('Unordered list'),
 		active: selState.inUnorderedList,
@@ -80,7 +79,7 @@ const MarkdownToolbar = (props: MarkdownToolbarProps) => {
 
 	listButtons.push({
 		icon: (
-			<FontAwesomeIcon name="list-ol" style={styles.text}/>
+			<FontAwesomeIcon name="list-ol" style={styles.text} />
 		),
 		description: _('Ordered list'),
 		active: selState.inOrderedList,
@@ -92,7 +91,7 @@ const MarkdownToolbar = (props: MarkdownToolbarProps) => {
 
 	listButtons.push({
 		icon: (
-			<FontAwesomeIcon name="tasks" style={styles.text}/>
+			<FontAwesomeIcon name="tasks" style={styles.text} />
 		),
 		description: _('Task list'),
 		active: selState.inChecklist,
@@ -105,7 +104,7 @@ const MarkdownToolbar = (props: MarkdownToolbarProps) => {
 
 	listButtons.push({
 		icon: (
-			<AntIcon name="indent-left" style={styles.text}/>
+			<AntIcon name="indent-left" style={styles.text} />
 		),
 		description: _('Decrease indent level'),
 		onPress: editorControl.decreaseIndent,
@@ -116,7 +115,7 @@ const MarkdownToolbar = (props: MarkdownToolbarProps) => {
 
 	listButtons.push({
 		icon: (
-			<AntIcon name="indent-right" style={styles.text}/>
+			<AntIcon name="indent-right" style={styles.text} />
 		),
 		description: _('Increase indent level'),
 		onPress: editorControl.increaseIndent,
@@ -130,7 +129,7 @@ const MarkdownToolbar = (props: MarkdownToolbarProps) => {
 	const inlineFormattingBtns: ButtonSpec[] = [];
 	inlineFormattingBtns.push({
 		icon: (
-			<FontAwesomeIcon name="bold" style={styles.text}/>
+			<FontAwesomeIcon name="bold" style={styles.text} />
 		),
 		description: _('Bold'),
 		active: selState.bolded,
@@ -142,7 +141,7 @@ const MarkdownToolbar = (props: MarkdownToolbarProps) => {
 
 	inlineFormattingBtns.push({
 		icon: (
-			<FontAwesomeIcon name="italic" style={styles.text}/>
+			<FontAwesomeIcon name="italic" style={styles.text} />
 		),
 		description: _('Italic'),
 		active: selState.italicized,
@@ -176,7 +175,7 @@ const MarkdownToolbar = (props: MarkdownToolbarProps) => {
 
 	inlineFormattingBtns.push({
 		icon: (
-			<FontAwesomeIcon name="link" style={styles.text}/>
+			<FontAwesomeIcon name="link" style={styles.text} />
 		),
 		description: _('Link'),
 		active: selState.inLink,
@@ -191,7 +190,7 @@ const MarkdownToolbar = (props: MarkdownToolbarProps) => {
 	const actionButtons: ButtonSpec[] = [];
 	actionButtons.push({
 		icon: (
-			<FontAwesomeIcon name="calendar-plus" style={styles.text}/>
+			<FontAwesomeIcon name="calendar-plus" style={styles.text} />
 		),
 		description: _('Insert time'),
 		onPress: useCallback(() => {
@@ -210,7 +209,7 @@ const MarkdownToolbar = (props: MarkdownToolbarProps) => {
 
 	actionButtons.push({
 		icon: (
-			<MaterialIcon name="attachment" style={styles.text}/>
+			<MaterialIcon name="attachment" style={styles.text} />
 		),
 		description: _('Attach'),
 		onPress: useCallback(() => {
@@ -222,7 +221,7 @@ const MarkdownToolbar = (props: MarkdownToolbarProps) => {
 
 	actionButtons.push({
 		icon: (
-			<MaterialIcon name="search" style={styles.text}/>
+			<MaterialIcon name="search" style={styles.text} />
 		),
 		description: (
 			props.searchState.dialogVisible ? _('Close') : _('Find and replace')
@@ -259,7 +258,7 @@ const MarkdownToolbar = (props: MarkdownToolbarProps) => {
 
 	actionButtons.push({
 		icon: (
-			<MaterialIcon name="keyboard-hide" style={styles.text}/>
+			<MaterialIcon name="keyboard-hide" style={styles.text} />
 		),
 		description: _('Hide keyboard'),
 		disabled: !keyboardVisible,
@@ -276,7 +275,7 @@ const MarkdownToolbar = (props: MarkdownToolbarProps) => {
 
 	return (
 		<ToggleSpaceButton
-			spaceApplicable={ Platform.OS === 'ios' && keyboardVisible }
+			spaceApplicable={Platform.OS === 'ios' && keyboardVisible}
 			themeId={props.editorSettings.themeId}
 			style={styles.container}
 		>

@@ -55,7 +55,7 @@ export const extractVersionInfo = (releases: GitHubRelease[], platform: Platform
 
 	if (!release) throw new Error('Could not get tag name');
 
-	const version = release.tag_name.substr(1);
+	const version = release.tag_name.substring(1);
 
 	// We concatenate all the release notes of the major/minor versions
 	// corresponding to the latest version. For example, if the latest version
@@ -72,7 +72,7 @@ export const extractVersionInfo = (releases: GitHubRelease[], platform: Platform
 		}
 	}
 
-	let foundAsset: GitHubReleaseAsset = null;
+	let foundAsset: GitHubReleaseAsset|undefined;
 
 	if (platform === 'win32' && portable) {
 		foundAsset = release.assets.find(asset => {
@@ -104,7 +104,7 @@ export const extractVersionInfo = (releases: GitHubRelease[], platform: Platform
 		});
 	}
 
-	let downloadUrl: string = null;
+	let downloadUrl: string = '';
 
 	if (foundAsset) {
 		downloadUrl = foundAsset.browser_download_url.replace('github.com/XilinJia/Xilinota/releases/download', 'objects.xilinotausercontent.com');

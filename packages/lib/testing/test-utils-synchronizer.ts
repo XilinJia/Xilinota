@@ -3,10 +3,11 @@ import { fileApi } from '../testing/../testing/test-utils';
 import Folder from '../models/Folder';
 import Note from '../models/Note';
 import BaseItem from '../models/BaseItem';
+import { NoteEntity } from '../services/database/types';
 
 export async function allNotesFolders() {
 	const folders = await Folder.all();
-	const notes = await Note.all();
+	const notes = await Note.all() as NoteEntity[];
 	return folders.concat(notes);
 }
 
@@ -17,7 +18,7 @@ async function remoteItemsByTypes(types: number[]) {
 
 	const output = [];
 	for (const file of files) {
-		const remoteContent = await fileApi().get(file.path);
+		const remoteContent = await fileApi().get(file.path ?? '');
 		const content = await BaseItem.unserialize(remoteContent);
 		if (types.indexOf(content.type_) < 0) continue;
 		output.push(content);
@@ -37,7 +38,7 @@ export async function remoteResources() {
 	return remoteItemsByTypes([BaseModel.TYPE_RESOURCE]);
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
+
 export async function localNotesFoldersSameAsRemote(locals: any[], expect: Function) {
 	let error = null;
 	try {

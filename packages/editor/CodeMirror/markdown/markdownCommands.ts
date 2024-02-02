@@ -164,16 +164,16 @@ export const toggleList = (listType: ListType): Command => {
 			let charsAdded = 0;
 
 			const originalSel = sel;
-			let fromLine: Line;
-			let toLine: Line;
-			let firstLineIndentation: string;
-			let firstLineInBlockQuote: boolean;
-			let fromLineContent: string;
+			let fromLine: Line = doc.lineAt(sel.from);	// just init
+			let toLine: Line = doc.lineAt(sel.to);	// just init
+			let firstLineIndentation: string = '';
+			let firstLineInBlockQuote: boolean = false;
+			let fromLineContent: string = '';
 			const computeSelectionProps = () => {
 				fromLine = doc.lineAt(sel.from);
 				toLine = doc.lineAt(sel.to);
 				fromLineContent = stripBlockquote(fromLine);
-				firstLineIndentation = fromLineContent.match(startingSpaceRegex)[0];
+				firstLineIndentation = (fromLineContent.match(startingSpaceRegex) ?? [''])[0];
 				firstLineInBlockQuote = (fromLineContent !== fromLine.text);
 
 				containerType = getContainerType(fromLine);
@@ -272,7 +272,7 @@ export const toggleList = (listType: ListType): Command => {
 				const lineContent = stripBlockquote(line);
 				const lineContentFrom = line.to - lineContent.length;
 				const inBlockQuote = (lineContent !== line.text);
-				const indentation = lineContent.match(startingSpaceRegex)[0];
+				const indentation = (lineContent.match(startingSpaceRegex) ?? [''])[0];
 
 				const wrongIndentaton = !isIndentationEquivalent(state, indentation, firstLineIndentation);
 

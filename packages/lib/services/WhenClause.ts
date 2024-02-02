@@ -73,10 +73,11 @@ export default class WhenClause {
 		};
 	}
 
-	private rules(exp: string): ContextKeyExpression {
+	private rules(exp: string): ContextKeyExpression|undefined {
 		if (this.ruleCache_[exp]) return this.ruleCache_[exp];
-		this.ruleCache_[exp] = ContextKeyExpr.deserialize(exp);
-		return this.ruleCache_[exp];
+		const desr = ContextKeyExpr.deserialize(exp);
+		if (desr) this.ruleCache_[exp] = desr;
+		return desr;
 	}
 
 	public evaluate(context: any): boolean {
@@ -86,17 +87,22 @@ export default class WhenClause {
 
 		for (const k in this.expression_.subExpressions) {
 			const subExp = this.expression_.subExpressions[k];
-			subContext[k] = this.rules(subExp).evaluate(this.createContext(context));
+			const rl = this.rules(subExp)
+			if (rl) subContext[k] = rl.evaluate(this.createContext(context));
 		}
 
 		const fullContext = { ...context, ...subContext };
-		return this.rules(this.expression_.compiledText).evaluate(this.createContext(fullContext));
+		const rlc = this.rules(this.expression_.compiledText)
+		if (rlc) return rlc.evaluate(this.createContext(fullContext));
+		return false
 	}
 
 	public validate(context: any) {
-		const keys = this.rules(this.expression_.original.replace(/[()]/g, ' ')).keys();
-		for (const key of keys) {
-			if (!(key in context)) throw new Error(`No such key: ${key}`);
+		const keys = this.rules(this.expression_.original.replace(/[()]/g, ' '))?.keys();
+		if (keys) {
+			for (const key of keys) {
+				if (!(key in context)) throw new Error(`No such key: ${key}`);
+			}
 		}
 	}
 

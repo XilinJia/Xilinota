@@ -2,16 +2,19 @@ import * as React from 'react';
 import ButtonBar from './ConfigScreen/ButtonBar';
 import { _ } from '@xilinota/lib/locale';
 
-const { connect } = require('react-redux');
+import { connect } from 'react-redux';
+import { Dispatch } from 'redux';
 const bridge = require('@electron/remote').require('./bridge').default;
-const { themeStyle } = require('@xilinota/lib/theme');
+import { themeStyle } from '@xilinota/lib/theme';
 const Shared = require('@xilinota/lib/components/shared/dropbox-login-shared');
 
 interface Props {
-	themeId: string;
+	themeId: number;
+	style: any;
+	dispatch: Dispatch;
 }
 
-class DropboxLoginScreenComponent extends React.Component<any, any> {
+class DropboxLoginScreenComponent extends React.Component<Props, any> {
 
 	private shared_: any;
 

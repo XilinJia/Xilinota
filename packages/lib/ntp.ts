@@ -22,7 +22,6 @@ const parseNtpServer = (ntpServer: string): NtpServer => {
 };
 
 export async function getNetworkTime(ntpServer: string): Promise<Date> {
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	return new Promise((resolve: Function, reject: Function) => {
 		const s = parseNtpServer(ntpServer);
 		ntpClient().getNetworkTime(s.domain, s.port, (error: any, date: Date) => {
@@ -40,7 +39,7 @@ export async function getDeviceTimeDrift(ntpServer: string): Promise<number> {
 	const maxTries = 3;
 	let tryCount = 0;
 
-	let ntpTime: Date = null;
+	let ntpTime: Date;
 
 	while (true) {
 		tryCount++;
@@ -50,7 +49,7 @@ export async function getDeviceTimeDrift(ntpServer: string): Promise<number> {
 		} catch (error) {
 			if (tryCount >= maxTries) {
 				const newError = typeof error === 'string' ? new Error(error) : error;
-				newError.message = `Cannot retrieve the network time from ${ntpServer}: ${newError.message}`;
+				if (newError instanceof Error) newError.message = `Cannot retrieve the network time from ${ntpServer}: ${newError.message}`;
 				throw newError;
 			} else {
 				await time.msleep(tryCount * 1000);

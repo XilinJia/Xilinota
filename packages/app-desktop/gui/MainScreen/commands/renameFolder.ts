@@ -11,7 +11,7 @@ export const declaration: CommandDeclaration = {
 
 export const runtime = (comp: any): CommandRuntime => {
 	return {
-		execute: async (context: CommandContext, folderId: string = null) => {
+		execute: async (context: CommandContext, folderId: string = '') => {
 			folderId = folderId || context.state.selectedFolderId;
 
 			const folder = await Folder.load(folderId);
@@ -22,13 +22,13 @@ export const runtime = (comp: any): CommandRuntime => {
 						label: _('Rename notebook:'),
 						value: folder.title,
 						onClose: async (answer: string) => {
-							if (answer !== null) {
+							if (answer) {
 								try {
 									folder.title = answer;
-									await LocalFile.renameFolder(folder.id, folder.title);
+									if (folder.id) await LocalFile.renameFolder(folder.id, folder.title);
 									await Folder.save(folder, { fields: ['title'], userSideValidation: true });
 								} catch (error) {
-									bridge().showErrorMessageBox(error.message);
+									bridge().showErrorMessageBox((error as Error).message);
 								}
 							}
 							comp.setState({ promptOptions: null });

@@ -5,9 +5,10 @@ import { connect } from 'react-redux';
 import { reg } from '@xilinota/lib/registry.js';
 import { ScreenHeader } from '../ScreenHeader';
 import time from '@xilinota/lib/time';
-const { themeStyle } = require('../global-style.js');
-import Logger from '@xilinota/utils/Logger';
-const { BaseScreenComponent } = require('../base-screen.js');
+import { themeStyle } from '../global-style';
+
+import Logger, { LogLevel } from '@xilinota/utils/Logger';
+import BaseScreenComponent from '../base-screen';
 import { _ } from '@xilinota/lib/locale';
 import { MenuOptionType } from '../ScreenHeader';
 import { AppState } from '../../utils/types';
@@ -17,15 +18,25 @@ import shim from '@xilinota/lib/shim';
 
 const logger = Logger.create('LogScreen');
 
-class LogScreenComponent extends BaseScreenComponent {
+interface Props {
+	themeId: number;
+}
+interface State {
+	logEntries: any[];
+	showErrorsOnly: boolean;
+}
+class LogScreenComponent extends BaseScreenComponent<Props, State> {
 	private readonly menuOptions: MenuOptionType[];
+	styles_: any;
 
-	public static navigationOptions(): any {
+	public static navigationOptions(): {
+		header: null;
+	} {
 		return { header: null };
 	}
 
-	public constructor() {
-		super();
+	public constructor(props: Props) {
+		super(props);
 
 		this.state = {
 			logEntries: [],
@@ -43,8 +54,8 @@ class LogScreenComponent extends BaseScreenComponent {
 		];
 	}
 
-	private async onSharePress() {
-		const limit: number|null = null; // no limit
+	private async onSharePress(): Promise<void> {
+		const limit: number | undefined = undefined; // no limit
 		const levels = this.getLogLevels(this.state.showErrorsOnly);
 		const allEntries: any[] = await reg.logger().lastEntries(limit, { levels });
 		const logData = allEntries.map(entry => this.formatLogEntry(entry)).join('\n');
@@ -65,7 +76,7 @@ class LogScreenComponent extends BaseScreenComponent {
 			logger.error('Unable to share log data:', e);
 
 			// Display a message to the user (e.g. in the case where the user is out of disk space).
-			Alert.alert(_('Error'), _('Unable to share log data. Reason: %s', e.toString()));
+			Alert.alert(_('Error'), _('Unable to share log data. Reason: %s', (e as Error).toString()));
 		} finally {
 			if (fileToShare) {
 				await shim.fsDriver().remove(fileToShare);
@@ -73,8 +84,8 @@ class LogScreenComponent extends BaseScreenComponent {
 		}
 	}
 
-	public styles() {
-		const theme = themeStyle(this.props.themeId);
+	public styles(): any {
+		const theme = themeStyle(this.props.themeId.toString());
 
 		if (this.styles_[this.props.themeId]) return this.styles_[this.props.themeId];
 		this.styles_ = {};
@@ -108,21 +119,21 @@ class LogScreenComponent extends BaseScreenComponent {
 		return this.styles_[this.props.themeId];
 	}
 
-	public UNSAFE_componentWillMount() {
+	public UNSAFE_componentWillMount(): void {
 		void this.resfreshLogEntries();
 	}
 
-	private getLogLevels(showErrorsOnly: boolean) {
+	private getLogLevels(showErrorsOnly: boolean): LogLevel[] {
 		let levels = [Logger.LEVEL_DEBUG, Logger.LEVEL_INFO, Logger.LEVEL_WARN, Logger.LEVEL_ERROR];
 		if (showErrorsOnly) levels = [Logger.LEVEL_WARN, Logger.LEVEL_ERROR];
 
 		return levels;
 	}
 
-	private async resfreshLogEntries(showErrorsOnly: boolean = null) {
+	private async resfreshLogEntries(showErrorsOnly: boolean | null = null): Promise<void> {
 		if (showErrorsOnly === null) showErrorsOnly = this.state.showErrorsOnly;
 
-		const levels = this.getLogLevels(showErrorsOnly);
+		const levels = this.getLogLevels(showErrorsOnly!);
 
 		this.setState({
 			logEntries: await reg.logger().lastEntries(1000, { levels: levels }),
@@ -130,15 +141,15 @@ class LogScreenComponent extends BaseScreenComponent {
 		});
 	}
 
-	private toggleErrorsOnly() {
+	private toggleErrorsOnly(): void {
 		void this.resfreshLogEntries(!this.state.showErrorsOnly);
 	}
 
-	private formatLogEntry(item: any) {
+	private formatLogEntry(item: any): string {
 		return `${time.formatMsToLocal(item.timestamp, 'MM-DDTHH:mm:ss')}: ${item.message}`;
 	}
 
-	public render() {
+	public render(): React.JSX.Element {
 		const renderRow = ({ item }: any) => {
 			let textStyle = this.styles().rowText;
 			if (item.level === Logger.LEVEL_WARN) textStyle = this.styles().rowTextWarn;
@@ -157,7 +168,7 @@ class LogScreenComponent extends BaseScreenComponent {
 			<View style={this.rootStyle(this.props.themeId).root}>
 				<ScreenHeader
 					title={_('Log')}
-					menuOptions={this.menuOptions}/>
+					menuOptions={this.menuOptions} />
 				<FlatList
 					data={this.state.logEntries}
 					renderItem={renderRow}
@@ -190,6 +201,6 @@ const LogScreen = connect((state: AppState) => {
 	return {
 		themeId: state.settings.theme,
 	};
-})(LogScreenComponent as any);
+})(LogScreenComponent);
 
 export default LogScreen;

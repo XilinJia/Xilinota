@@ -1,10 +1,13 @@
 import Logger from '@xilinota/utils/Logger';
-import Setting from '../../models/Setting';
+// import Setting from '../../models/Setting';
+import XilinotaError from '../../XilinotaError';
+import BaseItem from '../../models/BaseItem';
 
 const logger = Logger.create('mergeGlobalAndLocalSettings');
 
 export default (rootSettings: Record<string, any>, subProfileSettings: Record<string, any>) => {
 	const output: Record<string, any> = { ...subProfileSettings };
+	const Setting = BaseItem.getClass('Setting');
 
 	for (const k of Object.keys(output)) {
 		try {
@@ -14,7 +17,7 @@ export default (rootSettings: Record<string, any>, subProfileSettings: Record<st
 				if (k in rootSettings) output[k] = rootSettings[k];
 			}
 		} catch (error) {
-			if (error.code === 'unknown_key') {
+			if (error instanceof XilinotaError && error.code === 'unknown_key') {
 				// The root settings may contain plugin parameters, but the
 				// sub-profile won't necessarily have these plugins. In that
 				// case, the app will throw an error, but we can ignore it since
@@ -39,7 +42,7 @@ export default (rootSettings: Record<string, any>, subProfileSettings: Record<st
 				output[k] = rootSettings[k];
 			}
 		} catch (error) {
-			if (error.code === 'unknown_key') {
+			if (error instanceof XilinotaError && error.code === 'unknown_key') {
 				// The root settings may contain plugin parameters, but the
 				// sub-profile won't necessarily have these plugins. In that
 				// case, the app will throw an error, but we can ignore it since

@@ -2,9 +2,10 @@ import shim from './shim';
 import time from './time';
 import Logger from '@xilinota/utils/Logger';
 import { _ } from './locale';
+import XilinotaError from './XilinotaError';
 
 const { stringify } = require('query-string');
-const urlUtils = require('./urlUtils.js');
+import urlUtils from './urlUtils';
 const Buffer = require('buffer').Buffer;
 
 const logger = Logger.create('OneDriveApi');
@@ -44,7 +45,6 @@ export default class OneDriveApi {
 		}
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public on(eventName: string, callback: Function) {
 		this.listeners_[eventName].push(callback);
 	}
@@ -122,7 +122,7 @@ export default class OneDriveApi {
 		} catch (error) {
 			this.setAuth(null);
 			const text = await r.text();
-			error.message += `: ${text}`;
+			if (error instanceof Error) error.message += `: ${text}`;
 			throw error;
 		}
 	}
@@ -184,7 +184,7 @@ export default class OneDriveApi {
 				byteSize = Buffer.byteLength(options.body);
 				buffer = Buffer.from(options.body);
 			} else {
-				byteSize = (await shim.fsDriver().stat(options.path)).size;
+				byteSize = (await shim.fsDriver().stat(options.path))?.size ?? 0;
 				handle = await shim.fsDriver().open(options.path, 'r');
 			}
 
@@ -219,7 +219,7 @@ export default class OneDriveApi {
 				return { ok: true };
 			} catch (error) {
 				const type = (handle) ? 'Resource' : 'Note Content';
-				logger.error(`Couldn't upload ${type} > 4 Mb. Got unhandled error:`, error ? error.code : '', error ? error.message : '', error);
+				if (error instanceof XilinotaError) logger.error(`Couldn't upload ${type} > 4 Mb. Got unhandled error:`, error ? error.code : '', error ? error.message : '', error);
 				throw error;
 			} finally {
 				if (handle) await shim.fsDriver().close(handle);
@@ -269,7 +269,7 @@ export default class OneDriveApi {
 			options.headers['Authorization'] = `bearer ${this.token()}`;
 			options.headers['User-Agent'] = `ISV|Xilinota|Xilinota/${shim.appVersion()}`;
 
-			const handleRequestRepeat = async (error: any, sleepSeconds: number = null) => {
+			const handleRequestRepeat = async (error: any, sleepSeconds: number = 0) => {
 				sleepSeconds ??= (i + 1) * 5;
 				logger.info(`Got error below - retrying (${i})...`);
 				logger.info(error);
@@ -293,7 +293,7 @@ export default class OneDriveApi {
 					await handleRequestRepeat(error);
 					continue;
 				} else {
-					logger.error('Got unhandled error:', error ? error.code : '', error ? error.message : '', error);
+					if (error instanceof XilinotaError) logger.error('Got unhandled error:', error ? error.code : '', error ? error.message : '', error);
 					throw error;
 				}
 			}
@@ -305,7 +305,7 @@ export default class OneDriveApi {
 				try {
 					errorResponse = JSON.parse(errorResponseText); // await response.json();
 				} catch (error) {
-					error.message = `OneDriveApi::exec: Cannot parse JSON error: ${errorResponseText} ${error.message}`;
+					if (error instanceof Error) error.message = `OneDriveApi::exec: Cannot parse JSON error: ${errorResponseText} ${error.message}`;
 					await handleRequestRepeat(error);
 					continue;
 				}
@@ -380,7 +380,8 @@ export default class OneDriveApi {
 			const accountProperties = { accountType: data.driveType, driveId: data.id };
 			return accountProperties;
 		} catch (error) {
-			throw new Error(`Could not retrieve account details (drive ID, Account type. Error code: ${error.code}, Error message: ${error.message}`);
+			if (error instanceof XilinotaError) throw new Error(`Could not retrieve account details (drive ID, Account type. Error code: ${error.code}, Error message: ${error.message}`);
+			throw error;
 		}
 	}
 
@@ -391,7 +392,7 @@ export default class OneDriveApi {
 			const output = JSON.parse(errorResponseText); // await response.json();
 			return output;
 		} catch (error) {
-			error.message = `OneDriveApi::execJson: Cannot parse JSON: ${errorResponseText} ${error.message}`;
+			if (error instanceof Error) error.message = `OneDriveApi::execJson: Cannot parse JSON: ${errorResponseText} ${error.message}`;
 			throw error;
 			// throw new Error('Cannot parse JSON: ' + text);
 		}

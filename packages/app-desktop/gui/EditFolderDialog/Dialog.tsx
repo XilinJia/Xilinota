@@ -17,16 +17,15 @@ import LocalFile from '@xilinota/lib/models/LocalFiles';
 
 interface Props {
 	themeId: number;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	dispatch: Function;
 	folderId: string;
 	parentId: string;
 }
 
-export default function(props: Props) {
+export default function(props: Props): React.JSX.Element {
 	const [folderTitle, setFolderTitle] = useState('');
 	const [folderIcon, setFolderIcon] = useState<FolderIcon>();
-	const titleInputRef = useRef(null);
+	const titleInputRef = useRef<HTMLInputElement>(document.createElement('input'));
 
 	const isNew = !props.folderId;
 
@@ -34,9 +33,10 @@ export default function(props: Props) {
 		if (isNew) return;
 
 		const folder = await Folder.load(props.folderId);
+		if (!folder) return;
 		if (event.cancelled) return;
-		setFolderTitle(folder.title);
-		setFolderIcon(Folder.unserializeIcon(folder.icon));
+		if (folder.title) setFolderTitle(folder.title);
+		if (folder.icon) setFolderIcon(Folder.unserializeIcon(folder.icon) || undefined);
 	}, [props.folderId, isNew]);
 
 	const onClose = useCallback(() => {
@@ -63,7 +63,7 @@ export default function(props: Props) {
 		if (event.buttonName === 'ok') {
 			const folder: FolderEntity = {
 				title: folderTitle,
-				icon: Folder.serializeIcon(folderIcon),
+				icon: folderIcon ? Folder.serializeIcon(folderIcon) : '',
 				is_shared: 0,
 				share_id: '',
 			};
@@ -73,7 +73,7 @@ export default function(props: Props) {
 
 			try {
 				// TODO: need to move folder on disk
-				if (!isNew) await LocalFile.renameFolder(folder.id, folder.title);
+				if (!isNew) await LocalFile.renameFolder(folder.id ?? '', folder.title ?? '');
 				const savedFolder = await Folder.save(folder, { userSideValidation: true });
 				onClose();
 
@@ -82,12 +82,12 @@ export default function(props: Props) {
 					id: savedFolder.id,
 				});
 			} catch (error) {
-				bridge().showErrorMessageBox(error.message);
+				bridge().showErrorMessageBox((error as Error).message);
 			}
 
 			return;
 		}
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [onClose, folderTitle, folderIcon, props.folderId, props.parentId]);
 
 	const onFolderTitleChange = useCallback((event: any) => {
@@ -99,7 +99,7 @@ export default function(props: Props) {
 	}, []);
 
 	const onClearClick = useCallback(() => {
-		setFolderIcon(null);
+		setFolderIcon(undefined);
 	}, []);
 
 	const onBrowseClick = useCallback(async () => {
@@ -126,7 +126,7 @@ export default function(props: Props) {
 				};
 			});
 		} catch (error) {
-			await bridge().showErrorMessageBox(error.message);
+			await bridge().showErrorMessageBox((error as Error).message);
 		}
 	}, []);
 
@@ -136,20 +136,23 @@ export default function(props: Props) {
 				<div className="form">
 					<div className="form-input-group">
 						<label>{_('Title')}</label>
-						<StyledInput type="text" ref={titleInputRef} value={folderTitle} onChange={onFolderTitleChange}/>
+						<StyledInput type="text" ref={titleInputRef} value={folderTitle} onChange={onFolderTitleChange} />
 					</div>
 
 					<div className="form-input-group">
 						<label>{_('Icon')}</label>
 						<div className="icon-selector-row">
-							{ folderIcon && <div className="foldericon"><FolderIconBox folderIcon={folderIcon} /></div> }
+							{folderIcon && <div className="foldericon"><FolderIconBox folderIcon={folderIcon} /></div>}
 							<IconSelector
 								title={_('Select emoji...')}
-								icon={folderIcon}
+								icon={folderIcon || null}
 								onChange={onFolderIconChange}
 							/>
-							<Button ml={1} title={_('Select file...')} onClick={onBrowseClick}/>
-							{ folderIcon && <Button ml={1} title={_('Clear')} onClick={onClearClick}/> }
+							{/* ml not exist */}
+							{/* <Button ml={1} title={_('Select file...')} onClick={onBrowseClick}/> */}
+							{/* { folderIcon && <Button ml={1} title={_('Clear')} onClick={onClearClick}/> } */}
+							<Button title={_('Select file...')} onClick={onBrowseClick} />
+							{folderIcon && <Button title={_('Clear')} onClick={onClearClick} />}
 						</div>
 					</div>
 				</div>
@@ -170,7 +173,7 @@ export default function(props: Props) {
 	function renderDialogWrapper() {
 		return (
 			<div className="dialog-root">
-				<DialogTitle title={dialogTitle}/>
+				<DialogTitle title={dialogTitle} />
 				{renderContent()}
 				<DialogButtonRow
 					themeId={props.themeId}
@@ -181,6 +184,6 @@ export default function(props: Props) {
 	}
 
 	return (
-		<Dialog onClose={onClose} className="master-password-dialog" renderContent={renderDialogWrapper}/>
+		<Dialog onClose={onClose} className="master-password-dialog" renderContent={renderDialogWrapper} />
 	);
 }

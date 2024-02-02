@@ -15,8 +15,8 @@ let ipAddress = '';
 let serverAddress = '';
 
 const socketPort = 51876;
-export let socketIOClient: SocketClient = null;
-export let socketIOWorker: SocketClient = null;
+export let socketIOClient: SocketClient | null = null;
+export let socketIOWorker: SocketClient | null = null;
 const clientnames = new Set<string>();
 let serverName: string;
 
@@ -34,7 +34,7 @@ function initSocketIOClient() {
 
 	socketIOClient.on('connect', async () => {
 		// clientId = socketIOClient.id;
-		socketIOClient.emit('registerName', deviceName);
+		socketIOClient!.emit('registerName', deviceName);
 
 		socketIOWorker = socketIOClient;
 		PeerSocket.broadcaster = workerEmit;
@@ -51,17 +51,17 @@ function initSocketIOClient() {
 		const offTime = lastSyncTime === 0 ? quitTime : lastSyncTime;
 		reg.logger().info('Client: device offline and shutdown times', new Date(offlineTime), new Date(quitTime), new Date(offTime));
 
-		socketIOWorker.emit('updateRequest', { offTime: offTime });
+		socketIOWorker?.emit('updateRequest', { offTime: offTime });
 
-		socketIOClient.on('folderDeleteSent', async (_msg) => {
+		socketIOClient?.on('folderDeleteSent', async (_msg) => {
 			// after syncing server folder delete, sync back the same
 			// const folderids = await Folder.foldersDeletedAfter(offTime);
 			// for (const id of folderids) {
 			// 	await Folder.deleteOnPeers(id, workerEmit);
 			// }
-			socketIOWorker.emit('folderDeleteSent', 'Done');
+			socketIOWorker?.emit('folderDeleteSent', 'Done');
 
-			socketIOClient.on('folderMoveSent', async (_msg) => {
+			socketIOClient?.on('folderMoveSent', async (_msg) => {
 				// after syncing server moved folders, sync back the same
 				const [folderids] = await Folder.foldersUpdatedAfter(offTime);
 				for (const id of folderids) {
@@ -69,31 +69,33 @@ function initSocketIOClient() {
 				}
 				// while notify server having moved folders, notify about updated notes
 				const [noteids, notes] = await Note.notesUpdatedAfter(offTime);
-				socketIOWorker.emit('folderMoveSent', { noteids: noteids });
+				socketIOWorker?.emit('folderMoveSent', { noteids: noteids });
 
-				socketIOClient.on('conflictNotes', async (msg) => {
+				socketIOClient?.on('conflictNotes', async (msg) => {
 					reg.logger().info('Client: Received conflictNotes:', msg);
 					const conflistids: string[] = msg['noteids'];
 					if (conflistids.length > 0) {
 						for (const noteId of conflistids) {
 							const note = notes.find((n => n.id === noteId));
-							reg.logger().info('Client: Mark note as conflict:', note.title);
-							await Note.createConflictNote(note, 111);
+							if (note) {
+								reg.logger().info('Client: Mark note as conflict:', note.title);
+								await Note.createConflictNote(note, 111);
+							}
 						}
 					}
-					socketIOWorker.emit('conflictReceived', 'Done');
+					socketIOWorker?.emit('conflictReceived', 'Done');
 
-					socketIOClient.on('updateSent', async (msg: string) => {
+					socketIOClient?.on('updateSent', async (msg: string) => {
 						// after syncing updated notes from server, sync back the same
 						reg.logger().info('Client: Received updatesent:', msg);
 						for (const note of notes) {
-							if (conflistids.includes(note.id)) continue;
+							if (!note.id || conflistids.includes(note.id)) continue;
 							reg.logger().info('Client: late sync note', note.title);
 							await PeersNote.syncToPeers(note);
 						}
-						socketIOWorker.emit('updateSent', 'Done');
+						socketIOWorker?.emit('updateSent', 'Done');
 
-						socketIOClient.on('deleteSent', async (_msg) => {
+						socketIOClient?.on('deleteSent', async (_msg) => {
 							// after syncing deleted notes from server, sync back the same
 							const noteids = await Note.notesDeletedAfter(offTime);
 							await PeersNote.batchDeleteOnPeers(noteids);
@@ -124,7 +126,7 @@ function initSocketIOClient() {
 	// Receive the list of connected clients from the server
 	socketIOClient.on('clientList', (clients: string[]) => {
 		reg.logger().info('Client: Connected clients:', clients);
-		// eslint-disable-next-line github/array-foreach
+
 		clients.forEach((client: string) => {
 			if (client !== deviceName) clientnames.add(client);
 		});
@@ -158,14 +160,14 @@ export function workerEmit(tag: string, data: Record<string, string>) {
 	}
 }
 
-export function workerEmitToPeer(tag: string, data: Record<string, string>, clientName: string = null) {
+export function workerEmitToPeer(tag: string, data: Record<string, string>, clientName: string = '') {
 	if (!clientName) {
 		reg.logger().error('workerEmitToPeer: clientName empty');
 		return;
 	}
 	data = { clientName: clientName, ...data };
 	if (socketIOWorker && socketIOWorker.connected) {
-		socketIOClient.emit('privateMessage', { tag: tag, recipient: clientName, data: data });
+		socketIOClient?.emit('privateMessage', { tag: tag, recipient: clientName, data: data });
 		Setting.setValue('peerSyncTime', new Date().getTime());
 	}
 }
@@ -200,7 +202,7 @@ export async function initUDPServer() {
 	udpCodeOdd = privateUDPHeaderCode.split('').filter((_: any, index: number) => index % 2 !== 0).join('');
 	udpCodeEven = privateUDPHeaderCode.split('').filter((_: any, index: number) => index % 2 === 0).join('');
 
-	ipAddress = await NetworkInfo.getIPAddress();
+	ipAddress = await NetworkInfo.getIPAddress() ?? '';
 	reg.logger().info('Network IP Address:', ipAddress);
 
 	// NetworkInfo.getIPAddress().then((ipAddress: string) => {

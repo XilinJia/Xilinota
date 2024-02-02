@@ -3,8 +3,6 @@ import { _ } from '@xilinota/lib/locale';
 import { copyHtmlToClipboard } from './clipboardUtils';
 import bridge from '../../../services/bridge';
 import { ContextMenuItemType, ContextMenuOptions, ContextMenuItems, resourceInfo, textToDataUri, svgUriToPng, svgDimensions } from './contextMenuUtils';
-const Menu = bridge().Menu;
-const MenuItem = bridge().MenuItem;
 import Resource from '@xilinota/lib/models/Resource';
 import BaseItem from '@xilinota/lib/models/BaseItem';
 import BaseModel, { ModelType } from '@xilinota/lib/BaseModel';
@@ -14,10 +12,12 @@ import { TinyMceEditorEvents } from '../NoteBody/TinyMCE/utils/types';
 import { itemIsReadOnlySync, ItemSlice } from '@xilinota/lib/models/utils/readOnly';
 import Setting from '@xilinota/lib/models/Setting';
 import ItemChange from '@xilinota/lib/models/ItemChange';
-const fs = require('fs-extra');
-const { writeFile } = require('fs-extra');
-const { clipboard } = require('electron');
-const { toSystemSlashes } = require('@xilinota/lib/path-utils');
+import fs, { writeFile } from 'fs-extra';
+import { clipboard } from 'electron';
+import { toSystemSlashes } from '@xilinota/lib/path-utils';
+
+const Menu = bridge().Menu;
+const MenuItem = bridge().MenuItem;
 
 function handleCopyToClipboard(options: ContextMenuOptions) {
 	if (options.textToCopy) {
@@ -33,7 +33,7 @@ async function saveFileData(data: any, filename: string) {
 	await writeFile(newFilePath, data);
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
+
 export async function openItemById(itemId: string, dispatch: Function, hash = '') {
 
 	const item = await BaseItem.loadItemById(itemId);
@@ -53,14 +53,14 @@ export async function openItemById(itemId: string, dispatch: Function, hash = ''
 		}
 
 		try {
-			if (itemIsReadOnlySync(ModelType.Resource, ItemChange.SOURCE_UNSPECIFIED, resource as ItemSlice, Setting.value('sync.userId'), BaseItem.syncShareCache)) {
-				await ResourceEditWatcher.instance().openAsReadOnly(resource.id);
+			if (BaseItem.syncShareCache && itemIsReadOnlySync(ModelType.Resource, ItemChange.SOURCE_UNSPECIFIED, resource as ItemSlice, Setting.value('sync.userId'), BaseItem.syncShareCache)) {
+				await ResourceEditWatcher.instance().openAsReadOnly(resource.id ?? '');
 			} else {
-				await ResourceEditWatcher.instance().openAndWatch(resource.id);
+				await ResourceEditWatcher.instance().openAndWatch(resource.id ?? '');
 			}
 		} catch (error) {
 			console.error(error);
-			bridge().showErrorMessageBox(error.message);
+			bridge().showErrorMessageBox((error as Error).message);
 		}
 	} else if (item.type_ === BaseModel.TYPE_NOTE) {
 		const note = item as NoteEntity;
@@ -76,7 +76,7 @@ export async function openItemById(itemId: string, dispatch: Function, hash = ''
 	}
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
+
 export function menuItems(dispatch: Function): ContextMenuItems {
 	return {
 		open: {
@@ -90,11 +90,13 @@ export function menuItems(dispatch: Function): ContextMenuItems {
 			label: _('Save as...'),
 			onAction: async (options: ContextMenuOptions) => {
 				const { resourcePath, resource } = await resourceInfo(options);
-				const filePath = await bridge().showSaveDialog({
-					defaultPath: resource.filename ? resource.filename : resource.title,
-				});
-				if (!filePath) return;
-				await fs.copy(resourcePath, filePath);
+				if (resourcePath && resource) {
+					const filePath = await bridge().showSaveDialog({
+						defaultPath: resource.filename ? resource.filename : resource.title,
+					});
+					if (!filePath) return;
+					await fs.copy(resourcePath, filePath);
+				}
 			},
 			// We handle images received as text separately as it can be saved in multiple formats
 			isActive: (itemType: ContextMenuItemType, options: ContextMenuOptions) => !options.textToCopy && (itemType === ContextMenuItemType.Image || itemType === ContextMenuItemType.Resource),
@@ -117,9 +119,15 @@ export function menuItems(dispatch: Function): ContextMenuItems {
 					throw new Error('Filename is needed to save as png');
 				}
 				// double dimensions to make sure it's always big enough even on hdpi screens
-				const [width, height] = svgDimensions(document, options.textToCopy).map((x: number) => x * 2 || undefined);
+				const [width, height] = svgDimensions(document, options.textToCopy).map((x) => {
+					if (typeof x === 'number') {
+						return x * 2;
+					} else {
+						return undefined;
+					}
+				});
 				const dataUri = textToDataUri(options.textToCopy, options.mime);
-				const png = await svgUriToPng(document, dataUri, width, height);
+				const png = await svgUriToPng(document, dataUri, width ?? 50, height ?? 50);
 				const filename = options.filename.replace('.svg', '.png');
 				await saveFileData(png, filename);
 			},
@@ -129,7 +137,7 @@ export function menuItems(dispatch: Function): ContextMenuItems {
 			label: _('Reveal file in folder'),
 			onAction: async (options: ContextMenuOptions) => {
 				const { resourcePath } = await resourceInfo(options);
-				bridge().showItemInFolder(resourcePath);
+				if (resourcePath) bridge().showItemInFolder(resourcePath);
 			},
 			isActive: (itemType: ContextMenuItemType, options: ContextMenuOptions) => !options.textToCopy && itemType === ContextMenuItemType.Image || itemType === ContextMenuItemType.Resource,
 		},
@@ -152,7 +160,7 @@ export function menuItems(dispatch: Function): ContextMenuItems {
 			label: _('Copy image'),
 			onAction: async (options: ContextMenuOptions) => {
 				const { resourcePath } = await resourceInfo(options);
-				const image = bridge().createImageFromPath(resourcePath);
+				const image = bridge().createImageFromPath(resourcePath ?? '');
 				clipboard.writeImage(image);
 			},
 			isActive: (itemType: ContextMenuItemType, options: ContextMenuOptions) => !options.textToCopy && itemType === ContextMenuItemType.Image,
@@ -196,14 +204,14 @@ export function menuItems(dispatch: Function): ContextMenuItems {
 		copyLinkUrl: {
 			label: _('Copy Link Address'),
 			onAction: async (options: ContextMenuOptions) => {
-				clipboard.writeText(options.linkToCopy !== null ? options.linkToCopy : options.textToCopy);
+				clipboard.writeText(options.linkToCopy ? options.linkToCopy : options.textToCopy);
 			},
 			isActive: (itemType: ContextMenuItemType, options: ContextMenuOptions) => itemType === ContextMenuItemType.Link || !!options.linkToCopy,
 		},
 	};
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
+
 export default async function contextMenu(options: ContextMenuOptions, dispatch: Function) {
 	const menu = new Menu();
 

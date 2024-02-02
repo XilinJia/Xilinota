@@ -1,4 +1,4 @@
-const React = require('react');
+import React from 'react';
 
 import { ReactElement, useCallback, useMemo, useState } from 'react';
 import { LayoutChangeEvent, ScrollView, View, ViewStyle } from 'react-native';

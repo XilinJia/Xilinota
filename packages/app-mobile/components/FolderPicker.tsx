@@ -1,9 +1,9 @@
-const React = require('react');
+import React from 'react';
 
 import { FunctionComponent } from 'react';
 import { _ } from '@xilinota/lib/locale';
 import Folder, { FolderEntityWithChildren } from '@xilinota/lib/models/Folder';
-const { themeStyle } = require('./global-style.js');
+import { themeStyle } from './global-style';
 import Dropdown, { DropdownListItem, OnValueChangedListener } from './Dropdown';
 import { FolderEntity } from '@xilinota/lib/services/database/types';
 import { PeerSocket } from '@xilinota/lib/models/Peers';
@@ -30,7 +30,7 @@ const FolderPicker: FunctionComponent<FolderPickerProps> = ({
 	darkText,
 	themeId,
 }) => {
-	const theme = themeStyle(themeId);
+	const theme = themeStyle(themeId ? themeId.toString() : '');
 
 	const addFolderChildren = (
 		folders: FolderEntityWithChildren[], pickerItems: DropdownListItem[], indent: number,
@@ -43,10 +43,10 @@ const FolderPicker: FunctionComponent<FolderPickerProps> = ({
 
 		for (let i = 0; i < folders.length; i++) {
 			const f = folders[i];
-			const icon = Folder.unserializeIcon(f.icon);
+			const icon = Folder.unserializeIcon(f.icon??'');
 			const iconString = icon ? `${icon.emoji} ` : '';
-			pickerItems.push({ label: `${'      '.repeat(indent)} ${iconString + Folder.displayTitle(f)}`, value: f.id });
-			pickerItems = addFolderChildren(f.children, pickerItems, indent + 1);
+			pickerItems.push({ label: `${'      '.repeat(indent)} ${iconString + Folder.displayTitle(f)}`, value: f.id??'' });
+			if (f.children) pickerItems = addFolderChildren(f.children, pickerItems, indent + 1);
 		}
 
 		return pickerItems;

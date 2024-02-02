@@ -11,8 +11,8 @@ const testImagePath = `${supportDir}/photo.jpg`;
 const setupFolderNoteResourceReadOnly = async (shareId: string) => {
 	const cleanup = simulateReadOnlyShareEnv(shareId);
 
-	let folder = await Folder.save({ });
-	let note = await Note.save({ parent_id: folder.id });
+	let folder = await Folder.save({});
+	let note = await Note.save({ parent_id: folder.id! });
 	await shim.attachFileToNote(note, testImagePath);
 	let resource = (await Resource.all())[0];
 
@@ -20,7 +20,7 @@ const setupFolderNoteResourceReadOnly = async (shareId: string) => {
 	note = await Note.save({ id: note.id, share_id: shareId });
 	resource = await Resource.save({ id: resource.id, share_id: shareId });
 
-	resource = await Resource.load(resource.id); // reload to get all properties
+	resource = (await Resource.load(resource.id))!; // reload to get all properties
 
 	return { cleanup, folder, note, resource };
 };
@@ -34,7 +34,7 @@ describe('models/Resource', () => {
 
 	it('should have a "done" fetch_status when created locally', (async () => {
 		const folder1 = await Folder.save({ title: 'folder1' });
-		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id });
+		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id! });
 		await shim.attachFileToNote(note1, testImagePath);
 		const resource1 = (await Resource.all())[0];
 		const ls = await Resource.localState(resource1);
@@ -43,7 +43,7 @@ describe('models/Resource', () => {
 
 	it('should have a default local state', (async () => {
 		const folder1 = await Folder.save({ title: 'folder1' });
-		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id });
+		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id! });
 		await shim.attachFileToNote(note1, testImagePath);
 		const resource1 = (await Resource.all())[0];
 		const ls = await Resource.localState(resource1);
@@ -54,7 +54,7 @@ describe('models/Resource', () => {
 
 	it('should save and delete local state', (async () => {
 		const folder1 = await Folder.save({ title: 'folder1' });
-		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id });
+		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id! });
 		await shim.attachFileToNote(note1, testImagePath);
 		const resource1 = (await Resource.all())[0];
 		await Resource.setLocalState(resource1, { fetch_status: Resource.FETCH_STATUS_IDLE });
@@ -70,7 +70,7 @@ describe('models/Resource', () => {
 
 	it('should resize the resource if the image is below the required dimensions', (async () => {
 		const folder1 = await Folder.save({ title: 'folder1' });
-		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id });
+		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id! });
 		const previousMax = Resource.IMAGE_MAX_DIMENSION;
 		Resource.IMAGE_MAX_DIMENSION = 5;
 		await shim.attachFileToNote(note1, testImagePath);
@@ -80,19 +80,19 @@ describe('models/Resource', () => {
 		const originalStat = await shim.fsDriver().stat(testImagePath);
 		const newStat = await shim.fsDriver().stat(Resource.fullPath(resource1));
 
-		expect(newStat.size < originalStat.size).toBe(true);
+		expect(newStat!.size < originalStat!.size).toBe(true);
 	}));
 
 	it('should not resize the resource if the image is below the required dimensions', (async () => {
 		const folder1 = await Folder.save({ title: 'folder1' });
-		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id });
+		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id! });
 		await shim.attachFileToNote(note1, testImagePath);
 		const resource1 = (await Resource.all())[0];
 
 		const originalStat = await shim.fsDriver().stat(testImagePath);
 		const newStat = await shim.fsDriver().stat(Resource.fullPath(resource1));
 
-		expect(originalStat.size).toBe(newStat.size);
+		expect(originalStat!.size).toBe(newStat!.size);
 	}));
 
 	it('should not allow modifying a read-only resource', async () => {

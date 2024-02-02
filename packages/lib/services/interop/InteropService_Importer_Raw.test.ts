@@ -9,7 +9,7 @@ import { ImportOptions } from './types';
 const extractId = (rawContent: string): string => {
 	const lines = rawContent.split('\n');
 	for (const line of lines) {
-		if (line.startsWith('id: ')) return line.substr(4);
+		if (line.startsWith('id: ')) return line.substring(4);
 	}
 	throw new Error(`Could not extract ID from: ${rawContent}`);
 };
@@ -142,10 +142,10 @@ describe('InteropService_Importer_Raw', () => {
 
 		await InteropService.instance().import(importOptions);
 
-		const folder1: FolderEntity = await Folder.loadByTitle('import test');
-		const folder2: FolderEntity = await Folder.loadByTitle('sub-notebook');
-		const note1: NoteEntity = await Note.loadByTitle('Note 1');
-		const note2: NoteEntity = await Note.loadByTitle('Note 2');
+		const folder1: FolderEntity = (await Folder.loadByTitle('import test'))!;
+		const folder2: FolderEntity = (await Folder.loadByTitle('sub-notebook'))!;
+		const note1: NoteEntity = (await Note.loadByTitle('Note 1'))!;
+		const note2: NoteEntity = (await Note.loadByTitle('Note 2'))!;
 
 		expect(folder1).toBeTruthy();
 		expect(folder2).toBeTruthy();
@@ -176,7 +176,7 @@ describe('InteropService_Importer_Raw', () => {
 		await InteropService.instance().import(importOptions);
 		await InteropService.instance().import(importOptions);
 
-		const tree: any = await Folder.allAsTree(null, { includeNotes: true });
+		const tree: any = await Folder.allAsTree(undefined, { includeNotes: true });
 
 		expect(tree[0].title).toBe('import test');
 		expect(tree[0].notes[0].title).toBe('Note 1');

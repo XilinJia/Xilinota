@@ -19,13 +19,13 @@ import InteropService_Exporter_Md_frontmatter from './InteropService_Exporter_Md
 import InteropService_Importer_Base from './InteropService_Importer_Base';
 import InteropService_Exporter_Base from './InteropService_Exporter_Base';
 import Module, { dynamicRequireModuleFactory, makeExportModule, makeImportModule } from './Module';
-const { sprintf } = require('sprintf-js');
-const { fileExtension } = require('../../path-utils');
-const EventEmitter = require('events');
+import { sprintf } from 'sprintf-js';
+import { fileExtension } from '../../path-utils';
+import EventEmitter from 'events';
 
 export default class InteropService {
 
-	private defaultModules_: Module[];
+	private defaultModules_: Module[] | undefined;
 	private userModules_: Module[] = [];
 	private eventEmitter_: any = null;
 	private static instance_: InteropService;
@@ -39,17 +39,15 @@ export default class InteropService {
 		this.eventEmitter_ = new EventEmitter();
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public on(eventName: string, callback: Function) {
 		return this.eventEmitter_.on(eventName, callback);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public off(eventName: string, callback: Function) {
 		return this.eventEmitter_.removeListener(eventName, callback);
 	}
 
-	public modules() {
+	public modules(): Module[] {
 		if (!this.defaultModules_) {
 			const importModules = [
 				makeImportModule({
@@ -166,7 +164,7 @@ export default class InteropService {
 		return this.defaultModules_.concat(this.userModules_);
 	}
 
-	public registerModule(module: Module) {
+	public registerModule(module: Module): void {
 		this.userModules_.push(module);
 		this.eventEmitter_.emit('modulesChanged');
 	}
@@ -176,7 +174,7 @@ export default class InteropService {
 	// or exporters, such as ENEX. In this case, the one marked as "isDefault"
 	// is returned. This is useful to auto-detect the module based on the format.
 	// For more precise matching, newModuleFromPath_ should be used.
-	private findModuleByFormat_(type: ModuleType, format: string, target: FileSystemItem = null, outputFormat: ImportModuleOutputFormat = null) {
+	private findModuleByFormat_(type: ModuleType, format: string, target: FileSystemItem | null = null, outputFormat: ImportModuleOutputFormat | null = null): Module | null {
 		const modules = this.modules();
 		const matches = [];
 
@@ -214,7 +212,7 @@ export default class InteropService {
 	// to do this mapping. This isn't a priority right now (per the convo in:
 	// https://github.com/XilinJia/Xilinota/pull/1795#discussion_r322379121) but
 	// we can do it if it ever becomes necessary.
-	private newModuleByFormat_(type: ModuleType, format: string, outputFormat: ImportModuleOutputFormat = ImportModuleOutputFormat.Markdown) {
+	private newModuleByFormat_(type: ModuleType, format: string, outputFormat: ImportModuleOutputFormat = ImportModuleOutputFormat.Markdown): InteropService_Exporter_Base | InteropService_Importer_Base {
 		const moduleMetadata = this.findModuleByFormat_(type, format, null, outputFormat);
 		if (!moduleMetadata) throw new Error(_('Cannot load "%s" module for format "%s" and output "%s"', type, format, outputFormat));
 
@@ -227,14 +225,14 @@ export default class InteropService {
 	// explicit with which importer we want to use.
 	//
 	// https://github.com/XilinJia/Xilinota/pull/1795#pullrequestreview-281574417
-	private newModuleFromPath_(type: ModuleType, options: ExportOptions&ImportOptions) {
-		const moduleMetadata = this.findModuleByFormat_(type, options.format, options.target);
+	private newModuleFromPath_(type: ModuleType, options: ExportOptions & ImportOptions): InteropService_Exporter_Base | InteropService_Importer_Base {
+		const moduleMetadata = this.findModuleByFormat_(type, options.format!, options.target);
 		if (!moduleMetadata) throw new Error(_('Cannot load "%s" module for format "%s" and target "%s"', type, options.format, options.target));
 
 		return moduleMetadata.factory(options);
 	}
 
-	private moduleByFileExtension_(type: ModuleType, ext: string) {
+	private moduleByFileExtension_(type: ModuleType, ext: string): Module | null {
 		ext = ext.toLowerCase();
 
 		const modules = this.modules();
@@ -249,17 +247,17 @@ export default class InteropService {
 	}
 
 	public async import(options: ImportOptions): Promise<ImportExportResult> {
-		if (!(await shim.fsDriver().exists(options.path))) throw new Error(_('Cannot find "%s".', options.path));
+		if (!options.path || !(await shim.fsDriver().exists(options.path))) throw new Error(_('Cannot find "%s".', options.path));
 
 		options = {
 			format: 'auto',
-			destinationFolderId: null,
+			destinationFolderId: '',
 			destinationFolder: null,
 			...options,
 		};
 
 		if (options.format === 'auto') {
-			const module = this.moduleByFileExtension_(ModuleType.Importer, fileExtension(options.path));
+			const module = this.moduleByFileExtension_(ModuleType.Importer, fileExtension(options.path!));
 			if (!module) throw new Error(_('Please specify import format for %s', options.path));
 			options.format = module.format;
 		}
@@ -272,13 +270,13 @@ export default class InteropService {
 
 		let result: ImportExportResult = { warnings: [] };
 
-		const importer = this.newModuleByFormat_(ModuleType.Importer, options.format, options.outputFormat);
+		const importer = this.newModuleByFormat_(ModuleType.Importer, options.format!, options.outputFormat);
 
 		if (!(importer instanceof InteropService_Importer_Base)) {
 			throw new Error('Resolved importer is not an importer');
 		}
 
-		await importer.init(options.path, options);
+		await importer.init(options.path!, options);
 		result = await importer.exec(result);
 
 		return result;
@@ -311,11 +309,11 @@ export default class InteropService {
 		const result: ImportExportResult = { warnings: [] };
 		const itemsToExport: any[] = [];
 
-		options.onProgress?.(ExportProgressState.QueuingItems, null);
+		options.onProgress?.(ExportProgressState.QueuingItems, 0);
 		let totalItemsToProcess = 0;
 
 		const queueExportItem = (itemType: number, itemOrId: any) => {
-			totalItemsToProcess ++;
+			totalItemsToProcess++;
 			itemsToExport.push({
 				type: itemType,
 				itemOrId: itemOrId,
@@ -349,11 +347,11 @@ export default class InteropService {
 			for (let noteIndex = 0; noteIndex < noteIds.length; noteIndex++) {
 				const noteId = noteIds[noteIndex];
 				if (sourceNoteIds.length && sourceNoteIds.indexOf(noteId) < 0) continue;
-				const note = await Note.load(noteId);
+				const note = (await Note.load(noteId))!;
 				await queueExportItem(BaseModel.TYPE_NOTE, note);
 				exportedNoteIds.push(noteId);
 
-				const rids = await Note.linkedResourceIds(note.body);
+				const rids = await Note.linkedResourceIds(note.body!);
 				resourceIds = resourceIds.concat(rids);
 			}
 		}
@@ -384,7 +382,7 @@ export default class InteropService {
 			throw new Error('Resolved exporter is not an exporter');
 		}
 
-		await exporter.init(exportPath, options);
+		await exporter.init(exportPath!, options);
 
 		const typeOrder = [BaseModel.TYPE_FOLDER, BaseModel.TYPE_RESOURCE, BaseModel.TYPE_NOTE, BaseModel.TYPE_TAG, BaseModel.TYPE_NOTE_TAG];
 		const context: any = {
@@ -439,7 +437,7 @@ export default class InteropService {
 					await exporter.processItem(itemType, item);
 				} catch (error) {
 					console.error(error);
-					result.warnings.push(error.message);
+					result.warnings.push((error as Error).message);
 				}
 
 				itemsProcessed++;
@@ -447,7 +445,7 @@ export default class InteropService {
 			}
 		}
 
-		options.onProgress?.(ExportProgressState.Closing, null);
+		options.onProgress?.(ExportProgressState.Closing, 0);
 		await exporter.close();
 
 		return result;

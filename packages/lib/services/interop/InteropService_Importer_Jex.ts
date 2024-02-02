@@ -2,7 +2,7 @@ import { ImportExportResult } from './types';
 
 import InteropService_Importer_Base from './InteropService_Importer_Base';
 import InteropService_Importer_Raw from './InteropService_Importer_Raw';
-const { filename } = require('../../path-utils');
+import { filename } from '../../path-utils';
 import shim from '../../shim';
 
 export default class InteropService_Importer_Jex extends InteropService_Importer_Base {
@@ -17,7 +17,7 @@ export default class InteropService_Importer_Jex extends InteropService_Importer
 				cwd: tempDir,
 			});
 		} catch (error) {
-			error.message = `Could not decompress "${this.sourcePath_}". The file may be corrupted. Error was: ${error.message}`;
+			if (error instanceof Error) error.message = `Could not decompress "${this.sourcePath_}". The file may be corrupted. Error was: ${error.message}`;
 			throw error;
 		}
 

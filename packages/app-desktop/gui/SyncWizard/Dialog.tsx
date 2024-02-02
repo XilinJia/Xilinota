@@ -16,7 +16,6 @@ import StyledLink from '../style/StyledLink';
 
 interface Props {
 	themeId: number;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	dispatch: Function;
 }
 
@@ -144,14 +143,13 @@ const logosImageNames: Record<string, string> = {
 	'onedrive': 'SyncTarget_OneDrive.svg',
 };
 
-export default function(props: Props) {
+export default function(props: Props): React.JSX.Element {
 	const [showJoplinCloudForm, setShowJoplinCloudForm] = useState(false);
 	const joplinCloudDescriptionRef = useRef(null);
 	const [joplinCloudEmail, setJoplinCloudEmail] = useState('');
 	const [joplinCloudPassword, setJoplinCloudPassword] = useState('');
 	const [joplinCloudLoginInProgress, setJoplinCloudLoginInProgress] = useState(false);
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	function closeDialog(dispatch: Function) {
 		dispatch({
 			type: 'DIALOG_CLOSE',
@@ -236,10 +234,12 @@ export default function(props: Props) {
 			<JoplinCloudLoginForm>
 				<div style={{ fontSize: '16px' }}>{_('Login below.')} <CreateAccountLink href="#" onClick={onJoplinCloudCreateAccountClick}>{_('Or create an account.')}</CreateAccountLink></div>
 				<FormLabel>{_('Email')}</FormLabel>
-				<StyledInput type="email" onChange={onJoplinCloudEmailChange}/>
+				<StyledInput type="email" onChange={onJoplinCloudEmailChange} />
 				<FormLabel>{_('Password')}</FormLabel>
-				<StyledInput type="password" onChange={onJoplinCloudPasswordChange}/>
-				<SelectButton mt="1.3em" disabled={joplinCloudLoginInProgress} level={ButtonLevel.Primary} title={_('Login')} onClick={onJoplinCloudLoginClick}/>
+				<StyledInput type="password" onChange={onJoplinCloudPasswordChange} />
+				{/* mt not exist */}
+				{/* <SelectButton mt="1.3em" disabled={joplinCloudLoginInProgress} level={ButtonLevel.Primary} title={_('Login')} onClick={onJoplinCloudLoginClick}/> */}
+				<SelectButton disabled={joplinCloudLoginInProgress} level={ButtonLevel.Primary} title={_('Login')} onClick={onJoplinCloudLoginClick} />
 			</JoplinCloudLoginForm>
 		);
 	}
@@ -275,11 +275,11 @@ export default function(props: Props) {
 
 	function renderSyncTarget(info: SyncTargetInfo) {
 		const key = `syncTarget_${info.name}`;
-		const height = info.name !== 'joplinCloud' ? descriptionHeight : null;
+		const height = info.name !== 'joplinCloud' ? descriptionHeight : 50;
 
 		const logoImageName = logosImageNames[info.name];
 		const logoImageSrc = logoImageName ? `${bridge().buildDir()}/images/${logoImageName}` : '';
-		const logo = logoImageSrc ? <SyncTargetLogo src={logoImageSrc}/> : null;
+		const logo = logoImageSrc ? <SyncTargetLogo src={logoImageSrc} /> : null;
 		const descriptionComp = <SyncTargetDescription height={height} ref={info.name === 'joplinCloud' ? joplinCloudDescriptionRef : null}>{info.description}</SyncTargetDescription>;
 		const featuresComp = showJoplinCloudForm && info.name === 'joplinCloud' ? null : renderFeatures(info.name);
 
@@ -329,7 +329,7 @@ export default function(props: Props) {
 	function renderDialogWrapper() {
 		return (
 			<StyledRoot>
-				<DialogTitle title={_('Xilinota can synchronise your notes using various providers. Select one from the list below.')} justifyContent="center"/>
+				<DialogTitle title={_('Xilinota can synchronise your notes using various providers. Select one from the list below.')} justifyContent="center" />
 				{renderContent()}
 				<DialogButtonRow
 					themeId={props.themeId}
@@ -342,6 +342,6 @@ export default function(props: Props) {
 	}
 
 	return (
-		<Dialog renderContent={renderDialogWrapper}/>
+		<Dialog renderContent={renderDialogWrapper} />
 	);
 }

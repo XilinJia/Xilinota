@@ -1,8 +1,7 @@
 import { Link } from '../MdToHtml';
 import { toForwardSlashes } from '../pathUtils';
 import { LinkIndexes } from './rules/link_close';
-const Entities = require('html-entities').AllHtmlEntities;
-const htmlentities = new Entities().encode;
+import { encode } from 'html-entities';
 
 export interface Options {
 	audioPlayerEnabled: boolean;
@@ -19,13 +18,13 @@ function resourceUrl(resourceFullPath: string): string {
 	return `file://${toForwardSlashes(resourceFullPath)}`;
 }
 
-export default function(link: Link, options: Options, linkIndexes: LinkIndexes) {
+export default function(link: Link, options: Options, linkIndexes: LinkIndexes): string {
 	const resource = link.resource;
 
 	if (!link.resourceReady || !resource || !resource.mime) return '';
 
-	const escapedResourcePath = htmlentities(resourceUrl(link.resourceFullPath));
-	const escapedMime = htmlentities(resource.mime);
+	const escapedResourcePath = encode(resourceUrl(link.resourceFullPath));
+	const escapedMime = encode(resource.mime);
 
 	if (options.videoPlayerEnabled && resource.mime.indexOf('video/') === 0) {
 		return `

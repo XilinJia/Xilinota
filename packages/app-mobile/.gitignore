@@ -73,3 +73,6 @@ components/NoteEditor/**/*.bundle.js.LICENSE.txt
 
 utils/fs-driver-android.js
 android/app/build-*
+
+# testing
+/coverage

@@ -325,9 +325,9 @@ describe('models/Setting', () => {
 
 		// Also check that the special loadOne() function works as expected
 
-		expect((await Setting.loadOne('locale')).value).toBe('fr_FR');
-		expect((await Setting.loadOne('theme')).value).toBe(Setting.THEME_DARK);
-		expect((await Setting.loadOne('sync.target')).value).toBe(undefined);
+		expect((await Setting.loadOne('locale'))!.value).toBe('fr_FR');
+		expect((await Setting.loadOne('theme'))!.value).toBe(Setting.THEME_DARK);
+		expect((await Setting.loadOne('sync.target'))!.value).toBe(undefined);
 	});
 
 	it('should save sub-profile settings', async () => {

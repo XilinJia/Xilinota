@@ -49,7 +49,7 @@ describe('JoplinWorkspace', () => {
 
 		const folder = (await Folder.all())[0];
 
-		const result: any = JSON.parse(folder.title);
+		const result: any = JSON.parse(folder.title!);
 
 		expect(result.id).toBe(note.id);
 		expect(result.event).toBe(ItemChange.TYPE_UPDATE);
@@ -75,7 +75,7 @@ describe('JoplinWorkspace', () => {
 		const plugin = await service.loadPluginFromJsBundle('', pluginScript);
 		await service.runPlugin(plugin);
 
-		const modFolder = await Folder.load(folder.id);
+		const modFolder = (await Folder.load(folder.id!))!;
 		expect(modFolder.title).toBe('changedtitle');
 	});
 

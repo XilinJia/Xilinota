@@ -1,7 +1,8 @@
+import chalk from 'chalk';
+import stripAnsi from 'strip-ansi';
+
 const BaseWidget = require('tkwidgets/BaseWidget.js');
-const chalk = require('chalk');
 const termutils = require('tkwidgets/framework/termutils.js');
-const stripAnsi = require('strip-ansi');
 const { handleAutocompletion } = require('../autocompletion.js');
 
 export default class StatusBarWidget extends BaseWidget {
@@ -27,9 +28,9 @@ export default class StatusBarWidget extends BaseWidget {
 		this.invalidate();
 	}
 
-	public async prompt(initialText = '', promptString: any = null, options: any = null) {
+	public async prompt(initialText = '', promptString: string = '', options: any = null) {
 		if (this.promptState_) throw new Error('Another prompt already active');
-		if (promptString === null) promptString = ':';
+		if (promptString === '') promptString = ':';
 		if (options === null) options = {};
 
 		this.root.globalDisableKeyboard(this);
@@ -153,7 +154,7 @@ export default class StatusBarWidget extends BaseWidget {
 			});
 		} else {
 			for (let i = 0; i < this.items_.length; i++) {
-				const s = this.items_[i].substr(0, this.innerWidth - 1);
+				const s = this.items_[i].substring(0, this.innerWidth - 1);
 				this.term.write(textStyle(s));
 			}
 		}

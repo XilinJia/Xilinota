@@ -57,3 +57,23 @@ I have been using the apps on Linux and Android.  I don't have Mac or Windows ma
 This project is re-branded on 11/14/2023.  Due to mass renaming (as Joplin is a trademarked name) in the re-branding, some links might become invalid.  Those will be gradually repaired.
 
 As this is a fork from Joplin with substantial new development, it's imaginable that the organization of Joplin does not provide any assistance on issues related to this project.
+
+## Change logs
+
+### Version 2.15.0
+
+This is a major updates based on massive technical enhancements.
+* Large and broad dependencies updates
+* Code quality enhancements
+* Converted many JavaScript codes to TypeScript
+* Converted most CJS syntax to ESM
+* Replaced many usage of 'any'
+* Clarified many signatures of functions and interfaces
+* Ensured strict type and null safety checking
+* Fixed a major problems in editor and local files sync related to Android 11 and newer
+
+### Prior versions:
+[Desktop](readme/about/changelog/desktop.md)
+
+[Android](readme/about/changelog/android.md)
+

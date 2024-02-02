@@ -1,4 +1,4 @@
-import produce from 'immer';
+import { produce } from 'immer';
 import Setting from '@xilinota/lib/models/Setting';
 import { defaultState, State } from '@xilinota/lib/reducer';
 import iterateItems from './gui/ResizableLayout/utils/iterateItems';
@@ -178,7 +178,7 @@ export default function(state: AppState, action: any) {
 					logger.warn('MAIN_LAYOUT_SET_ITEM_PROP: Trying to set an item prop on the layout, but layout is empty: ', JSON.stringify(action));
 				} else {
 					let newLayout = produce(state.mainLayout, (draftLayout: LayoutItem) => {
-						iterateItems(draftLayout, (_itemIndex: number, item: LayoutItem, _parent: LayoutItem) => {
+						iterateItems(draftLayout, (_itemIndex: number, item: LayoutItem, _parent: LayoutItem|null) => {
 							if (!item) {
 								logger.warn('MAIN_LAYOUT_SET_ITEM_PROP: Found an empty item in layout: ', JSON.stringify(state.mainLayout));
 							} else {
@@ -277,7 +277,7 @@ export default function(state: AppState, action: any) {
 			// A field can only clear its own state
 			if (action.field === state.focusedField) {
 				newState = { ...state };
-				newState.focusedField = null;
+				newState.focusedField = '';
 			}
 			break;
 
@@ -333,7 +333,7 @@ export default function(state: AppState, action: any) {
 		}
 
 	} catch (error) {
-		error.message = `In reducer: ${error.message} Action: ${JSON.stringify(action)}`;
+		if (error instanceof Error) error.message = `In reducer: ${error.message} Action: ${JSON.stringify(action)}`;
 		throw error;
 	}
 

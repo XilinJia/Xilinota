@@ -215,7 +215,7 @@ describe('services_PluginService', () => {
 		].join('\n'));
 
 		const asset = result.pluginAssets.find(a => a.name === 'justtesting/markdownItTestPlugin.css');
-		const assetContent: string = await shim.fsDriver().readFile(asset.path, 'utf8');
+		const assetContent: string = asset ? await shim.fsDriver().readFile(asset.path, 'utf8') : '';
 
 		expect(assetContent.includes('.just-testing')).toBe(true);
 		expect(assetContent.includes('background-color: rgb(202, 255, 255)')).toBe(true);
@@ -301,7 +301,7 @@ describe('services_PluginService', () => {
 		expect(await fs.pathExists(expectedPath)).toBe(true);
 
 		const folders = await Folder.all();
-		expect(JSON.parse(folders[0].title)).toBe(expectedPath);
+		expect(JSON.parse(folders[0].title??'')).toBe(expectedPath);
 	}));
 
 });

@@ -48,10 +48,10 @@ export default class ToolbarButtonUtils {
 
 		const command = this.service.commandByName(commandName, { runtimeMustBeRegistered: true });
 
-		const output = {
+		const output: ToolbarButtonInfo = {
 			name: commandName,
 			tooltip: this.service.label(commandName),
-			iconName: command.declaration.iconName,
+			iconName: command ? command.declaration.iconName??'' : '',
 			enabled: newEnabled,
 			onClick: async () => {
 				void this.service.execute(commandName);

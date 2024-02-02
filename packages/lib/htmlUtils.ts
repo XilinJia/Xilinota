@@ -1,7 +1,6 @@
-const urlUtils = require('./urlUtils.js');
-const Entities = require('html-entities').AllHtmlEntities;
-const htmlentities = new Entities().encode;
-const { escapeHtml } = require('./string-utils.js');
+import urlUtils from './urlUtils';
+import { encode } from 'html-entities';
+import { escapeHtml } from './string-utils';
 
 // [\s\S] instead of . for multiline matching
 // https://stackoverflow.com/a/16119722/561309
@@ -35,19 +34,19 @@ const selfClosingElements = [
 
 class HtmlUtils {
 
-	public headAndBodyHtml(doc: any) {
-		const output = [];
+	public headAndBodyHtml(doc: { head: { innerHTML: string; }; body: { innerHTML: string; }; }): string {
+		const output: string[] = [];
 		if (doc.head) output.push(doc.head.innerHTML);
 		if (doc.body) output.push(doc.body.innerHTML);
 		return output.join('\n');
 	}
 
-	public isSelfClosingTag(tagName: string) {
+	public isSelfClosingTag(tagName: string): boolean {
 		return selfClosingElements.includes(tagName.toLowerCase());
 	}
 
 	// Returns the **encoded** URLs, so to be useful they should be decoded again before use.
-	private extractUrls(regex: RegExp, html: string) {
+	private extractUrls(regex: RegExp, html: string): string[] {
 		if (!html) return [];
 
 		const output = [];
@@ -60,33 +59,32 @@ class HtmlUtils {
 	}
 
 	// Returns the **encoded** URLs, so to be useful they should be decoded again before use.
-	public extractImageUrls(html: string) {
+	public extractImageUrls(html: string): string[] {
 		return this.extractUrls(imageRegex, html);
 	}
 
 	// Returns the **encoded** URLs, so to be useful they should be decoded again before use.
-	public extractPdfUrls(html: string) {
+	public extractPdfUrls(html: string): string[] {
 		return [...this.extractUrls(embedRegex, html), ...this.extractUrls(objectRegex, html)].filter(url => pdfUrlRegex.test(url));
 	}
 
 	// Returns the **encoded** URLs, so to be useful they should be decoded again before use.
-	public extractAnchorUrls(html: string) {
+	public extractAnchorUrls(html: string): string[] {
 		return this.extractUrls(anchorRegex, html);
 	}
 
 	// Returns the **encoded** URLs, so to be useful they should be decoded again before use.
-	public extractFileUrls(html: string) {
+	public extractFileUrls(html: string): string[] {
 		return this.extractImageUrls(html).concat(this.extractAnchorUrls(html));
 	}
 
-	public replaceResourceUrl(html: string, urlToReplace: string, id: string) {
+	public replaceResourceUrl(html: string, urlToReplace: string, id: string): string {
 		const htmlLinkRegex = `(?<=(?:src|href)=["'])${urlToReplace}(?=["'])`;
 		const htmlReg = new RegExp(htmlLinkRegex, 'g');
 		return html.replace(htmlReg, `:/${id}`);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	public replaceImageUrls(html: string, callback: Function) {
+	public replaceImageUrls(html: string, callback: Function): string {
 		return this.processImageTags(html, (data: any) => {
 			const newSrc = callback(data.src);
 			return {
@@ -96,8 +94,7 @@ class HtmlUtils {
 		});
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	public replaceEmbedUrls(html: string, callback: Function) {
+	public replaceEmbedUrls(html: string, callback: Function): string {
 		if (!html) return '';
 		// We are adding the link as <a> since xilinota disabled <embed>, <object> tags due to security reasons.
 		// See: CVE-2020-15930
@@ -112,8 +109,7 @@ class HtmlUtils {
 		return html;
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	public replaceMediaUrls(html: string, callback: Function) {
+	public replaceMediaUrls(html: string, callback: Function): string {
 		html = this.replaceImageUrls(html, callback);
 		html = this.replaceEmbedUrls(html, callback);
 		return html;
@@ -124,8 +120,7 @@ class HtmlUtils {
 	// file path is going to be used, it will need to be unescaped first. The
 	// transformed SRC, must also be escaped before being sent back to this
 	// function.
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	public processImageTags(html: string, callback: Function) {
+	public processImageTags(html: string, callback: Function): string {
 		if (!html) return '';
 
 		return html.replace(imageRegex, (_v: string, before: string, src: string, after: string) => {
@@ -150,7 +145,7 @@ class HtmlUtils {
 		});
 	}
 
-	public prependBaseUrl(html: string, baseUrl: string) {
+	public prependBaseUrl(html: string, baseUrl: string): string {
 		if (!html) return '';
 
 		return html.replace(anchorRegex, (_v: string, before: string, href: string, after: string) => {
@@ -159,12 +154,12 @@ class HtmlUtils {
 		});
 	}
 
-	public attributesHtml(attr: any) {
-		const output = [];
+	public attributesHtml(attr: any): string {
+		const output: string[] = [];
 
 		for (const n in attr) {
 			if (!attr.hasOwnProperty(n)) continue;
-			output.push(`${n}="${htmlentities(attr[n])}"`);
+			output.push(`${n}="${encode(attr[n])}"`);
 		}
 
 		return output.join(' ');

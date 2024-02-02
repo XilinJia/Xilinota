@@ -2,8 +2,8 @@ import MdToHtml from './MdToHtml';
 import HtmlToHtml from './HtmlToHtml';
 import htmlUtils from './htmlUtils';
 import { Options as NoteStyleOptions } from './noteStyle';
-import { AllHtmlEntities } from 'html-entities';
-const MarkdownIt = require('markdown-it');
+import { encode } from 'html-entities';
+import markdownit from 'markdown-it';
 
 export enum MarkupLanguage {
 	Markdown = 1,
@@ -11,6 +11,7 @@ export enum MarkupLanguage {
 	Any = 3,
 }
 
+type RendererRecord = Record<MarkupLanguage, MdToHtml | HtmlToHtml>;
 export interface RenderResultPluginAsset {
 	name: string;
 	mime: string;
@@ -31,7 +32,7 @@ export interface RenderResult {
 }
 
 export interface OptionsResourceModel {
-	isResourceUrl: (url: string)=> boolean;
+	isResourceUrl: (url: string) => boolean;
 }
 
 export interface Options {
@@ -50,11 +51,11 @@ export default class MarkupToHtml {
 	public static MARKUP_LANGUAGE_MARKDOWN: number = MarkupLanguage.Markdown;
 	public static MARKUP_LANGUAGE_HTML: number = MarkupLanguage.Html;
 
-	private renderers_: any = {};
+	private renderers_: Partial<RendererRecord> = {};
 	private options_: Options;
 	private rawMarkdownIt_: any;
 
-	public constructor(options: Options = null) {
+	public constructor(options: Options | null = null) {
 		this.options_ = {
 			ResourceModel: {
 				isResourceUrl: () => false,
@@ -92,7 +93,7 @@ export default class MarkupToHtml {
 			if (!this.rawMarkdownIt_) {
 				// We enable HTML because we don't want it to be escaped, so
 				// that it can be stripped off in the stripHtml call below.
-				this.rawMarkdownIt_ = new MarkdownIt({ html: true });
+				this.rawMarkdownIt_ = new markdownit({ html: true });
 			}
 			output = this.rawMarkdownIt_.render(output);
 		}
@@ -109,22 +110,23 @@ export default class MarkupToHtml {
 
 	public clearCache(markupLanguage: MarkupLanguage) {
 		const r = this.renderer(markupLanguage);
-		if (r.clearCache) r.clearCache();
+		if (r && r instanceof MdToHtml) r.clearCache();
 	}
 
 	public async render(markupLanguage: MarkupLanguage, markup: string, theme: any, options: any): Promise<RenderResult> {
-		if (this.options_.isSafeMode) {
-			const htmlentities = new AllHtmlEntities();
+		const renderer_ = this.renderer(markupLanguage)
+		if (!renderer_ || this.options_.isSafeMode) {
+			// const htmlentities = new AllHtmlEntities();
 			return {
-				html: `<pre>${htmlentities.encode(markup)}</pre>`,
+				html: `<pre>${encode(markup)}</pre>`,
 				cssStrings: [],
 				pluginAssets: [],
 			};
 		}
-		return this.renderer(markupLanguage).render(markup, theme, options);
+		return renderer_.render(markup, theme, options);
 	}
 
-	public async allAssets(markupLanguage: MarkupLanguage, theme: any, noteStyleOptions: NoteStyleOptions = null) {
-		return this.renderer(markupLanguage).allAssets(theme, noteStyleOptions);
+	public async allAssets(markupLanguage: MarkupLanguage, theme: any, noteStyleOptions: NoteStyleOptions = {}) {
+		return this.renderer(markupLanguage)?.allAssets(theme, noteStyleOptions);
 	}
 }

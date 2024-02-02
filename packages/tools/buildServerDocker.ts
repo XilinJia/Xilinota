@@ -1,5 +1,5 @@
 import { rootDir } from './tool-utils';
-import * as moment from 'moment';
+var moment = require('moment');
 import { execCommand } from '@xilinota/utils';
 
 interface Argv {
@@ -12,7 +12,7 @@ interface Argv {
 export function getVersionFromTag(tagName: string, isPreRelease: boolean): string {
 	const s = tagName.split('-');
 	const suffix = isPreRelease ? '-beta' : '';
-	return s[1].substr(1) + suffix;
+	return s[1].substring(1) + suffix;
 }
 
 export function getIsPreRelease(_tagName: string): boolean {
@@ -72,7 +72,7 @@ async function main() {
 }
 
 if (require.main === module) {
-	// eslint-disable-next-line promise/prefer-await-to-then
+
 	main().catch((error) => {
 		console.error('Fatal error');
 		console.error(error);

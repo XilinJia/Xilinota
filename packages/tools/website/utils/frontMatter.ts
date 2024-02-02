@@ -1,6 +1,6 @@
 import * as yaml from 'js-yaml';
 
-const moment = require('moment');
+import moment from 'moment';
 
 export interface FrontMatter {
 	created?: Date;
@@ -59,7 +59,7 @@ export const stripOffFrontMatter = (md: string): MarkdownAndFrontMatter => {
 
 	if (state !== 'doc') throw new Error('Front matter block was not closed with "---"');
 
-	const header: Record<string, any> = yaml.load(headerLines.join('\n'), { schema: yaml.FAILSAFE_SCHEMA });
+	const header: Record<string, any> = yaml.load(headerLines.join('\n'), { schema: yaml.FAILSAFE_SCHEMA }) as Record<string, any>;
 
 	if (header.created) header.created = moment(header.created).toDate();
 	if (header.updated) header.updated = moment(header.updated).toDate();

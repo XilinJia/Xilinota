@@ -9,8 +9,8 @@ import filterParser, { Term } from './filterParser';
 import queryBuilder from './queryBuilder';
 import { ItemChangeEntity, NoteEntity } from '../database/types';
 import XilinotaDatabase from '../../XilinotaDatabase';
-const { sprintf } = require('sprintf-js');
-const { pregQuote, scriptType, removeDiacritics } = require('../../string-utils.js');
+import { sprintf } from 'sprintf-js';
+import { pregQuote, scriptType, removeDiacritics } from '../../string-utils';
 
 enum SearchType {
 	Auto = 'auto',
@@ -55,17 +55,16 @@ export interface Terms {
 
 export default class SearchEngine {
 
-	public static instance_: SearchEngine = null;
+	public static instance_: SearchEngine | null = null;
 	public static relevantFields = 'id, title, body, user_created_time, user_updated_time, is_todo, todo_completed, todo_due, parent_id, latitude, longitude, altitude, source_url';
 	public static SEARCH_TYPE_AUTO = SearchType.Auto;
 	public static SEARCH_TYPE_BASIC = SearchType.Basic;
 	public static SEARCH_TYPE_NONLATIN_SCRIPT = SearchType.Nonlatin;
 	public static SEARCH_TYPE_FTS = SearchType.Fts;
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	public dispatch: Function = (_o: any) => {};
+	public dispatch: Function = (_o: any) => { };
 	private logger_ = new Logger();
-	private db_: XilinotaDatabase = null;
+	private db_: XilinotaDatabase | null = null;
 	private isIndexing_ = false;
 	private syncCalls_: any[] = [];
 	private scheduleSyncTablesIID_: any;
@@ -105,13 +104,15 @@ export default class SearchEngine {
 	}
 
 	private async rebuildIndex_() {
-		const notes = await this.db().selectAll('SELECT id FROM notes WHERE is_conflict = 0 AND encryption_applied = 0');
+		const db_ = this.db();
+		if (!db_) return;
+		const notes = await db_.selectAll('SELECT id FROM notes WHERE is_conflict = 0 AND encryption_applied = 0');
 		const noteIds = notes.map(n => n.id);
 
 		const lastChangeId = await ItemChange.lastChangeId();
 
 		// First delete content of note_normalized, in case the previous initial indexing failed
-		await this.db().exec('DELETE FROM notes_normalized');
+		await db_.exec('DELETE FROM notes_normalized');
 
 		while (noteIds.length) {
 			const currentIds = noteIds.splice(0, 100);
@@ -124,14 +125,16 @@ export default class SearchEngine {
 			for (let i = 0; i < notes.length; i++) {
 				const note = notes[i];
 				const n = this.normalizeNote_(note);
-				queries.push({ sql: `
+				queries.push({
+					sql: `
 				INSERT INTO notes_normalized(${SearchEngine.relevantFields})
 				VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-				params: [n.id, n.title, n.body, n.user_created_time, n.user_updated_time, n.is_todo, n.todo_completed, n.todo_due, n.parent_id, n.latitude, n.longitude, n.altitude, n.source_url] },
+					params: [n.id, n.title, n.body, n.user_created_time, n.user_updated_time, n.is_todo, n.todo_completed, n.todo_due, n.parent_id, n.latitude, n.longitude, n.altitude, n.source_url]
+				},
 				);
 			}
 
-			await this.db().transactionExecBatch(queries);
+			await db_.transactionExecBatch(queries);
 		}
 
 		Setting.setValue('searchEngine.lastProcessedChangeId', lastChangeId);
@@ -210,13 +213,15 @@ export default class SearchEngine {
 
 					if (change.type === ItemChange.TYPE_CREATE || change.type === ItemChange.TYPE_UPDATE) {
 						queries.push({ sql: 'DELETE FROM notes_normalized WHERE id = ?', params: [change.item_id] });
-						const note = this.noteById_(notes, change.item_id);
+						const note = this.noteById_(notes, change.item_id ?? '');
 						if (note) {
 							const n = this.normalizeNote_(note);
-							queries.push({ sql: `
+							queries.push({
+								sql: `
 							INSERT INTO notes_normalized(${SearchEngine.relevantFields})
 							VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-							params: [change.item_id, n.title, n.body, n.user_created_time, n.user_updated_time, n.is_todo, n.todo_completed, n.todo_due, n.parent_id, n.latitude, n.longitude, n.altitude, n.source_url] });
+								params: [change.item_id, n.title, n.body, n.user_created_time, n.user_updated_time, n.is_todo, n.todo_completed, n.todo_due, n.parent_id, n.latitude, n.longitude, n.altitude, n.source_url]
+							});
 							report.inserted++;
 						}
 					} else if (change.type === ItemChange.TYPE_DELETE) {
@@ -229,7 +234,7 @@ export default class SearchEngine {
 					lastChangeId = change.id;
 				}
 
-				await this.db().transactionExecBatch(queries);
+				await this.db()?.transactionExecBatch(queries);
 				Setting.setValue('searchEngine.lastProcessedChangeId', lastChangeId);
 				await Setting.saveAll();
 			}
@@ -255,12 +260,12 @@ export default class SearchEngine {
 
 	public async countRows() {
 		const sql = 'SELECT count(*) as total FROM notes_fts';
-		const row = await this.db().selectOne(sql);
+		const row = await this.db()?.selectOne(sql);
 		return row && row['total'] ? row['total'] : 0;
 	}
 
 	private fieldNamesFromOffsets_(offsets: any[]) {
-		const notesNormalizedFieldNames = this.db().tableFieldNames('notes_normalized');
+		const notesNormalizedFieldNames = this.db()?.tableFieldNames('notes_normalized') || [];
 		const occurenceCount = Math.floor(offsets.length / 4);
 		const output: string[] = [];
 		for (let i = 0; i < occurenceCount; i++) {
@@ -337,11 +342,11 @@ export default class SearchEngine {
 
 		const avgTitleTokens = generalInfo[4]; // a
 		const avgBodyTokens = generalInfo[5];
-		const avgTokens = [null, avgTitleTokens, avgBodyTokens]; // we only need cols 1 and 2
+		const avgTokens = [0, avgTitleTokens, avgBodyTokens]; // we only need cols 1 and 2
 
 		const numTitleTokens = matchInfo.map(m => m[4 + numColumns]); // l
 		const numBodyTokens = matchInfo.map(m => m[5 + numColumns]);
-		const numTokens = [null, numTitleTokens, numBodyTokens];
+		const numTokens = [[], numTitleTokens, numBodyTokens];
 
 		// In byte size, we have for notes_normalized:
 		//
@@ -385,13 +390,13 @@ export default class SearchEngine {
 			const row = rows[i];
 			row.weight = 0;
 			for (let j = 0; j < numPhrases; j++) {
-				// eslint-disable-next-line github/array-foreach -- Old code before rule was applied
+
 				columns.forEach(column => {
 					const rowsWithHits = docsWithHits(X[i], column, j);
 					const frequencyHits = hitsThisRow(X[i], column, j);
 					const idf = IDF(rowsWithHits, numRows);
 
-					row.weight += BM25(idf, frequencyHits, numTokens[column][i], avgTokens[column]);
+					row.weight! += BM25(idf, frequencyHits, numTokens[column][i], avgTokens[column]);
 				});
 			}
 
@@ -418,7 +423,7 @@ export default class SearchEngine {
 		}
 	}
 
-	private processResults_(rows: ProcessResultsRow[], parsedQuery: any, isBasicSearchResults = false) {
+	private processResults_(rows: ProcessResultsRow[], parsedQuery: any, isBasicSearchResults = false): void {
 		if (isBasicSearchResults) {
 			this.processBasicSearchResults_(rows, parsedQuery);
 		} else {
@@ -431,8 +436,12 @@ export default class SearchEngine {
 		}
 
 		rows.sort((a, b) => {
+			if (!a.fields) return +1;
+			if (!b.fields) return -1;
 			if (a.fields.includes('title') && !b.fields.includes('title')) return -1;
 			if (!a.fields.includes('title') && b.fields.includes('title')) return +1;
+			if (!a.weight) return +1;
+			if (!b.weight) return -1;
 			if (a.weight < b.weight) return +1;
 			if (a.weight > b.weight) return -1;
 			if (a.is_todo && a.todo_completed) return +1;
@@ -446,21 +455,21 @@ export default class SearchEngine {
 	// https://stackoverflow.com/a/13818704/561309
 	public queryTermToRegex(term: any) {
 		while (term.length && term.indexOf('*') === 0) {
-			term = term.substr(1);
+			term = term.substring(1);
 		}
 
 		let regexString = pregQuote(term);
 		if (regexString[regexString.length - 1] === '*') {
-			regexString = `${regexString.substr(0, regexString.length - 2)}[^${pregQuote(' \t\n\r,.,+-*?!={}<>|:"\'()[]')}]` + '*?';
-			// regexString = regexString.substr(0, regexString.length - 2) + '.*?';
+			regexString = `${regexString.substring(0, regexString.length - 2)}[^${pregQuote(' \t\n\r,.,+-*?!={}<>|:"\'()[]')}]` + '*?';
+			// regexString = regexString.substring(0, regexString.length - 2) + '.*?';
 		}
 
-		return regexString;
+		return new RegExp(regexString);
 	}
 
 	public async parseQuery(query: string) {
 
-		const trimQuotes = (str: string) => str.startsWith('"') ? str.substr(1, str.length - 2) : str;
+		const trimQuotes = (str: string) => str.startsWith('"') ? str.substring(1, str.length - 2) : str;
 
 		let allTerms: Term[] = [];
 
@@ -561,12 +570,12 @@ export default class SearchEngine {
 
 	private normalizeNote_(note: NoteEntity) {
 		const n = { ...note };
-		n.title = this.normalizeText_(n.title);
-		n.body = this.normalizeText_(n.body);
+		if (n.title) n.title = this.normalizeText_(n.title);
+		if (n.body) n.body = this.normalizeText_(n.body);
 		return n;
 	}
 
-	public async basicSearch(query: string) {
+	public async basicSearch(query: string): Promise<NoteEntity[]> {
 		query = query.replace(/\*/, '');
 		const parsedQuery = await this.parseQuery(query);
 		const searchOptions: any = {};
@@ -580,7 +589,7 @@ export default class SearchEngine {
 			if (key === 'body') searchOptions.bodyPattern = `*${term}*`;
 		}
 
-		return Note.previews(null, searchOptions);
+		return Note.previews('', searchOptions);
 	}
 
 	private determineSearchType_(query: string, preferredSearchType: any) {
@@ -612,7 +621,7 @@ export default class SearchEngine {
 		return SearchEngine.SEARCH_TYPE_FTS;
 	}
 
-	public async search(searchString: string, options: SearchOptions = null) {
+	public async search(searchString: string, options: SearchOptions | null = null) {
 		if (!searchString) return [];
 
 		options = {
@@ -627,8 +636,8 @@ export default class SearchEngine {
 		if (searchType === SearchEngine.SEARCH_TYPE_BASIC) {
 			searchString = this.normalizeText_(searchString);
 			const rows = await this.basicSearch(searchString);
-
-			this.processResults_(rows, parsedQuery, true);
+			// TODO: seems like a problem with type mismatch
+			this.processResults_(rows as ProcessResultsRow[], parsedQuery, true);
 			return rows;
 		} else {
 			// SEARCH_TYPE_FTS
@@ -654,11 +663,11 @@ export default class SearchEngine {
 			const useFts = searchType === SearchEngine.SEARCH_TYPE_FTS;
 			try {
 				const { query, params } = queryBuilder(parsedQuery.allTerms, useFts);
-				const rows = await this.db().selectAll(query, params);
+				const rows = await this.db()?.selectAll(query, params);
 				this.processResults_(rows as ProcessResultsRow[], parsedQuery, !useFts);
 				return rows;
 			} catch (error) {
-				this.logger().warn(`Cannot execute MATCH query: ${searchString}: ${error.message}`);
+				this.logger().warn(`Cannot execute MATCH query: ${searchString}: ${(error as Error).message}`);
 				return [];
 			}
 		}

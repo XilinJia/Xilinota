@@ -3,8 +3,9 @@ import versionInfo from '@xilinota/lib/versionInfo';
 import PluginService, { Plugins } from '@xilinota/lib/services/plugins/PluginService';
 import Setting from '@xilinota/lib/models/Setting';
 import restart from '../services/restart';
+import { ipcRenderer } from 'electron';
+
 const packageInfo = require('../packageInfo.js');
-const ipcRenderer = require('electron').ipcRenderer;
 
 interface ErrorInfo {
 	componentStack: string;
@@ -18,8 +19,8 @@ interface PluginInfo {
 }
 
 interface State {
-	error: Error;
-	errorInfo: ErrorInfo;
+	error: Error|null;
+	errorInfo: ErrorInfo|null;
 	pluginInfos: PluginInfo[];
 	plugins: Plugins;
 }

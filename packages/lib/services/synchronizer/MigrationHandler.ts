@@ -9,9 +9,9 @@ import XilinotaError from '../../XilinotaError';
 import { FileApi } from '../../file-api';
 import XilinotaDatabase from '../../XilinotaDatabase';
 import { fetchSyncInfo, SyncInfo } from './syncInfoUtils';
-const { sprintf } = require('sprintf-js');
+import { sprintf } from 'sprintf-js';
 
-export type MigrationFunction = (api: FileApi, db: XilinotaDatabase)=> Promise<void>;
+export type MigrationFunction = (api: FileApi, db: XilinotaDatabase) => Promise<void>;
 
 // To add a new migration:
 // - Add the migration logic in ./migrations/VERSION_NUM.js
@@ -19,7 +19,7 @@ export type MigrationFunction = (api: FileApi, db: XilinotaDatabase)=> Promise<v
 // - Set Setting.syncVersion to VERSION_NUM in models/Setting.js
 // - Add tests in synchronizer_migrationHandler
 const migrations: MigrationFunction[] = [
-	null,
+	migration1,	// place holder, not used
 	migration1,
 	migration2,
 	migration3,
@@ -31,8 +31,8 @@ interface SyncTargetInfo {
 
 export default class MigrationHandler extends BaseService {
 
-	private api_: FileApi = null;
-	private lockHandler_: LockHandler = null;
+	private api_: FileApi;
+	private lockHandler_: LockHandler;
 	private clientType_: LockClientType;
 	private clientId_: string;
 	private db_: XilinotaDatabase;
@@ -67,7 +67,7 @@ export default class MigrationHandler extends BaseService {
 		return JSON.stringify(info);
 	}
 
-	public async checkCanSync(remoteInfo: SyncInfo = null) {
+	public async checkCanSync(remoteInfo: SyncInfo | null = null) {
 		remoteInfo = remoteInfo || await fetchSyncInfo(this.api_);
 		const supportedSyncTargetVersion = Setting.value('syncVersion');
 
@@ -100,12 +100,12 @@ export default class MigrationHandler extends BaseService {
 		// lock folder first before doing anything else.
 		// Temp folder is needed too to get remoteDate() call to work.
 		if (syncTargetInfo.version === 0 || syncTargetInfo.version === 1) {
-			this.logger().info('MigrationHandler: Sync target version is 0 or 1 - creating "locks" and "temp" directory:', syncTargetInfo);
+			BaseService.logger().info('MigrationHandler: Sync target version is 0 or 1 - creating "locks" and "temp" directory:', syncTargetInfo);
 			await this.api_.mkdir(Dirnames.Locks);
 			await this.api_.mkdir(Dirnames.Temp);
 		}
 
-		this.logger().info('MigrationHandler: Acquiring exclusive lock');
+		BaseService.logger().info('MigrationHandler: Acquiring exclusive lock');
 		const exclusiveLock = await this.lockHandler_.acquireLock(LockType.Exclusive, this.clientType_, this.clientId_, {
 			clearExistingSyncLocksFromTheSameClient: true,
 			timeoutMs: 1000 * 30,
@@ -116,7 +116,7 @@ export default class MigrationHandler extends BaseService {
 			autoLockError = error;
 		});
 
-		this.logger().info('MigrationHandler: Acquired exclusive lock:', exclusiveLock);
+		BaseService.logger().info('MigrationHandler: Acquired exclusive lock:', exclusiveLock);
 
 		try {
 			for (let newVersion = syncTargetInfo.version + 1; newVersion < migrations.length; newVersion++) {
@@ -124,7 +124,7 @@ export default class MigrationHandler extends BaseService {
 
 				const fromVersion = newVersion - 1;
 
-				this.logger().info(`MigrationHandler: Migrating from version ${fromVersion} to version ${newVersion}`);
+				BaseService.logger().info(`MigrationHandler: Migrating from version ${fromVersion} to version ${newVersion}`);
 
 				const migration = migrations[newVersion];
 				if (!migration) continue;
@@ -143,14 +143,14 @@ export default class MigrationHandler extends BaseService {
 						}));
 					}
 
-					this.logger().info(`MigrationHandler: Done migrating from version ${fromVersion} to version ${newVersion}`);
+					BaseService.logger().info(`MigrationHandler: Done migrating from version ${fromVersion} to version ${newVersion}`);
 				} catch (error) {
-					error.message = `Could not upgrade from version ${fromVersion} to version ${newVersion}: ${error.message}`;
+					if (error instanceof Error) error.message = `Could not upgrade from version ${fromVersion} to version ${newVersion}: ${error.message}`;
 					throw error;
 				}
 			}
 		} finally {
-			this.logger().info('MigrationHandler: Releasing exclusive lock');
+			BaseService.logger().info('MigrationHandler: Releasing exclusive lock');
 			this.lockHandler_.stopAutoLockRefresh(exclusiveLock);
 			await this.lockHandler_.releaseLock(LockType.Exclusive, this.clientType_, this.clientId_);
 		}

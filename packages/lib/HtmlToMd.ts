@@ -14,7 +14,7 @@ export interface ParseOptions {
 
 export default class HtmlToMd {
 
-	public parse(html: string, options: ParseOptions = {}) {
+	public parse(html: string, options: ParseOptions = {}): string {
 		const turndownOpts: any = {
 			headingStyle: 'atx',
 			anchorNames: options.anchorNames ? options.anchorNames.map(n => n.trim().toLowerCase()) : [],
@@ -60,7 +60,7 @@ export default class HtmlToMd {
 		if (options.convertEmbeddedPdfsToLinks) {
 			turndown.addRule('pdf', pdfRule);
 		}
-		let md = turndown.turndown(html);
+		let md: string = turndown.turndown(html);
 		if (options.baseUrl) md = markdownUtils.prependBaseUrl(md, options.baseUrl);
 		return md;
 	}

@@ -222,6 +222,7 @@ const supportedLanguages: {
 const syntaxHighlightingLanguages: LanguageDescription[] = [];
 for (const language of supportedLanguages) {
 	// Convert from parsers to LanguageSupport objects as necessary
+	if (!language.parser) continue;
 	const support = language.support ?? new LanguageSupport(StreamLanguage.define(language.parser));
 
 	syntaxHighlightingLanguages.push(

@@ -1,20 +1,24 @@
+// seeme not used?
+
 import { useEffect, useRef, useState } from 'react';
 import shim from '@xilinota/lib/shim';
 import Logger from '@xilinota/utils/Logger';
 
 const logger = Logger.create('useEditorSearch');
 
-export default function useEditorSearch(CodeMirror: any) {
+export default function useEditorSearch(this: any, CodeMirror: any) {
 
-	const [markers, setMarkers] = useState([]);
-	const [overlay, setOverlay] = useState(null);
-	const [scrollbarMarks, setScrollbarMarks] = useState(null);
+	const [markers, setMarkers] = useState<any[]>([]);
+	const [overlay, setOverlay] = useState({});
+	const [scrollbarMarks, setScrollbarMarks] = useState<any>(null);
 	const [previousKeywordValue, setPreviousKeywordValue] = useState(null);
 	const [previousIndex, setPreviousIndex] = useState(null);
 	const [previousSearchTimestamp, setPreviousSearchTimestamp] = useState(0);
 	const [overlayTimeout, setOverlayTimeout] = useState(null);
 	const overlayTimeoutRef = useRef(null);
 	overlayTimeoutRef.current = overlayTimeout;
+
+	const self = this;
 
 	function clearMarkers() {
 		for (let i = 0; i < markers.length; i++) {
@@ -39,26 +43,28 @@ export default function useEditorSearch(CodeMirror: any) {
 
 		if (overlayTimeout) shim.clearTimeout(overlayTimeout);
 
-		setOverlay(null);
+		setOverlay({});
 		setScrollbarMarks(null);
 		setOverlayTimeout(null);
 	}
 
 	// Modified from codemirror/addons/search/search.js
 	function searchOverlay(query: RegExp) {
-		return { token: function(stream: any) {
-			query.lastIndex = stream.pos;
-			const match = query.exec(stream.string);
-			if (match && match.index === stream.pos) {
-				stream.pos += match[0].length || 1;
-				return 'search-marker';
-			} else if (match) {
-				stream.pos = match.index;
-			} else {
-				stream.skipToEnd();
+		return {
+			token: function(stream: any) {
+				query.lastIndex = stream.pos;
+				const match = query.exec(stream.string);
+				if (match && match.index === stream.pos) {
+					stream.pos += match[0].length || 1;
+					return 'search-marker';
+				} else if (match) {
+					stream.pos = match.index;
+				} else {
+					stream.skipToEnd();
+				}
+				return null;
 			}
-			return null;
-		} };
+		};
 	}
 
 	// Highlights the currently active found work
@@ -129,10 +135,10 @@ export default function useEditorSearch(CodeMirror: any) {
 			const scrollTo = i === 0 && (previousKeywordValue !== keyword.value || previousIndex !== options.selectedIndex || options.searchTimestamp !== previousSearchTimestamp);
 
 			try {
-				const match = highlightSearch(this, searchTerm, options.selectedIndex, scrollTo, !!options.withSelection);
+				const match = highlightSearch(self, searchTerm, options.selectedIndex, scrollTo, !!options.withSelection);
 				if (match) marks.push(match);
 			} catch (error) {
-				if (error.name !== 'SyntaxError') {
+				if ((error as Error).name !== 'SyntaxError') {
 					throw error;
 				}
 				// An error of 'Regular expression too large' might occour in the markJs library
@@ -149,7 +155,7 @@ export default function useEditorSearch(CodeMirror: any) {
 		// SEARCHOVERLAY
 		// We only want to highlight all matches when there is only 1 search term
 		if (keywords.length !== 1 || keywords[0].value === '') {
-			clearOverlay(this);
+			clearOverlay(self);
 			const prev = keywords.length > 1 ? keywords[0].value : '';
 			setPreviousKeywordValue(prev);
 			return 0;
@@ -157,24 +163,24 @@ export default function useEditorSearch(CodeMirror: any) {
 
 		const searchTerm = getSearchTerm(keywords[0]);
 
-		// Determine the number of matches in the source, this is passed on
+		// Determine the number of matches in the source, self is passed on
 		// to the NoteEditor component
-		const regexMatches = this.getValue().match(searchTerm);
+		const regexMatches = self.getValue().match(searchTerm);
 		const nMatches = regexMatches ? regexMatches.length : 0;
 
 		// Don't bother clearing and re-calculating the overlay if the search term
 		// hasn't changed
 		if (keywords[0].value === previousKeywordValue) return nMatches;
 
-		clearOverlay(this);
+		clearOverlay(self);
 		setPreviousKeywordValue(keywords[0].value);
 
 		// These operations are pretty slow, so we won't add use them until the user
 		// has finished typing, 500ms is probably enough time
 		const timeout = shim.setTimeout(() => {
-			const scrollMarks = this.showMatchesOnScrollbar(searchTerm, true, 'cm-search-marker-scrollbar');
+			const scrollMarks = self.showMatchesOnScrollbar(searchTerm, true, 'cm-search-marker-scrollbar');
 			const overlay = searchOverlay(searchTerm);
-			this.addOverlay(overlay);
+			self.addOverlay(overlay);
 			setOverlay(overlay);
 			setScrollbarMarks(scrollMarks);
 		}, 500);

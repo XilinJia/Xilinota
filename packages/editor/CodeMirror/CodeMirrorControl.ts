@@ -27,11 +27,11 @@ export default class CodeMirrorControl extends CodeMirror5Emulation implements E
 		this._pluginControl = new PluginLoader(this, _callbacks.onLogMessage);
 	}
 
-	public supportsCommand(name: string) {
+	public supportsCommand(name: string): boolean {
 		return name in editorCommands || super.commandExists(name);
 	}
 
-	public override execCommand(name: string) {
+	public override execCommand(name: string): void {
 		if (name in editorCommands) {
 			editorCommands[name as EditorCommandType](this.editor);
 		} else if (super.commandExists(name)) {
@@ -43,37 +43,37 @@ export default class CodeMirrorControl extends CodeMirror5Emulation implements E
 		}
 	}
 
-	public undo() {
+	public undo(): void {
 		this.execCommand(EditorCommandType.Undo);
 		this._callbacks.onUndoRedo();
 	}
 
-	public redo() {
+	public redo(): void {
 		this.execCommand(EditorCommandType.Redo);
 		this._callbacks.onUndoRedo();
 	}
 
-	public select(anchor: number, head: number) {
+	public select(anchor: number, head: number): void {
 		this.editor.dispatch(this.editor.state.update({
 			selection: { anchor, head },
 			scrollIntoView: true,
 		}));
 	}
 
-	public clearHistory() {
+	public clearHistory(): void {
 		this._callbacks.onClearHistory();
 	}
 
-	public setScrollPercent(fraction: number) {
+	public setScrollPercent(fraction: number): void {
 		const maxScroll = this.editor.scrollDOM.scrollHeight - this.editor.scrollDOM.clientHeight;
 		this.editor.scrollDOM.scrollTop = fraction * maxScroll;
 	}
 
-	public insertText(text: string) {
+	public insertText(text: string): void {
 		this.editor.dispatch(this.editor.state.replaceSelection(text));
 	}
 
-	public updateBody(newBody: string) {
+	public updateBody(newBody: string): boolean {
 		// TODO: doc.toString() can be slow for large documents.
 		const currentBody = this.editor.state.doc.toString();
 
@@ -100,15 +100,15 @@ export default class CodeMirrorControl extends CodeMirror5Emulation implements E
 		return false;
 	}
 
-	public updateLink(newLabel: string, newUrl: string) {
+	public updateLink(newLabel: string, newUrl: string): void {
 		updateLink(newLabel, newUrl)(this.editor);
 	}
 
-	public updateSettings(newSettings: EditorSettings) {
+	public updateSettings(newSettings: EditorSettings): void {
 		this._callbacks.onSettingsChange(newSettings);
 	}
 
-	public setSearchState(newState: SearchState) {
+	public setSearchState(newState: SearchState): void {
 		const query = new SearchQuery({
 			search: newState.searchText,
 			caseSensitive: newState.caseSensitive,
@@ -120,17 +120,17 @@ export default class CodeMirrorControl extends CodeMirror5Emulation implements E
 		});
 	}
 
-	public addStyles(...styles: Parameters<typeof EditorView.theme>) {
+	public addStyles(...styles: Parameters<typeof EditorView.theme>): void {
 		this.editor.dispatch({
 			effects: StateEffect.appendConfig.of(EditorView.theme(...styles)),
 		});
 	}
 
-	public setPlugins(plugins: PluginData[]) {
+	public setPlugins(plugins: PluginData[]): Promise<void> {
 		return this._pluginControl.setPlugins(plugins);
 	}
 
-	public remove() {
+	public remove(): void {
 		this._pluginControl.remove();
 		this._callbacks.onRemove();
 	}

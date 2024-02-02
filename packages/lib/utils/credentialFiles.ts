@@ -52,7 +52,7 @@ export function readCredentialFile(filename: string, defaultValue = '') {
 	}
 }
 
-export function readCredentialFileJson<T>(filename: string, defaultValue: T = null): T {
+export function readCredentialFileJson<T>(filename: string, defaultValue: T): T {
 	const v = readCredentialFile(filename);
 	if (!v) return defaultValue;
 
@@ -60,7 +60,7 @@ export function readCredentialFileJson<T>(filename: string, defaultValue: T = nu
 		const o = JSON.parse(v);
 		return o;
 	} catch (error) {
-		error.message = `Could not parse JSON file ${filename}: ${error.message}`;
+		if (error instanceof Error) error.message = `Could not parse JSON file ${filename}: ${error.message}`;
 		throw error;
 	}
 }

@@ -4,7 +4,7 @@ import BaseService from '../BaseService';
 
 export default class KeychainService extends BaseService {
 
-	private driver: KeychainServiceDriverBase;
+	private driver: KeychainServiceDriverBase | undefined;
 	private static instance_: KeychainService;
 	private enabled_ = true;
 
@@ -41,38 +41,38 @@ export default class KeychainService extends BaseService {
 		// Due to a bug in macOS, this may throw an exception "The user name or passphrase you entered is not correct."
 		// The fix is to open Keychain Access.app. Right-click on the login keychain and try locking it and then unlocking it again.
 		// https://github.com/atom/node-keytar/issues/76
-		return this.driver.setPassword(name, password);
+		return this.driver!.setPassword(name, password);
 	}
 
 	public async password(name: string): Promise<string> {
-		if (!this.enabled) return null;
+		if (!this.enabled) return '';
 
-		return this.driver.password(name);
+		return this.driver!.password(name);
 	}
 
 	public async deletePassword(name: string): Promise<void> {
 		if (!this.enabled) return;
 
-		await this.driver.deletePassword(name);
+		await this.driver!.deletePassword(name);
 	}
 
 	public async detectIfKeychainSupported() {
-		this.logger().info('KeychainService: checking if keychain supported');
+		BaseService.logger().info('KeychainService: checking if keychain supported');
 
 		if (Setting.value('keychain.supported') >= 0) {
-			this.logger().info('KeychainService: check was already done - skipping. Supported:', Setting.value('keychain.supported'));
+			BaseService.logger().info('KeychainService: check was already done - skipping. Supported:', Setting.value('keychain.supported'));
 			return;
 		}
 
 		const passwordIsSet = await this.setPassword('zz_testingkeychain', 'mytest');
 
 		if (!passwordIsSet) {
-			this.logger().info('KeychainService: could not set test password - keychain support will be disabled');
+			BaseService.logger().info('KeychainService: could not set test password - keychain support will be disabled');
 			Setting.setValue('keychain.supported', 0);
 		} else {
 			const result = await this.password('zz_testingkeychain');
 			await this.deletePassword('zz_testingkeychain');
-			this.logger().info('KeychainService: tried to set and get password. Result was:', result);
+			BaseService.logger().info('KeychainService: tried to set and get password. Result was:', result);
 			Setting.setValue('keychain.supported', result === 'mytest' ? 1 : 0);
 		}
 	}

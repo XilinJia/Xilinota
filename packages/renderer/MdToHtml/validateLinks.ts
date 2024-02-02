@@ -1,6 +1,6 @@
 // enable file link URLs in MarkdownIt. Keeps other URL restrictions of MarkdownIt untouched.
 // Format [link name](file://...)
-export default function(url: string) {
+export default function(url: string): boolean {
 	const BAD_PROTO_RE = /^(vbscript|javascript|data):/;
 	const GOOD_DATA_RE = /^data:image\/(gif|png|jpeg|webp);/;
 

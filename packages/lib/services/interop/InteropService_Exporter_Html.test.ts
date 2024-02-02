@@ -26,7 +26,7 @@ describe('interop/InteropService_Exporter_Html', () => {
 	test('should export HTML file', (async () => {
 		const service = InteropService.instance();
 		const folder1 = await Folder.save({ title: 'folder1' });
-		await Note.save({ body: '**ma note**', parent_id: folder1.id });
+		await Note.save({ body: '**ma note**', parent_id: folder1.id! });
 		const filePath = `${exportDir()}/test.html`;
 
 		await service.export({
@@ -43,8 +43,8 @@ describe('interop/InteropService_Exporter_Html', () => {
 		const service = InteropService.instance();
 		const folder1 = await Folder.save({ title: 'folder1' });
 		await Folder.save({ title: 'folder2' });
-		await Note.save({ title: 'note1', parent_id: folder1.id });
-		await Note.save({ title: 'note2', parent_id: folder1.id });
+		await Note.save({ title: 'note1', parent_id: folder1.id! });
+		await Note.save({ title: 'note2', parent_id: folder1.id! });
 
 		const dir = exportDir();
 		await service.export({
@@ -65,7 +65,7 @@ describe('interop/InteropService_Exporter_Html', () => {
 	test('should export plugin assets', (async () => {
 		const service = InteropService.instance();
 		const folder1 = await Folder.save({ title: 'folder1' });
-		await Note.save({ body: '**ma note**', parent_id: folder1.id });
+		await Note.save({ body: '**ma note**', parent_id: folder1.id! });
 		const filePath = `${exportDir()}/test.html`;
 
 		const contentScriptPath = tempFilePath('js');
@@ -124,7 +124,7 @@ describe('interop/InteropService_Exporter_Html', () => {
 	test('should not throw an error on invalid resource paths', (async () => {
 		const service = InteropService.instance();
 		const folder1 = await Folder.save({ title: 'folder1' });
-		await Note.save({ title: 'note1', parent_id: folder1.id, body: '[a link starts with slash](/)' });
+		await Note.save({ title: 'note1', parent_id: folder1.id!, body: '[a link starts with slash](/)' });
 
 		const filePath = `${exportDir()}/test.html`;
 

@@ -1,9 +1,9 @@
-import produce from 'immer';
+import { produce } from 'immer';
 import iterateItems from './iterateItems';
 import { LayoutItem, LayoutItemDirection } from './types';
 
 function isLastVisible(itemIndex: number, item: LayoutItem, parent: LayoutItem) {
-	if (item.visible === false) return false;
+	if (!parent.children || item.visible === false) return false;
 
 	for (let i = parent.children.length - 1; i >= 0; i--) {
 		const child = parent.children[i];
@@ -13,8 +13,8 @@ function isLastVisible(itemIndex: number, item: LayoutItem, parent: LayoutItem) 
 	return false;
 }
 
-function updateItemSize(itemIndex: number, itemDraft: LayoutItem, parent: LayoutItem) {
-	if (!parent) return;
+function updateItemSize(itemIndex: number, itemDraft: LayoutItem, parent: LayoutItem|null) {
+	if (!parent || !parent.children) return;
 
 	// If a container has only one child, this child should not
 	// have a width and height, and simply fill up the container
@@ -56,7 +56,7 @@ function updateItemSize(itemIndex: number, itemDraft: LayoutItem, parent: Layout
 
 // All items should be resizable, except for the root and the latest visible child
 // of a container.
-function updateResizeRules(itemIndex: number, itemDraft: LayoutItem, parent: LayoutItem) {
+function updateResizeRules(itemIndex: number, itemDraft: LayoutItem, parent: LayoutItem|null) {
 	if (!parent) return;
 	const isLastVisibleChild = isLastVisible(itemIndex, itemDraft, parent);
 	itemDraft.resizableRight = parent.direction === LayoutItemDirection.Row && !isLastVisibleChild;
@@ -65,7 +65,7 @@ function updateResizeRules(itemIndex: number, itemDraft: LayoutItem, parent: Lay
 
 // Container direction should alternate between row (for the root) and
 // columns, then rows again.
-function updateDirection(_itemIndex: number, itemDraft: LayoutItem, parent: LayoutItem) {
+function updateDirection(_itemIndex: number, itemDraft: LayoutItem, parent: LayoutItem|null) {
 	if (!parent) {
 		itemDraft.direction = LayoutItemDirection.Row;
 	} else {
@@ -90,7 +90,7 @@ function itemShouldBeVisible(item: LayoutItem): boolean {
 
 // If all children of a container are hidden, the container should be
 // hidden too. A container visiblity cannot be changed by the user.
-function updateContainerVisibility(_itemIndex: number, itemDraft: LayoutItem, _parent: LayoutItem) {
+function updateContainerVisibility(_itemIndex: number, itemDraft: LayoutItem, _parent: LayoutItem|null) {
 	if (itemDraft.children) {
 		itemDraft.visible = itemShouldBeVisible(itemDraft);
 	} else {
@@ -105,12 +105,12 @@ export default function validateLayout(layout: LayoutItem): LayoutItem {
 	return produce(layout, (draft: LayoutItem) => {
 		draft.isRoot = true;
 
-		iterateItems(draft, (itemIndex: number, itemDraft: LayoutItem, parent: LayoutItem) => {
+		iterateItems(draft, (itemIndex: number, itemDraft: LayoutItem, parent: LayoutItem | null) => {
 			updateItemSize(itemIndex, itemDraft, parent);
 			updateResizeRules(itemIndex, itemDraft, parent);
 			updateDirection(itemIndex, itemDraft, parent);
 			updateContainerVisibility(itemIndex, itemDraft, parent);
-			return true;
+			return true;			
 		});
 	});
 }

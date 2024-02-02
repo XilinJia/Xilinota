@@ -1,13 +1,13 @@
 import HtmlToMd from '@xilinota/lib/HtmlToMd';
 import HtmlUtils from '@xilinota/lib/htmlUtils';
-const { clipboard } = require('electron');
+import { clipboard } from 'electron';
 
 interface ClipboardData {
 	text: string;
 	html: string;
 }
 
-let htmlToMd_: HtmlToMd = null;
+let htmlToMd_: HtmlToMd;
 
 function htmlToMd(): HtmlToMd {
 	if (!htmlToMd_) {

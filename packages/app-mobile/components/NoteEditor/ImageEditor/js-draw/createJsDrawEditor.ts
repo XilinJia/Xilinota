@@ -8,7 +8,7 @@ import { ImageEditorCallbacks, LocalizedStrings } from './types';
 import startAutosaveLoop from './startAutosaveLoop';
 
 declare namespace ReactNativeWebView {
-	const postMessage: (data: any)=> void;
+	const postMessage: (data: any) => void;
 }
 
 const restoreToolbarState = (toolbar: AbstractToolbar, state: string) => {
@@ -67,8 +67,8 @@ export const createJsDrawEditor = (
 	// Override the default "Exit" label:
 	toolbar.addExitButton(
 		() => callbacks.closeEditor(true), {
-			label: defaultLocalizations.close,
-		},
+		label: defaultLocalizations.close,
+	},
 	);
 
 	toolbar.addSpacer({
@@ -78,10 +78,9 @@ export const createJsDrawEditor = (
 
 	// saveButton needs to be defined after the following callbacks.
 	// As such, this variable can't be made const.
-	// eslint-disable-next-line prefer-const
 	let saveButton: BaseWidget;
 
-	let lastHadChanges: boolean|null = null;
+	let lastHadChanges: boolean | null = null;
 	const setImageHasChanges = (hasChanges: boolean) => {
 		if (lastHadChanges !== hasChanges) {
 			saveButton.setDisabled(!hasChanges);
@@ -122,7 +121,7 @@ export const createJsDrawEditor = (
 
 	const editorControl = {
 		editor,
-		loadImageOrTemplate: async (svgData: string|undefined, templateData: string) => {
+		loadImageOrTemplate: async (svgData: string | undefined, templateData: string) => {
 			// loadFromSVG shows its own loading message. Hide the original.
 			editor.hideLoadingWarning();
 

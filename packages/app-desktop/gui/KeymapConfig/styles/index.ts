@@ -1,4 +1,4 @@
-const { buildStyle } = require('@xilinota/lib/theme');
+import { buildStyle } from '@xilinota/lib/theme';
 
 export default function styles(themeId: number) {
 	return buildStyle('KeymapConfigScreen', themeId, (theme: any) => {

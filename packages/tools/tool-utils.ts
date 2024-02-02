@@ -3,8 +3,10 @@ import { hasCredentialFile, readCredentialFile } from '@xilinota/lib/utils/crede
 import { execCommand as execCommand2, commandToString } from '@xilinota/utils';
 
 const fetch = require('node-fetch');
+// import fetch from 'node-fetch';
+import XilinotaError from '@xilinota/lib/XilinotaError';
 const execa = require('execa');
-const moment = require('moment');
+import moment from 'moment';
 
 export interface GitHubReleaseAsset {
 	name: string;
@@ -50,7 +52,7 @@ async function insertChangelog(tag: string, changelogPath: string, changelog: st
 	];
 	if (isPrerelease) header.push('(Pre-release)');
 	header.push('-');
-	// eslint-disable-next-line no-useless-escape
+
 	header.push(`${moment.utc().format('YYYY-MM-DD\THH:mm:ss')}Z`);
 
 	let newLines = [];
@@ -225,7 +227,7 @@ export async function unlinkForce(filePath: string) {
 	try {
 		await unlink(filePath);
 	} catch (error) {
-		if (error.code === 'ENOENT') return;
+		if (error instanceof XilinotaError && error.code === 'ENOENT') return;
 		throw error;
 	}
 }
@@ -259,7 +261,7 @@ export async function gitPullTry(ignoreIfNotBranch = true) {
 	try {
 		await execCommand('git pull');
 	} catch (error) {
-		if (ignoreIfNotBranch && error.message.includes('no tracking information for the current branch')) {
+		if (ignoreIfNotBranch && (error as Error).message.includes('no tracking information for the current branch')) {
 			console.info('Skipping git pull because no tracking information on current branch');
 		} else {
 			throw error;
@@ -386,15 +388,17 @@ export const gitHubLatestReleases = async (page: number, perPage: number) => {
 
 	if (!response.ok) throw new Error(`Cannot fetch releases: ${response.statusText}`);
 
-	const releases: GitHubRelease[] = await response.json();
+	const releases = await response.json() as GitHubRelease[];
 	if (!releases.length) throw new Error('Cannot find latest release');
 
 	return releases;
 };
 
 export async function githubRelease(project: string, tagName: string, options: any = null): Promise<GitHubRelease> {
-	options = { isDraft: false,
-		isPreRelease: false, ...options };
+	options = {
+		isDraft: false,
+		isPreRelease: false, ...options
+	};
 
 	const oauthToken = await githubOauthToken();
 

@@ -1,7 +1,7 @@
 import { MarkupLanguage, MarkupToHtml } from '@xilinota/renderer';
 import { readmeFileTitleAndBody, replaceGitHubByWebsiteLinks } from './parser';
 import markupLanguageUtils from '@xilinota/lib/markupLanguageUtils';
-const { substrWithEllipsis } = require('@xilinota/lib/string-utils');
+import { substrWithEllipsis } from '@xilinota/lib/string-utils';
 
 export interface OpenGraphTags {
 	title: string;
@@ -10,7 +10,7 @@ export interface OpenGraphTags {
 	image?: string;
 }
 
-let markupToHtml_: MarkupToHtml = null;
+let markupToHtml_: MarkupToHtml;
 
 const markupToHtml = (): MarkupToHtml => {
 	if (!markupToHtml_) markupToHtml_ = new MarkupToHtml();

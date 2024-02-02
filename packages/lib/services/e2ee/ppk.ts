@@ -17,7 +17,7 @@ export interface PublicPrivateKeyPair {
 	createdTime: number;
 }
 
-let rsa_: RSA = null;
+let rsa_: RSA | null = null;
 
 export const setRSA = (rsa: RSA) => {
 	rsa_ = rsa;
@@ -61,7 +61,7 @@ export async function pkReencryptPrivateKey(encryptionService: EncryptionService
 	};
 }
 
-export async function ppkPasswordIsValid(service: EncryptionService, ppk: PublicPrivateKeyPair, password: string): Promise<boolean> {
+export async function ppkPasswordIsValid(service: EncryptionService, ppk: PublicPrivateKeyPair|null, password: string): Promise<boolean> {
 	if (!ppk) throw new Error('PPK is undefined');
 
 	try {

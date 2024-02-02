@@ -46,16 +46,16 @@ describe('ShareService', () => {
 	it('should not change the note user timestamps when sharing or unsharing', async () => {
 		let note = await Note.save({});
 		const service = mockService({
-			exec: (method: string, path = '', _query: Record<string, any> = null, _body: any = null, _headers: any = null, _options: any = null): Promise<any> => {
+			exec: (method: string, path = '', _query: Record<string, any> = {}, _body: any = null, _headers: any = null, _options: any = null): Promise<any> => {
 				if (method === 'GET' && path === 'api/shares') return { items: [] } as any;
-				return null;
+				return [] as any;
 			},
 			personalizedUserContentBaseUrl(_userId: string) {
 
 			},
 		});
 		await msleep(1);
-		await service.shareNote(note.id, false);
+		await service.shareNote(note.id!, false);
 
 		function checkTimestamps(previousNote: NoteEntity, newNote: NoteEntity) {
 			// After sharing or unsharing, only the updated_time property should
@@ -63,26 +63,25 @@ describe('ShareService', () => {
 			// change.
 			expect(previousNote.user_created_time).toBe(newNote.user_created_time);
 			expect(previousNote.user_updated_time).toBe(newNote.user_updated_time);
-			expect(previousNote.updated_time < newNote.updated_time).toBe(true);
+			expect(previousNote.updated_time! < newNote.updated_time!).toBe(true);
 			expect(previousNote.created_time).toBe(newNote.created_time);
 		}
 
 		{
-			const noteReloaded = await Note.load(note.id);
-			checkTimestamps(note, noteReloaded);
-			note = noteReloaded;
+			const noteReloaded = await Note.load(note.id!);
+			checkTimestamps(note, noteReloaded!);
+			note = noteReloaded!;
 		}
 
 		await msleep(1);
-		await service.unshareNote(note.id);
+		await service.unshareNote(note.id!);
 
 		{
-			const noteReloaded = await Note.load(note.id);
-			checkTimestamps(note, noteReloaded);
+			const noteReloaded = await Note.load(note.id!);
+			checkTimestamps(note, noteReloaded!);
 		}
 	});
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	function testShareFolderService(extraExecHandlers: Record<string, Function> = {}, options: TestShareFolderServiceOptions = {}) {
 		return mockService({
 			exec: async (method: string, path: string, query: Record<string, any>, body: any) => {
@@ -112,18 +111,18 @@ describe('ShareService', () => {
 
 	async function testShareFolder(service: ShareService) {
 		const folder = await Folder.save({});
-		let note = await Note.save({ parent_id: folder.id });
+		let note = await Note.save({ parent_id: folder.id! });
 		note = await shim.attachFileToNote(note, testImagePath);
-		const resourceId = (await Note.linkedResourceIds(note.body))[0];
+		const resourceId = (await Note.linkedResourceIds(note.body!))[0];
 		const resource = await Resource.load(resourceId);
 
 		await resourceService().indexNoteResources();
 
-		const share = await service.shareFolder(folder.id);
+		const share = await service.shareFolder(folder.id!);
 		expect(share.id).toBe('share_1');
-		expect((await Folder.load(folder.id)).share_id).toBe('share_1');
-		expect((await Note.load(note.id)).share_id).toBe('share_1');
-		expect((await Resource.load(resource.id)).share_id).toBe('share_1');
+		expect((await Folder.load(folder.id!))!.share_id).toBe('share_1');
+		expect((await Note.load(note.id!))!.share_id).toBe('share_1');
+		expect((await Resource.load(resource!.id))!.share_id).toBe('share_1');
 
 		return { share, folder, note, resource };
 	}
@@ -149,35 +148,36 @@ describe('ShareService', () => {
 		// specifically for that shared folder
 		expect(await MasterKey.count()).toBe(2);
 
-		folder = await Folder.load(folder.id);
-		note = await Note.load(note.id);
-		resource = await Resource.load(resource.id);
+		folder = (await Folder.load(folder.id!))!;
+		note = (await Note.load(note.id!))!;
+		resource = await Resource.load(resource!.id);
 
 		// The key that is not the master key is the folder key
 		const folderKey = (await MasterKey.all()).find(mk => mk.id !== masterKey.id);
 
 		// Double-check that it's going to encrypt the folder using the shared
 		// key (and not the user's own master key)
-		expect(folderKey.id).not.toBe(masterKey.id);
-		expect(folder.master_key_id).toBe(folderKey.id);
-
+		if (folderKey) {
+			expect(folderKey.id).not.toBe(masterKey.id);
+			expect(folder.master_key_id).toBe(folderKey.id);
+		}
 		await loadMasterKeysFromSettings(encryptionService());
 
 		// Reload the service so that the mocked calls use the newly created key
-		shareService = testShareFolderService({}, { master_key_id: folderKey.id });
+		shareService = testShareFolderService({}, { master_key_id: folderKey!.id! });
 
 		BaseItem.shareService_ = shareService;
 		Resource.shareService_ = shareService;
 
 		try {
-			const serializedNote = await Note.serializeForSync(note);
-			expect(serializedNote).toContain(folderKey.id);
+			const serializedNote = await Note.serializeForSync(note as BaseItem);
+			expect(serializedNote).toContain(folderKey!.id);
 
 			// The resource should be encrypted using the above key (if it is,
 			// the key ID will be in the header).
-			const result = await Resource.fullPathForSyncUpload(resource);
+			const result = await Resource.fullPathForSyncUpload(resource!);
 			const content = await readFile(result.path, 'utf8');
-			expect(content).toContain(folderKey.id);
+			expect(content).toContain(folderKey!.id);
 		} finally {
 			BaseItem.shareService_ = shareService;
 			Resource.shareService_ = null;
@@ -193,7 +193,7 @@ describe('ShareService', () => {
 		expect(ppk.id).not.toBe(recipientPpk.id);
 
 		let uploadedEmail = '';
-		let uploadedMasterKey: MasterKeyEntity = null;
+		let uploadedMasterKey: MasterKeyEntity | null = null;
 
 		const service = testShareFolderService({
 			'POST api/shares': (_query: Record<string, any>, body: any) => {
@@ -217,8 +217,10 @@ describe('ShareService', () => {
 
 		expect(uploadedEmail).toBe('toto@example.com');
 
-		const content = JSON.parse(uploadedMasterKey.content);
-		expect(content.ppkId).toBe(recipientPpk.id);
+		if (uploadedMasterKey) {
+			const content = JSON.parse((uploadedMasterKey as MasterKeyEntity).content!);
+			expect(content.ppkId).toBe(recipientPpk.id);
+		}
 	});
 
 	it('should leave folders that are no longer with the user', async () => {
@@ -237,7 +239,7 @@ describe('ShareService', () => {
 
 		const folder = await Folder.save({ share_id: 'nolongershared' });
 		await service.checkShareConsistency();
-		expect(await Folder.load(folder.id)).toBeFalsy();
+		expect(await Folder.load(folder.id!)).toBeFalsy();
 
 		Logger.globalLogger.setLevel(previousLogLevel);
 	});
@@ -258,13 +260,13 @@ describe('ShareService', () => {
 		]);
 
 		const resourceService = new ResourceService();
-		await Folder.save({ id: folder1.id, share_id: '123456789' });
+		await Folder.save({ id: folder1!.id, share_id: '123456789' });
 		await Folder.updateAllShareIds(resourceService);
 
 		const cleanup = simulateReadOnlyShareEnv('123456789');
 
 		const shareService = testShareFolderService();
-		await shareService.leaveSharedFolder(folder1.id, 'somethingrandom');
+		await shareService.leaveSharedFolder(folder1!.id!, 'somethingrandom');
 
 		expect(await Folder.count()).toBe(0);
 		expect(await Note.count()).toBe(0);
@@ -273,7 +275,7 @@ describe('ShareService', () => {
 
 		expect(deletedItems.length).toBe(1);
 		expect(deletedItems[0].item_type).toBe(ModelType.Folder);
-		expect(deletedItems[0].item_id).toBe(folder1.id);
+		expect(deletedItems[0].item_id).toBe(folder1!.id);
 
 		cleanup();
 	});

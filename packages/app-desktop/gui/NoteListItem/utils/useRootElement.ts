@@ -3,7 +3,7 @@ import useAsyncEffect from '@xilinota/lib/hooks/useAsyncEffect';
 import { waitForElement } from '@xilinota/lib/dom';
 
 const useRootElement = (elementId: string) => {
-	const [rootElement, setRootElement] = useState<HTMLDivElement>(null);
+	const [rootElement, setRootElement] = useState<HTMLDivElement>(document.createElement('div'));
 
 	useAsyncEffect(async (event) => {
 		const element = await waitForElement(document, elementId);

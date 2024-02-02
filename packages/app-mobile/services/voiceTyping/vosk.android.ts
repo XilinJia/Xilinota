@@ -6,7 +6,7 @@ import shim from '@xilinota/lib/shim';
 import Vosk from 'react-native-vosk';
 import { unzip } from 'react-native-zip-archive';
 import RNFetchBlob from 'rn-fetch-blob';
-const md5 = require('md5');
+import md5 from 'md5';
 
 const logger = Logger.create('voiceTyping/vosk');
 
@@ -17,7 +17,7 @@ enum State {
 }
 
 interface StartOptions {
-	onResult: (text: string)=> void;
+	onResult: (text: string) => void;
 }
 
 let vosk_: Record<string, Vosk> = {};
@@ -29,8 +29,8 @@ export const voskEnabled = true;
 export { Vosk };
 
 export interface Recorder {
-	stop: ()=> Promise<string>;
-	cleanup: ()=> void;
+	stop: () => Promise<string>;
+	cleanup: () => void;
 }
 
 const defaultSupportedLanguages = {
@@ -160,13 +160,11 @@ export const startRecording = (vosk: Vosk, options: StartOptions): Recorder => {
 
 	const result: string[] = [];
 	const eventHandlers: any[] = [];
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	let finalResultPromiseResolve: Function = null;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	let finalResultPromiseReject: Function = null;
+	let finalResultPromiseResolve: Function;
+	let finalResultPromiseReject: Function;
 	let finalResultTimeout = false;
 
-	const completeRecording = (finalResult: string, error: Error) => {
+	const completeRecording = (finalResult: string, error: Error | null) => {
 		logger.info(`Complete recording. Final result: ${finalResult}. Error:`, error);
 
 		for (const eventHandler of eventHandlers) {
@@ -186,7 +184,7 @@ export const startRecording = (vosk: Vosk, options: StartOptions): Recorder => {
 	};
 
 	eventHandlers.push(vosk.onResult(e => {
-		const text = e.data;
+		const text = e;
 		logger.info('Result', text);
 		result.push(text);
 		options.onResult(text);
@@ -196,19 +194,19 @@ export const startRecording = (vosk: Vosk, options: StartOptions): Recorder => {
 		logger.warn('Error', e.data);
 	}));
 
-	eventHandlers.push(vosk.onTimeout(e => {
-		logger.warn('Timeout', e.data);
+	eventHandlers.push(vosk.onTimeout(() => {
+		logger.warn('Timeout');
 	}));
 
 	eventHandlers.push(vosk.onFinalResult(e => {
-		logger.info('Final result', e.data);
+		logger.info('Final result', e);
 
 		if (finalResultTimeout) {
 			logger.warn('Got final result - but already timed out. Not doing anything.');
 			return;
 		}
 
-		completeRecording(e.data, null);
+		completeRecording(e, null);
 	}));
 
 	logger.info('Starting recording...');
@@ -230,7 +228,6 @@ export const startRecording = (vosk: Vosk, options: StartOptions): Recorder => {
 				completeRecording('', new Error('Could not process your message. Please try again.'));
 			}, 5000);
 
-			// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 			return new Promise((resolve: Function, reject: Function) => {
 				finalResultPromiseResolve = resolve;
 				finalResultPromiseReject = reject;

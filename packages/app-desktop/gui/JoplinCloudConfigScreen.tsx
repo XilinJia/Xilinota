@@ -1,4 +1,4 @@
-const { connect } = require('react-redux');
+import { connect } from 'react-redux';
 import { AppState } from '../app.reducer';
 import { _ } from '@xilinota/lib/locale';
 import { clipboard } from 'electron';

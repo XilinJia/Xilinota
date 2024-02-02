@@ -1,12 +1,11 @@
 
-import express = require('express');
-import { Application as ExpApp } from 'express';
+import express, { Application as ExpApp } from 'express';
 import * as http from 'http';
-const os = require('os');
+import os from 'os';
 
 import { Server, Socket as SocketServer } from 'socket.io';
 
-const dgram = require('dgram');
+import dgram from 'dgram';
 
 import { reg } from './registry';
 import Setting from './models/Setting';
@@ -24,10 +23,10 @@ interface RemoteInfo {
 }
 
 const socketPort = 51876;
-let httpServer: http.Server = null;
+let httpServer: http.Server;
 
-export let socketIOServer: Server = null;
-export let socketIOWorker: Server = null;
+export let socketIOServer: Server;
+export let socketIOWorker: Server;
 export const clientsNameIDMap = new Map<string, string>();
 export let clientCount = 0;
 
@@ -44,7 +43,7 @@ export function initSocketIOServer() {
 	socketIOServer.on('connection', (socket: SocketServer) => {
 		const token = socket.handshake.query.token;
 		if (token !== udpCodeEven) {
-			reg.logger().info('Server: A client unauthorized rejected.');
+			// reg.logger().info('Server: A client unauthorized rejected.');
 			socket.disconnect(true);
 			return;
 		}
@@ -85,7 +84,7 @@ export function initSocketIOServer() {
 
 		// Receive a private message from the client
 		socket.on('semiPrivateMessage', ({ recipients, message }: { recipients: string[]; message: string }) => {
-			// eslint-disable-next-line github/array-foreach
+
 			recipients.forEach((recipient: string) => {
 				if (clientsNameIDMap.has(recipient)) {
 					socketIOServer.to(recipient).emit('message', `Private message from ${clientName}: ${message}`);
@@ -140,7 +139,7 @@ export function initSocketIOServer() {
 						conflistids = noteids.filter((id) => noteidsClient.includes(id));
 						for (const noteId of conflistids) {
 							const note = notes.find((n => n.id === noteId));
-							await Note.createConflictNote(note, 111);
+							if (note) await Note.createConflictNote(note, 111);
 						}
 					}
 					reg.logger().info(`Server: among the note ids from client, ${conflistids.length} are in conflict`);
@@ -150,7 +149,7 @@ export function initSocketIOServer() {
 						reg.logger().info('Server: received conflictReceived from ', socket.id, new Date(offTime));
 						if (noteids.length > 0) {
 							for (const note of notes) {
-								if (conflistids.includes(note.id)) continue;
+								if (note.id && conflistids.includes(note.id)) continue;
 								reg.logger().info('Server: late sync note', note.title);
 								await PeersNote.syncToPeer(note, socket.id);
 							}
@@ -186,7 +185,7 @@ export function initSocketIOServer() {
 		// Handle client disconnection
 		socket.on('disconnect', () => {
 			reg.logger().info('Server: A client disconnected.', socket.id);
-			// eslint-disable-next-line github/array-foreach
+
 			clientsNameIDMap.forEach((value, key) => {
 				if (value === socket.id) {
 					clientsNameIDMap.delete(key);
@@ -224,7 +223,7 @@ export function workerEmit(tag: string, data: Record<string, string>) {
 	if (socketIOServer && socketIOServer.engine.clientsCount > 0) socketIOWorker.emit(tag, data);
 }
 
-export function workerEmitToClient(tag: string, data: Record<string, string>, clientId: string = null) {
+export function workerEmitToClient(tag: string, data: Record<string, string>, clientId: string = '') {
 	if (clientId) {
 		socketIOWorker.to(clientId).emit(tag, data);
 	} else {
@@ -257,11 +256,11 @@ export function initUDPServer() {
 	const interfaces = os.networkInterfaces();
 	let serverAddress: string | undefined;
 
-	// eslint-disable-next-line github/array-foreach
+
 	Object.keys(interfaces).forEach((interfaceName) => {
 		const addresses = interfaces[interfaceName];
-		// eslint-disable-next-line github/array-foreach
-		addresses.forEach((address: { family: string; internal: any; address: string }) => {
+
+		addresses?.forEach((address: { family: string; internal: any; address: string }) => {
 			if (address.family === 'IPv4' && !address.internal) {
 				serverAddress = address.address;
 			}
@@ -284,7 +283,6 @@ export function initUDPServer() {
 	});
 
 	// Listen for the client's response
-	// eslint-disable-next-line no-unused-vars
 	udpServer.on('message', (message: Buffer, _rinfo: RemoteInfo) => {
 		reg.logger().info('UDPServer: Received message from client:', message.toString());
 	});
@@ -298,7 +296,7 @@ export function initUDPServer() {
 				udpCodeOdd = privateUDPHeaderCode.split('').filter((_: any, index: number) => index % 2 !== 0).join('');
 				udpCodeEven = privateUDPHeaderCode.split('').filter((_: any, index: number) => index % 2 === 0).join('');
 				if (socketIOServer) {
-					// eslint-disable-next-line github/array-foreach
+
 					socketIOServer.sockets.sockets.forEach((socket) => {
 						socket.disconnect();
 					});

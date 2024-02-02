@@ -1,11 +1,11 @@
 import { ModelType, DeleteOptions } from '../BaseModel';
 import { BaseItemEntity, DeletedItemEntity, NoteEntity, SyncItemEntity } from '../services/database/types';
-import Setting from './Setting';
+// import Setting from './Setting';
 import BaseModel from '../BaseModel';
 import time from '../time';
 import markdownUtils from '../markdownUtils';
 import { _ } from '../locale';
-import Database from '../database';
+import Database, { Row } from '../database';
 import ItemChange from './ItemChange';
 import ShareService from '../services/share/ShareService';
 import itemCanBeEncrypted from './utils/itemCanBeEncrypted';
@@ -16,9 +16,11 @@ import { State as ShareState } from '../services/share/reducer';
 import { checkIfItemCanBeAddedToFolder, checkIfItemCanBeChanged, checkIfItemsCanBeChanged, needsReadOnlyChecks } from './utils/readOnly';
 
 import * as path from 'path';
+import EncryptionService from '../services/e2ee/EncryptionService';
+import RevisionService from '../services/RevisionService';
 
-const { sprintf } = require('sprintf-js');
-const moment = require('moment');
+import { sprintf } from 'sprintf-js';
+import moment from 'moment';
 
 export const unwantedCharacters = /[?:"*|/\\<>]/g;
 
@@ -51,10 +53,10 @@ export interface EncryptedItemsStats {
 
 export default class BaseItem extends BaseModel {
 
-	public static encryptionService_: any = null;
-	public static revisionService_: any = null;
-	public static shareService_: ShareService = null;
-	private static syncShareCache_: ShareState | null = null;
+	public static encryptionService_: EncryptionService;
+	public static revisionService_: RevisionService;
+	public static shareService_: ShareService | null;
+	private static syncShareCache_: ShareState | null;
 
 	// Also update:
 	// - itemsThatNeedSync()
@@ -68,21 +70,22 @@ export default class BaseItem extends BaseModel {
 		{ type: BaseModel.TYPE_NOTE_TAG, className: 'NoteTag' },
 		{ type: BaseModel.TYPE_MASTER_KEY, className: 'MasterKey' },
 		{ type: BaseModel.TYPE_REVISION, className: 'Revision' },
+		{ type: BaseModel.TYPE_SETTING, className: 'Setting' },
 	];
 
 	public static SYNC_ITEM_LOCATION_LOCAL = 1;
 	public static SYNC_ITEM_LOCATION_REMOTE = 2;
 
 
-	public static useUuid() {
+	public static useUuid(): boolean {
 		return true;
 	}
 
-	public static encryptionSupported() {
+	public static encryptionSupported(): boolean {
 		return true;
 	}
 
-	public static loadClass(className: string, classRef: any) {
+	public static loadClass(className: string, classRef: any): void {
 		for (let i = 0; i < BaseItem.syncItemDefinitions_.length; i++) {
 			if (BaseItem.syncItemDefinitions_[i].className === className) {
 				BaseItem.syncItemDefinitions_[i].classRef = classRef;
@@ -93,21 +96,21 @@ export default class BaseItem extends BaseModel {
 		throw new Error(`Invalid class name: ${className}`);
 	}
 
-	public static get syncShareCache(): ShareState {
+	public static get syncShareCache(): ShareState | null {
 		return this.syncShareCache_;
 	}
 
-	public static set syncShareCache(v: ShareState) {
+	public static set syncShareCache(v: ShareState | null) {
 		this.syncShareCache_ = v;
 	}
 
-	public static async findUniqueItemTitle(title: string, parentId: string = null) {
+	public static async findUniqueItemTitle(title: string, parentId: string = ''): Promise<string> {
 		let counter = 1;
 		let titleToTry = title;
 		while (true) {
 			let item = null;
 
-			if (parentId !== null) {
+			if (parentId) {
 				item = await this.loadByFields({
 					title: titleToTry,
 					parent_id: parentId,
@@ -147,24 +150,24 @@ export default class BaseItem extends BaseModel {
 		throw new Error(`Invalid item type: ${itemType}`);
 	}
 
-	public static async syncedCount(syncTarget: number) {
+	public static async syncedCount(syncTarget: number): Promise<number> {
 		const ItemClass = this.itemClass(this.modelType());
 		const itemType = ItemClass.modelType();
 		// The fact that we don't check if the item_id still exist in the corresponding item table, means
 		// that the returned number might be innaccurate (for example if a sync operation was cancelled)
 		const sql = 'SELECT count(*) as total FROM sync_items WHERE sync_target = ? AND item_type = ?';
 		const r = await this.db().selectOne(sql, [syncTarget, itemType]);
-		return r.total;
+		return r ? r.total : 0;
 	}
 
-	public static systemPath(itemOrId: any, extension: string = null) {
-		if (extension === null) extension = 'md';
+	public static systemPath(itemOrId: any, extension: string = ''): string {
+		if (!extension) extension = 'md';
 
 		if (typeof itemOrId === 'string') return `${itemOrId}.${extension}`;
 		else return `${itemOrId.id}.${extension}`;
 	}
 
-	public static isSystemPath(path_: string) {
+	public static isSystemPath(path_: string): boolean {
 		// 1b175bb38bba47baac22b0b47f778113.md
 		if (!path_ || !path_.length) return false;
 		let p: any = path_.split(path.sep);
@@ -190,17 +193,17 @@ export default class BaseItem extends BaseModel {
 	}
 
 	// Returns the IDs of the items that have been synced at least once
-	public static async syncedItemIds(syncTarget: number) {
+	public static async syncedItemIds(syncTarget: number): Promise<string[]> {
 		if (!syncTarget) throw new Error('No syncTarget specified');
 		const temp = await this.db().selectAll('SELECT item_id FROM sync_items WHERE sync_time > 0 AND sync_target = ?', [syncTarget]);
-		const output = [];
+		const output: string[] = [];
 		for (let i = 0; i < temp.length; i++) {
-			output.push(temp[i].item_id);
+			if (temp[i].item_id) output.push(temp[i].item_id);
 		}
 		return output;
 	}
 
-	public static async syncItem(syncTarget: number, itemId: string, options: LoadOptions = null): Promise<SyncItemEntity> {
+	public static async syncItem(syncTarget: number, itemId: string, options: LoadOptions = {}): Promise<SyncItemEntity | null> {
 		options = {
 			fields: '*',
 			...options,
@@ -208,27 +211,28 @@ export default class BaseItem extends BaseModel {
 		return await this.db().selectOne(`SELECT ${this.db().escapeFieldsToString(options.fields)} FROM sync_items WHERE sync_target = ? AND item_id = ?`, [syncTarget, itemId]);
 	}
 
-	public static async allSyncItems(syncTarget: number) {
+	public static async allSyncItems(syncTarget: number): Promise<Row[]> {
 		const output = await this.db().selectAll('SELECT * FROM sync_items WHERE sync_target = ?', [syncTarget]);
 		return output;
 	}
 
 	public static pathToId(path_: string) {
 		const p = path_.split(path.sep);
-		const s = p[p.length - 1].split('.');
-		let name: any = s[0];
+		let s = p[p.length - 1].split('.');
+		let name: string = s[0];
 		if (!name) return name;
-		name = name.split('-');
-		return name[name.length - 1];
+		s = name.split('-');
+		return s[name.length - 1];
 	}
 
 	public static loadItemByPath(path_: string) {
 		return this.loadItemById(this.pathToId(path_));
 	}
 
-	public static async loadItemById(id: string, options: LoadOptions = null) {
+	public static async loadItemById(id: string, options: LoadOptions = {}) {
 		const classes = this.syncItemClassNames();
 		for (let i = 0; i < classes.length; i++) {
+			if (classes[i] === 'Setting') continue;
 			const item = await this.getClass(classes[i]).load(id, options);
 			if (item) return item;
 		}
@@ -241,6 +245,7 @@ export default class BaseItem extends BaseModel {
 		const classes = this.syncItemClassNames();
 		let output: any[] = [];
 		for (let i = 0; i < classes.length; i++) {
+			if (classes[i] === 'Setting') continue;
 			const ItemClass = this.getClass(classes[i]);
 			const sql = `SELECT * FROM ${ItemClass.tableName()} WHERE id IN ("${ids.join('","')}")`;
 			const models = await ItemClass.modelSelectAll(sql);
@@ -249,27 +254,27 @@ export default class BaseItem extends BaseModel {
 		return output;
 	}
 
-	public static async loadItemsByTypeAndIds(itemType: ModelType, ids: string[], options: LoadOptions = null): Promise<any[]> {
+	public static async loadItemsByTypeAndIds(itemType: ModelType, ids: string[], options: LoadOptions = {}): Promise<any[]> {
 		if (!ids.length) return [];
 
-		const fields = options && options.fields ? options.fields : [];
+		const fields = options.fields ? options.fields : [];
 		const ItemClass = this.getClassByItemType(itemType);
 		const fieldsSql = fields.length ? this.db().escapeFields(fields) : '*';
 		const sql = `SELECT ${fieldsSql} FROM ${ItemClass.tableName()} WHERE id IN ("${ids.join('","')}")`;
 		return ItemClass.modelSelectAll(sql);
 	}
 
-	public static async loadItemsByType(itemType: ModelType, options: LoadOptions = null): Promise<any[]> {
-		const fields = options && options.fields ? options.fields : [];
+	public static async loadItemsByType(itemType: ModelType, options: LoadOptions = {}): Promise<any[]> {
+		const fields = options.fields ? options.fields : [];
 		const ItemClass = this.getClassByItemType(itemType);
 		const fieldsSql = fields.length ? this.db().escapeFields(fields) : '*';
 		const sql = `SELECT ${fieldsSql} FROM ${ItemClass.tableName()}`;
 		return ItemClass.modelSelectAll(sql);
 	}
 
-	public static async loadItemByTypeAndId(itemType: ModelType, id: string, options: LoadOptions = null) {
+	public static async loadItemByTypeAndId(itemType: ModelType, id: string, options: LoadOptions = {}) {
 		const result = await this.loadItemsByTypeAndIds(itemType, [id], options);
-		return result.length ? result[0] : null;
+		return result.length ? result[0] : 0;
 	}
 
 	public static loadItemByField(itemType: number, field: string, value: any) {
@@ -277,8 +282,7 @@ export default class BaseItem extends BaseModel {
 		return ItemClass.loadByField(field, value);
 	}
 
-	public static loadItem(itemType: ModelType, id: string, options: LoadOptions = null) {
-		if (!options) options = {};
+	public static loadItem(itemType: ModelType, id: string, options: LoadOptions = {}) {
 		const ItemClass = this.itemClass(itemType);
 		return ItemClass.load(id, options);
 	}
@@ -288,14 +292,13 @@ export default class BaseItem extends BaseModel {
 		return ItemClass.delete(id);
 	}
 
-	public static async delete(id: string, options: DeleteOptions = null) {
-		return this.batchDelete([id], options);
+	public static async delete(id: string, options: DeleteOptions = {}): Promise<void> {
+		this.batchDelete([id], options);
 	}
 
-	public static async batchDelete(ids: string[], options: DeleteOptions = null) {
-		if (!options) options = {};
+	public static async batchDelete(ids: string[], options: DeleteOptions = {}): Promise<void> {
 		let trackDeleted = true;
-		if (options && options.trackDeleted !== null && options.trackDeleted !== undefined) trackDeleted = options.trackDeleted;
+		if (options.trackDeleted) trackDeleted = options.trackDeleted;
 
 		// Don't create a deleted_items entry when conflicted notes are deleted
 		// since no other client have (or should have) them.
@@ -303,11 +306,12 @@ export default class BaseItem extends BaseModel {
 		if (this.modelType() === BaseModel.TYPE_NOTE) {
 			const conflictNotes = await this.db().selectAll(`SELECT id FROM notes WHERE id IN ("${ids.join('","')}") AND is_conflict = 1`);
 			conflictNoteIds = conflictNotes.map((n: NoteEntity) => {
-				return n.id;
+				return n.id ?? '';
 			});
 		}
 
-		if (needsReadOnlyChecks(this.modelType(), options.changeSource, this.syncShareCache, options.disableReadOnlyCheck)) {
+		if (options.changeSource && this.syncShareCache &&
+			needsReadOnlyChecks(this.modelType(), options.changeSource, this.syncShareCache, options.disableReadOnlyCheck)) {
 			const previousItems = await this.loadItemsByTypeAndIds(this.modelType(), ids, { fields: ['share_id', 'id'] });
 			checkIfItemsCanBeChanged(this.modelType(), options.changeSource, previousItems, this.syncShareCache);
 		}
@@ -315,6 +319,7 @@ export default class BaseItem extends BaseModel {
 		await super.batchDelete(ids, options);
 
 		if (trackDeleted) {
+			const Setting = BaseItem.getClass('Setting');
 			const syncTargetIds = Setting.enumOptionValues('sync.target');
 			const queries = [];
 			const now = time.unixMs();
@@ -347,9 +352,9 @@ export default class BaseItem extends BaseModel {
 		return this.db().selectAll('SELECT * FROM deleted_items WHERE sync_target = ?', [syncTarget]);
 	}
 
-	public static async deletedItemCount(syncTarget: number) {
+	public static async deletedItemCount(syncTarget: number): Promise<number> {
 		const r = await this.db().selectOne('SELECT count(*) as total FROM deleted_items WHERE sync_target = ?', [syncTarget]);
-		return r['total'];
+		return r ? r['total'] : 0;
 	}
 
 	public static remoteDeletedItem(syncTarget: number, itemId: string) {
@@ -406,9 +411,8 @@ export default class BaseItem extends BaseModel {
 			: propValue;
 	}
 
-	// XJ amended
-	public static async serialize(item: any, shownKeys: any[] = null) {
-		if (shownKeys === null) {
+	public static async serialize(item: any, shownKeys: any[] = []): Promise<string> {
+		if (!shownKeys.length) {
 			shownKeys = this.itemClass(item).fieldNames();
 			shownKeys.push('type_');
 		}
@@ -458,17 +462,17 @@ export default class BaseItem extends BaseModel {
 		return temp.join('\n');
 	}
 
-	public static encryptionService() {
+	public static encryptionService(): EncryptionService {
 		if (!this.encryptionService_) throw new Error('BaseItem.encryptionService_ is not set!!');
 		return this.encryptionService_;
 	}
 
-	public static revisionService() {
+	public static revisionService(): RevisionService {
 		if (!this.revisionService_) throw new Error('BaseItem.revisionService_ is not set!!');
 		return this.revisionService_;
 	}
 
-	protected static shareService() {
+	protected static shareService(): ShareService {
 		if (!this.shareService_) throw new Error('BaseItem.shareService_ is not set!!');
 		return this.shareService_;
 	}
@@ -481,7 +485,7 @@ export default class BaseItem extends BaseModel {
 		const share = item.share_id ? await this.shareService().shareById(item.share_id) : null;
 		const serialized = await ItemClass.serialize(item, shownKeys);
 
-		if (!getEncryptionEnabled() || !ItemClass.encryptionSupported() || !itemCanBeEncrypted(item, share)) {
+		if (!getEncryptionEnabled() || !ItemClass.encryptionSupported() || !share || !itemCanBeEncrypted(item, share)) {
 			// Normally not possible since itemsThatNeedSync should only return decrypted items
 			if (item.encryption_applied) throw new XilinotaError('Item is encrypted but encryption is currently disabled', 'cannotSyncEncrypted');
 			return serialized;
@@ -501,9 +505,9 @@ export default class BaseItem extends BaseModel {
 			});
 		} catch (error) {
 			const msg = [`Could not encrypt item ${item.id}`];
-			if (error && error.message) msg.push(error.message);
+			if (error instanceof XilinotaError && error.message) msg.push(error.message);
 			const newError = new Error(msg.join(': '));
-			newError.stack = error.stack;
+			newError.stack = (error as XilinotaError).stack;
 			throw newError;
 		}
 
@@ -640,7 +644,7 @@ export default class BaseItem extends BaseModel {
 		};
 	}
 
-	public static async encryptedItemsCount() {
+	public static async encryptedItemsCount(): Promise<number> {
 		const classNames = this.encryptableItemClassNames();
 		let output = 0;
 
@@ -654,7 +658,7 @@ export default class BaseItem extends BaseModel {
 		return output;
 	}
 
-	public static async hasEncryptedItems() {
+	public static async hasEncryptedItems(): Promise<boolean> {
 		const classNames = this.encryptableItemClassNames();
 
 		for (let i = 0; i < classNames.length; i++) {
@@ -719,6 +723,7 @@ export default class BaseItem extends BaseModel {
 
 		for (let i = 0; i < classNames.length; i++) {
 			const className = classNames[i];
+			if (className === 'Setting') continue;
 			const ItemClass = this.getClass(className);
 			const fieldNames = ItemClass.fieldNames('items');
 
@@ -752,11 +757,11 @@ export default class BaseItem extends BaseModel {
 				ORDER BY items.updated_time DESC
 				LIMIT %d
 			`,
-			this.db().escapeFields(fieldNames),
-			this.db().escapeField(ItemClass.tableName()),
-			Number(syncTarget),
-			extraWhere,
-			limit,
+				this.db().escapeFields(fieldNames),
+				this.db().escapeField(ItemClass.tableName()),
+				Number(syncTarget),
+				extraWhere,
+				limit,
 			);
 
 			const neverSyncedItem = await ItemClass.modelSelectAll(sql);
@@ -810,11 +815,11 @@ export default class BaseItem extends BaseModel {
 		});
 	}
 
-	public static encryptableItemClassNames() {
+	public static encryptableItemClassNames(): string[] {
 		const temp = this.syncItemClassNames();
 		const output = [];
 		for (let i = 0; i < temp.length; i++) {
-			if (temp[i] === 'MasterKey') continue;
+			if (temp[i] === 'MasterKey' || temp[i] === 'Setting') continue;
 			output.push(temp[i]);
 		}
 		return output;
@@ -826,14 +831,14 @@ export default class BaseItem extends BaseModel {
 		});
 	}
 
-	public static modelTypeToClassName(type: number) {
+	public static modelTypeToClassName(type: number): string {
 		for (let i = 0; i < BaseItem.syncItemDefinitions_.length; i++) {
 			if (BaseItem.syncItemDefinitions_[i].type === type) return BaseItem.syncItemDefinitions_[i].className;
 		}
 		throw new Error(`Invalid type: ${type}`);
 	}
 
-	public static async syncDisabledItems(syncTargetId: number) {
+	public static async syncDisabledItems(syncTargetId: number): Promise<{ syncInfo: Row; location: any; item: any; }[]> {
 		const rows = await this.db().selectAll('SELECT * FROM sync_items WHERE sync_disabled = 1 AND sync_target = ?', [syncTargetId]);
 		const output = [];
 		for (let i = 0; i < rows.length; i++) {
@@ -850,12 +855,12 @@ export default class BaseItem extends BaseModel {
 		return output;
 	}
 
-	public static updateSyncTimeQueries(syncTarget: number, item: any, syncTime: number, syncDisabled = false, syncDisabledReason = '', itemLocation: number = null) {
+	public static updateSyncTimeQueries(syncTarget: number, item: any, syncTime: number, syncDisabled = false, syncDisabledReason = '', itemLocation: number = 0): { sql: string; params: any[]; }[] {
 		const itemType = item.type_;
 		const itemId = item.id;
 		if (!itemType || !itemId || syncTime === undefined) throw new Error(sprintf('Invalid parameters in updateSyncTimeQueries(): %d, %s, %d', syncTarget, JSON.stringify(item), syncTime));
 
-		if (itemLocation === null) itemLocation = BaseItem.SYNC_ITEM_LOCATION_LOCAL;
+		if (!itemLocation) itemLocation = BaseItem.SYNC_ITEM_LOCATION_LOCAL;
 
 		return [
 			{
@@ -869,30 +874,31 @@ export default class BaseItem extends BaseModel {
 		];
 	}
 
-	public static async saveSyncTime(syncTarget: number, item: any, syncTime: number) {
+	public static async saveSyncTime(syncTarget: number, item: any, syncTime: number): Promise<void> {
 		const queries = this.updateSyncTimeQueries(syncTarget, item, syncTime);
 		return this.db().transactionExecBatch(queries);
 	}
 
-	public static async saveSyncDisabled(syncTargetId: number, item: any, syncDisabledReason: string, itemLocation: number = null) {
+	public static async saveSyncDisabled(syncTargetId: number, item: any, syncDisabledReason: string, itemLocation: number = 0): Promise<void> {
 		const syncTime = 'sync_time' in item ? item.sync_time : 0;
 		const queries = this.updateSyncTimeQueries(syncTargetId, item, syncTime, true, syncDisabledReason, itemLocation);
 		return this.db().transactionExecBatch(queries);
 	}
 
-	public static async saveSyncEnabled(itemType: ModelType, itemId: string) {
+	public static async saveSyncEnabled(itemType: ModelType, itemId: string): Promise<void> {
 		await this.db().exec('DELETE FROM sync_items WHERE item_type = ? AND item_id = ?', [itemType, itemId]);
 	}
 
 	// When an item is deleted, its associated sync_items data is not immediately deleted for
 	// performance reason. So this function is used to look for these remaining sync_items and
 	// delete them.
-	public static async deleteOrphanSyncItems() {
+	public static async deleteOrphanSyncItems(): Promise<void> {
 		const classNames = this.syncItemClassNames();
 
 		const queries = [];
 		for (let i = 0; i < classNames.length; i++) {
 			const className = classNames[i];
+			if (className === 'Setting') continue;
 			const ItemClass = this.getClass(className);
 
 			let selectSql = `SELECT id FROM ${ItemClass.tableName()}`;
@@ -904,13 +910,13 @@ export default class BaseItem extends BaseModel {
 		await this.db().transactionExecBatch(queries);
 	}
 
-	public static displayTitle(item: any) {
+	public static displayTitle(item: any): string {
 		if (!item) return '';
 		if (item.encryption_applied) return `🔑 ${_('Encrypted')}`;
 		return item.title ? item.title : _('Untitled');
 	}
 
-	public static async markAllNonEncryptedForSync() {
+	public static async markAllNonEncryptedForSync(): Promise<void> {
 		const classNames = this.encryptableItemClassNames();
 
 		for (let i = 0; i < classNames.length; i++) {
@@ -935,7 +941,7 @@ export default class BaseItem extends BaseModel {
 		}
 	}
 
-	public static async updateShareStatus(item: BaseItemEntity, isShared: boolean) {
+	public static async updateShareStatus(item: BaseItemEntity, isShared: boolean): Promise<boolean> {
 		if (!item.id || !item.type_) throw new Error('Item must have an ID and a type');
 		if (!!item.is_shared === !!isShared) return false;
 		const ItemClass = this.getClassByItemType(item.type_);
@@ -954,16 +960,15 @@ export default class BaseItem extends BaseModel {
 		return true;
 	}
 
-	public static async forceSync(itemId: string) {
+	public static async forceSync(itemId: string): Promise<void> {
 		await this.db().exec('UPDATE sync_items SET force_sync = 1 WHERE item_id = ?', [itemId]);
 	}
 
-	public static async forceSyncAll() {
+	public static async forceSyncAll(): Promise<void> {
 		await this.db().exec('UPDATE sync_items SET force_sync = 1');
 	}
 
-	public static async save(o: any, options: SaveOptions = null) {
-		if (!options) options = {};
+	public static async save(o: any, options: SaveOptions = {}) {
 
 		if (options.userSideValidation === true) {
 			if (o.encryption_applied) throw new Error(_('Encrypted items cannot be modified'));
@@ -971,7 +976,8 @@ export default class BaseItem extends BaseModel {
 
 		const isNew = this.isNew(o, options);
 
-		if (needsReadOnlyChecks(this.modelType(), options.changeSource, this.syncShareCache)) {
+		if (options.changeSource && this.syncShareCache &&
+			needsReadOnlyChecks(this.modelType(), options.changeSource, this.syncShareCache)) {
 			if (!isNew) {
 				const previousItem = await this.loadItemByTypeAndId(this.modelType(), o.id, { fields: ['id', 'share_id'] });
 				checkIfItemCanBeChanged(this.modelType(), options.changeSource, previousItem, this.syncShareCache);
@@ -979,7 +985,7 @@ export default class BaseItem extends BaseModel {
 
 			// If the item has a parent folder (a note or a sub-folder), check
 			// that we're not adding the item to a read-only folder.
-			if (o.parent_id) {
+			if (o.parent_id && BaseItem.syncShareCache) {
 				await checkIfItemCanBeAddedToFolder(
 					this.modelType(),
 					this.getClass('Folder'),
@@ -993,7 +999,7 @@ export default class BaseItem extends BaseModel {
 		return super.save(o, options);
 	}
 
-	public static markdownTag(itemOrId: any) {
+	public static markdownTag(itemOrId: any): string {
 		const item = typeof itemOrId === 'object' ? itemOrId : {
 			id: itemOrId,
 			title: '',
@@ -1007,7 +1013,7 @@ export default class BaseItem extends BaseModel {
 		return output.join('');
 	}
 
-	public static isMarkdownTag(md: any) {
+	public static isMarkdownTag(md: any): boolean {
 		if (!md) return false;
 		return !!md.match(/^\[.*?\]\(:\/[0-9a-zA-Z]{32}\)$/);
 	}

@@ -34,7 +34,7 @@ export default function getResponsiveValue(valueMap: ValueMap): number {
 	}
 
 	const width = Dimensions.get('window').width;
-	let value: number;
+	let value: number | undefined;
 	const { sm, md, lg, xl, xxl } = valueMap;
 
 	// This handles cases where certain values are omitted
@@ -56,5 +56,5 @@ export default function getResponsiveValue(valueMap: ValueMap): number {
 		value = xxl ?? value;
 	}
 
-	return value;
+	return value ? value : 0;
 }

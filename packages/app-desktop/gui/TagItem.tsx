@@ -1,10 +1,15 @@
-const React = require('react');
-const { connect } = require('react-redux');
+import React from 'react';
+import { connect } from 'react-redux';
 import { themeStyle } from '@xilinota/lib/theme';
 import CommandService from '@xilinota/lib/services/CommandService';
 import { AppState } from '../app.reducer';
 
-class TagItemComponent extends React.Component {
+interface Props {
+	themeId: number;
+	title: string;
+	id: string
+}
+class TagItemComponent extends React.Component<Props> {
 	public render() {
 		const theme = themeStyle(this.props.themeId);
 		const style = { ...theme.tagStyle };

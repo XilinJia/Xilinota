@@ -11,9 +11,9 @@ function defaultFieldsByModelType(modelType: number): string[] {
 	return output;
 }
 
-export default function(request: Request, modelType: number, defaultFields: string[] = null) {
+export default function(request: Request, modelType: number, defaultFields: string[] = []) {
 	const getDefaults = () => {
-		if (defaultFields) return defaultFields;
+		if (defaultFields.length) return defaultFields;
 		return defaultFieldsByModelType(modelType);
 	};
 

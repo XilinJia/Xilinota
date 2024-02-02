@@ -12,9 +12,10 @@ export const declaration: CommandDeclaration = {
 
 export const runtime = (comp: any): CommandRuntime => {
 	return {
-		execute: async (context: CommandContext, noteIds: string[] = null) => {
+		execute: async (context: CommandContext, _noteIds: string[]|null = []) => {
+			let noteIds = _noteIds || []
 			try {
-				noteIds = noteIds || context.state.selectedNoteIds;
+				noteIds = noteIds.length ? noteIds : context.state.selectedNoteIds;
 
 				if (!noteIds.length) throw new Error('No notes selected for pdf export');
 
@@ -40,15 +41,17 @@ export const runtime = (comp: any): CommandRuntime => {
 					if (noteIds.length === 1) {
 						pdfPath = path;
 					} else {
-						const n = await InteropServiceHelper.defaultFilename(note.id, 'pdf');
-						pdfPath = await shim.fsDriver().findUniqueFilename(`${path}/${n}`);
+						if (note && note.id) {
+							const n = await InteropServiceHelper.defaultFilename(note.id, 'pdf');
+							pdfPath = await shim.fsDriver().findUniqueFilename(`${path}/${n}`);
+						}
 					}
 
-					await comp.printTo_('pdf', { path: pdfPath, noteId: note.id });
+					await comp.printTo_('pdf', { path: pdfPath, noteId: note ? note.id : ''});
 				}
 			} catch (error) {
 				console.error(error);
-				bridge().showErrorMessageBox(error.message);
+				bridge().showErrorMessageBox((error as Error).message);
 			}
 		},
 

@@ -23,7 +23,7 @@ export const KeymapConfigScreen = ({ themeId }: KeymapConfigScreenProps) => {
 
 	const [filter, setFilter] = useState('');
 	const [keymapItems, keymapError, overrideKeymapItems, setAccelerator, resetAccelerator] = useKeymap();
-	const [recorderError, setRecorderError] = useState<Error>(null);
+	const [recorderError, setRecorderError] = useState<Error|null>();
 	const [editing, enableEditing, disableEditing] = useCommandStatus();
 	const [hovering, enableHovering, disableHovering] = useCommandStatus();
 
@@ -44,7 +44,7 @@ export const KeymapConfigScreen = ({ themeId }: KeymapConfigScreenProps) => {
 		disableEditing(commandName);
 	};
 
-	const handleError = (event: { recorderError: Error }) => {
+	const handleError = (event: { recorderError: Error|null }) => {
 		const { recorderError } = event;
 		setRecorderError(recorderError);
 	};
@@ -62,7 +62,7 @@ export const KeymapConfigScreen = ({ themeId }: KeymapConfigScreenProps) => {
 				const keymapFile = await shim.fsDriver().readFile(actualFilePath, 'utf-8');
 				overrideKeymapItems(JSON.parse(keymapFile));
 			} catch (error) {
-				bridge().showErrorMessageBox(_('Error: %s', error.message));
+				bridge().showErrorMessageBox(_('Error: %s', (error as Error).message));
 			}
 		}
 	};
@@ -78,18 +78,33 @@ export const KeymapConfigScreen = ({ themeId }: KeymapConfigScreenProps) => {
 				// KeymapService is already synchronized with the in-state keymap
 				await keymapService.saveCustomKeymap(filePath);
 			} catch (error) {
-				bridge().showerrororMessageBox(error.message);
+				bridge().showerrororMessageBox((error as Error).message);
 			}
 		}
 	};
 
 	const renderAccelerator = (accelerator: string) => {
+		const testkey = accelerator.split('+').map(part => <kbd style={styles.kbd} key={part}>{part}</kbd>);
+		console.log('testkey', testkey);
 		return (
+			// TODO: not sure how to get it right??
 			<div>
-				{accelerator.split('+').map(part => <kbd style={styles.kbd} key={part}>{part}</kbd>).reduce(
+				{/* {accelerator.split('+').map(part => <kbd style={styles.kbd} key={part}>{part}</kbd>).reduce(
 					(accumulator, part) => (accumulator.length ? [...accumulator, ' + ', part] : [part]),
 					[],
-				)}
+				)} */}
+				{/* {accelerator.split('+').reduce((accumulator, part, index) => {
+					return [...accumulator, <kbd style={styles.kbd} key={part}>{part}</kbd>, (index !== 0 && <span> + </span>)];
+				}, []).flat()} */}
+				{/* {accelerator.split('+').reduce((accumulator, part, index) => {
+					return [...accumulator, <kbd style={styles.kbd} key={part}>{part}</kbd>, (index !== 0 && <span> + </span>)];
+				}, [])} */}
+				{/* {accelerator.split('+').map((part) => (
+					<kbd style={styles.kbd} key={part}>{part}</kbd>
+				))} */}
+				{accelerator.split('+').map((part, index) => (
+					<kbd style={styles.kbd} key={index}>{part}</kbd>
+				))}
 			</div>
 		);
 	};

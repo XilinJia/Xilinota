@@ -22,7 +22,7 @@ describe('RotatingLogs', () => {
 			expect(files.find(file => file.match(/^log-[0-9]+.txt$/gi))).toBeTruthy();
 			expect(files.length).toBe(1);
 		} finally {
-			await remove(dir);
+			await remove(dir!);
 		}
 	});
 
@@ -39,7 +39,7 @@ describe('RotatingLogs', () => {
 			expect(files.find(file => file.match(/^log-[0-9]+.txt$/gi))).toBeFalsy();
 			expect(files.length).toBe(0);
 		} finally {
-			await remove(dir);
+			await remove(dir!);
 		}
 	});
 
@@ -56,7 +56,7 @@ describe('RotatingLogs', () => {
 			expect(files.find(file => file.match(/^log-[0-9]+.txt$/gi))).toBeTruthy();
 			expect(files.length).toBe(1);
 		} finally {
-			await remove(dir);
+			await remove(dir!);
 		}
 	});
 });

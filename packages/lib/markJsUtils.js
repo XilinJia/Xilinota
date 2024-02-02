@@ -35,7 +35,7 @@ markJsUtils.markKeyword = (mark, keyword, stringUtils, extraOptions = null) => {
 		// suffix for example for "ent*", it will highlight "present" which is
 		// incorrect (it should only highlight what starts with "ent") but for
 		// now will do. Mark.js doesn't have an option to tweak this behaviour.
-		value = keyword.value.substr(0, keyword.value.length - 1);
+		value = keyword.value.substring(0, keyword.value.length - 1);
 	}
 
 	mark.mark(

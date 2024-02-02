@@ -2,16 +2,17 @@
 
 import Setting from '../../models/Setting';
 import shim from '../../shim';
+import md5 from 'md5';
 
 export default class InteropService_Exporter_Base {
 	private context_: any = {};
 	private metadata_: any = {};
 
-	public async init(_destDir: string, _options: any = {}) {}
-	public async prepareForProcessingItemType(_itemType: number, _itemsToExport: any[]) {}
-	public async processItem(_itemType: number, _item: any) {}
-	public async processResource(_resource: any, _filePath: string) {}
-	public async close() {}
+	public async init(_destDir: string, _options: any = {}) { }
+	public async prepareForProcessingItemType(_itemType: number, _itemsToExport: any[]) { }
+	public async processItem(_itemType: number, _item: any) { }
+	public async processResource(_resource: any, _filePath: string) { }
+	public async close() { }
 
 	public setMetadata(md: any) {
 		this.metadata_ = md;
@@ -30,8 +31,7 @@ export default class InteropService_Exporter_Base {
 	}
 
 	protected async temporaryDirectory_(createIt: boolean) {
-		const md5 = require('md5');
-		const tempDir = `${Setting.value('tempDir')}/${md5(Math.random() + Date.now())}`;
+		const tempDir = `${Setting.value('tempDir')}/${md5(Math.random().toString() + Date.now())}`;
 		if (createIt) await shim.fsDriver().mkdir(tempDir);
 		return tempDir;
 	}

@@ -8,8 +8,9 @@ import { filename, dirname, rtrimSlashes } from '../../path-utils';
 import Setting from '../../models/Setting';
 import Logger from '@xilinota/utils/Logger';
 import RepositoryApi from './RepositoryApi';
-import produce from 'immer';
+import { produce } from 'immer';
 import { compareVersions } from 'compare-versions';
+
 const uslug = require('@xilinota/fork-uslug');
 
 const logger = Logger.create('PluginService');
@@ -66,12 +67,12 @@ export interface PluginSettings {
 
 function makePluginId(source: string): string {
 	// https://www.npmjs.com/package/slug#options
-	return uslug(source).substr(0, 32);
+	return uslug(source).substring(0, 32);
 }
 
 export default class PluginService extends BaseService {
 
-	private static instance_: PluginService = null;
+	private static instance_: PluginService;
 
 	public static instance(): PluginService {
 		if (!this.instance_) {
@@ -81,11 +82,11 @@ export default class PluginService extends BaseService {
 		return this.instance_;
 	}
 
-	private appVersion_: string;
+	private appVersion_: string = '';
 	private store_: any = null;
 	private platformImplementation_: any = null;
 	private plugins_: Plugins = {};
-	private runner_: BasePluginRunner = null;
+	private runner_: BasePluginRunner | undefined;
 	private startedPlugins_: Record<string, boolean> = {};
 	private isSafeMode_ = false;
 
@@ -168,7 +169,7 @@ export default class PluginService extends BaseService {
 			const contentScript = plugin.contentScriptById(contentScriptId);
 			if (contentScript) return pluginId;
 		}
-		return null;
+		return '';
 	}
 
 	private async parsePluginJsBundle(jsBundleString: string) {
@@ -338,7 +339,7 @@ export default class PluginService extends BaseService {
 	}
 
 	public callStatsSummary(pluginId: string, duration: number) {
-		return this.runner_.callStatsSummary(pluginId, duration);
+		return this.runner_!.callStatsSummary(pluginId, duration);
 	}
 
 	public async loadAndRunPlugins(pluginDirOrPaths: string | string[], settings: PluginSettings, devMode = false) {
@@ -424,17 +425,17 @@ export default class PluginService extends BaseService {
 		plugin.on('started', onStarted);
 
 		const pluginApi = new Global(this.platformImplementation_, plugin, this.store_);
-		return this.runner_.run(plugin, pluginApi);
+		return this.runner_?.run(plugin, pluginApi);
 	}
 
-	public async installPluginFromRepo(repoApi: RepositoryApi, pluginId: string): Promise<Plugin> {
+	public async installPluginFromRepo(repoApi: RepositoryApi, pluginId: string): Promise<Plugin | null> {
 		const pluginPath = await repoApi.downloadPlugin(pluginId);
 		const plugin = await this.installPlugin(pluginPath);
 		await shim.fsDriver().remove(pluginPath);
 		return plugin;
 	}
 
-	public async updatePluginFromRepo(repoApi: RepositoryApi, pluginId: string): Promise<Plugin> {
+	public async updatePluginFromRepo(repoApi: RepositoryApi, pluginId: string): Promise<Plugin | null> {
 		return this.installPluginFromRepo(repoApi, pluginId);
 	}
 
@@ -509,7 +510,7 @@ export default class PluginService extends BaseService {
 	}
 
 	public async destroy() {
-		await this.runner_.waitForSandboxCalls();
+		await this.runner_?.waitForSandboxCalls();
 	}
 
 }

@@ -2,7 +2,7 @@ import Setting, { SettingStorage } from '@xilinota/lib/models/Setting';
 import { SettingItemType } from '@xilinota/lib/services/plugins/api/types';
 import shim from '@xilinota/lib/shim';
 
-const BaseCommand = require('./base-command').default;
+import BaseCommand from './base-command';
 
 function settingTypeToSchemaType(type: SettingItemType): string {
 	const map: Record<SettingItemType, string> = {
@@ -61,7 +61,7 @@ class Command extends BaseCommand {
 			if (md.description && md.description('desktop')) description.push(md.description('desktop'));
 
 			if (description.length) props.description = description.join('. ');
-			if (md.isEnum) props.enum = Object.keys(md.options()).map((v: any) => Setting.formatValue(key, v));
+			if (md.isEnum && md.options) props.enum = Object.keys(md.options()).map((v: any) => Setting.formatValue(key, v));
 			if ('minimum' in md) props.minimum = md.minimum;
 			if ('maximum' in md) props.maximum = md.maximum;
 			if (!md.public || md.storage !== SettingStorage.File) props['$comment'] = 'private';

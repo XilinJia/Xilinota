@@ -1,9 +1,8 @@
 // Dialog allowing the user to update/create links
 
-const React = require('react');
-const { useState, useEffect, useMemo, useRef } = require('react');
-const { StyleSheet } = require('react-native');
-const { View, Text, TextInput, Button } = require('react-native');
+import React from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
 
 import Modal from '../Modal';
 import { themeStyle } from '@xilinota/lib/theme';
@@ -25,7 +24,7 @@ const EditLinkDialog = (props: LinkDialogProps) => {
 	const [linkLabel, setLinkLabel] = useState('');
 	const [linkURL, setLinkURL] = useState('');
 
-	const linkInputRef = useRef();
+	const linkInputRef = useRef<TextInput>(null);
 
 	// Reset the label and URL when shown/hidden
 	useEffect(() => {
@@ -100,7 +99,7 @@ const EditLinkDialog = (props: LinkDialogProps) => {
 				autoFocus
 
 				onSubmitEditing={() => {
-					linkInputRef.current.focus();
+					linkInputRef.current?.focus();
 				}}
 				onChangeText={(text: string) => setLinkLabel(text)}
 			/>
@@ -144,7 +143,8 @@ const EditLinkDialog = (props: LinkDialogProps) => {
 				{linkURLInput}
 			</View>
 			<Button
-				style={styles.button}
+				// TODO: style doesn't exist
+				// style={styles.button}
 				onPress={onSubmit}
 				title={_('Done')}
 			/>

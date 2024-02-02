@@ -1,3 +1,5 @@
+// seeme not used?
+
 import { useEffect, useState } from 'react';
 import { PluginStates } from '@xilinota/lib/services/plugins/reducer';
 import { contentScriptsToCodeMirrorPlugin } from '@xilinota/lib/services/plugins/utils/loadContentScripts';
@@ -24,7 +26,7 @@ export default function useExternalPlugins(CodeMirror: any, plugins: PluginState
 						try {
 							require(`codemirror/${asset}`);
 						} catch (error) {
-							error.message = `${asset} is not a valid CodeMirror asset, keymap or mode. You can find a list of valid assets here: https://codemirror.net/doc/manual.html#addons`;
+							if (error instanceof Error) error.message = `${asset} is not a valid CodeMirror asset, keymap or mode. You can find a list of valid assets here: https://codemirror.net/doc/manual.html#addons`;
 							throw error;
 						}
 					}
@@ -65,7 +67,7 @@ export default function useExternalPlugins(CodeMirror: any, plugins: PluginState
 					mod.plugin(CodeMirror);
 				}
 			} catch (error) {
-				reg.logger().error(error.toString());
+				reg.logger().error((error as Error).toString());
 			}
 		}
 		setOptions(newOptions);

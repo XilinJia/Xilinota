@@ -16,12 +16,12 @@ import { connect } from 'react-redux';
 import { AppState } from '../app.reducer';
 import { getEncryptionEnabled } from '@xilinota/lib/services/synchronizer/syncInfoUtils';
 import SyncTargetRegistry from '@xilinota/lib/SyncTargetRegistry';
-const { clipboard } = require('electron');
+import XilinotaError from '@xilinota/lib/XilinotaError';
+import { clipboard } from 'electron';
 
 interface Props {
 	themeId: number;
 	noteIds: string[];
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	onClose: Function;
 	shares: StateShare[];
 	syncTargetId: number;
@@ -86,7 +86,8 @@ export function ShareNoteDialog(props: Props) {
 		async function fetchNotes() {
 			const result = [];
 			for (const noteId of props.noteIds) {
-				result.push(await Note.load(noteId));
+				const n = await Note.load(noteId);
+				if (n) result.push(n);
 			}
 			setNotes(result);
 		}
@@ -123,8 +124,10 @@ export function ShareNoteDialog(props: Props) {
 				const newShares: StateShare[] = [];
 
 				for (const note of notes) {
-					const share = await service.shareNote(note.id, recursiveShare);
-					newShares.push(share);
+					if (note.id) {
+						const share = await service.shareNote(note.id, recursiveShare);
+						newShares.push(share);
+					}
 				}
 
 				setSharesState('synchronizing');
@@ -137,7 +140,7 @@ export function ShareNoteDialog(props: Props) {
 
 				await ShareService.instance().refreshShares();
 			} catch (error) {
-				if (error.code === 404 && !hasSynced) {
+				if (error instanceof XilinotaError && error.code === 404 && !hasSynced) {
 					reg.logger().info('ShareNoteDialog: Note does not exist on server - trying to sync it.', error);
 					tryToSync = true;
 					continue;
@@ -160,7 +163,7 @@ export function ShareNoteDialog(props: Props) {
 
 	const renderNote = (note: NoteEntity) => {
 		const unshareButton = !props.shares.find(s => s.note_id === note.id) ? null : (
-			<Button tooltip={_('Unpublish note')} iconName="fas fa-share-alt" onClick={() => unshareNoteButton_click({ noteId: note.id })}/>
+			<Button tooltip={_('Unpublish note')} iconName="fas fa-share-alt" onClick={() => unshareNoteButton_click({ noteId: note.id })} />
 		);
 
 		return (
@@ -187,7 +190,7 @@ export function ShareNoteDialog(props: Props) {
 
 	function renderEncryptionWarningMessage() {
 		if (!getEncryptionEnabled()) return null;
-		return <div style={theme.textStyle}>{_('Note: When a note is shared, it will no longer be encrypted on the server.')}<hr/></div>;
+		return <div style={theme.textStyle}>{_('Note: When a note is shared, it will no longer be encrypted on the server.')}<hr /></div>;
 	}
 
 	const onRecursiveShareChange = useCallback(() => {
@@ -207,7 +210,7 @@ export function ShareNoteDialog(props: Props) {
 	const renderContent = () => {
 		return (
 			<div style={styles.root} className="form">
-				<DialogTitle title={_('Publish Notes')}/>
+				<DialogTitle title={_('Publish Notes')} />
 				{renderNoteList(notes)}
 				{renderRecursiveShareCheckbox()}
 				<button disabled={['creating', 'synchronizing'].indexOf(sharesState) >= 0} style={styles.copyShareLinkButton} onClick={shareLinkButton_click}>{_n('Copy Shareable Link', 'Copy Shareable Links', noteCount)}</button>
@@ -224,7 +227,7 @@ export function ShareNoteDialog(props: Props) {
 	};
 
 	return (
-		<Dialog renderContent={renderContent}/>
+		<Dialog renderContent={renderContent} />
 	);
 }
 

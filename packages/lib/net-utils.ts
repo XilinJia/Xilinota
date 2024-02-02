@@ -1,6 +1,6 @@
 import shim from './shim';
 
-export async function ip() {
+export async function ip(): Promise<string> {
 	const response = await shim.fetch('https://api.ipify.org/?format=json');
 	if (!response.ok) {
 		throw new Error(`Could not retrieve IP: ${await response.text()}`);
@@ -10,7 +10,7 @@ export async function ip() {
 	return ip.ip;
 }
 
-export async function findAvailablePort(tcpPortUsed: any, possiblePorts: number[], extraRandomPortsToTry = 20) {
+export async function findAvailablePort(tcpPortUsed: any, possiblePorts: number[], extraRandomPortsToTry = 20): Promise<number | null> {
 	for (let i = 0; i < extraRandomPortsToTry; i++) {
 		possiblePorts.push(Math.floor(8000 + Math.random() * 2000));
 	}
@@ -26,7 +26,7 @@ export async function findAvailablePort(tcpPortUsed: any, possiblePorts: number[
 	return port;
 }
 
-export function mimeTypeFromHeaders(headers: Record<string, any>) {
+export function mimeTypeFromHeaders(headers: Record<string, any>): string | null {
 	if (!headers || !headers['content-type']) return null;
 
 	const splitted = headers['content-type'].split(';');

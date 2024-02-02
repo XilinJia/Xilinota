@@ -4,7 +4,7 @@ import BaseItem from './BaseItem';
 const DiffMatchPatch = require('diff-match-patch');
 import * as ArrayUtils from '../ArrayUtils';
 import XilinotaError from '../XilinotaError';
-const { sprintf } = require('sprintf-js');
+import { sprintf } from 'sprintf-js';
 
 const dmp = new DiffMatchPatch();
 
@@ -14,11 +14,11 @@ export interface ObjectPatch {
 }
 
 export default class Revision extends BaseItem {
-	public static tableName() {
+	public static tableName(): string {
 		return 'revisions';
 	}
 
-	public static modelType() {
+	public static modelType(): ModelType {
 		return BaseModel.TYPE_REVISION;
 	}
 
@@ -48,7 +48,7 @@ export default class Revision extends BaseItem {
 	}
 
 	private static isLegacyPatch(patch: string): boolean {
-		return patch && patch.indexOf('@@') === 0;
+		return !!patch && patch.indexOf('@@') === 0;
 	}
 
 	private static isNewPatch(patch: string): boolean {
@@ -70,6 +70,7 @@ export default class Revision extends BaseItem {
 	}
 
 	public static isEmptyRevision(rev: RevisionEntity): boolean {
+		if (!rev.title_diff || !rev.body_diff) return true;
 		if (this.isLegacyPatch(rev.title_diff) && rev.title_diff) return false;
 		if (this.isLegacyPatch(rev.body_diff) && rev.body_diff) return false;
 
@@ -83,7 +84,7 @@ export default class Revision extends BaseItem {
 		return true;
 	}
 
-	public static createObjectPatch(oldObject: any, newObject: any) {
+	public static createObjectPatch(oldObject: any, newObject: any): string {
 		if (!oldObject) oldObject = {};
 
 		const output: ObjectPatch = {
@@ -140,7 +141,7 @@ export default class Revision extends BaseItem {
 		return changeList.join('\n');
 	}
 
-	public static patchStats(patch: string) {
+	public static patchStats(patch: string): { added: number; removed: number; } {
 		if (typeof patch === 'object') throw new Error('Not implemented');
 
 		if (this.isNewPatch(patch)) {
@@ -181,9 +182,9 @@ export default class Revision extends BaseItem {
 		};
 	}
 
-	public static revisionPatchStatsText(rev: RevisionEntity) {
-		const titleStats = this.patchStats(rev.title_diff);
-		const bodyStats = this.patchStats(rev.body_diff);
+	public static revisionPatchStatsText(rev: RevisionEntity): string {
+		const titleStats = this.patchStats(rev.title_diff ?? '');
+		const bodyStats = this.patchStats(rev.body_diff ?? '');
 		const total = {
 			added: titleStats.added + bodyStats.added,
 			removed: titleStats.removed + bodyStats.removed,
@@ -195,37 +196,37 @@ export default class Revision extends BaseItem {
 		return output.join(', ');
 	}
 
-	public static async countRevisions(itemType: ModelType, itemId: string) {
+	public static async countRevisions(itemType: ModelType, itemId: string): Promise<number> {
 		const r = await this.db().selectOne('SELECT count(*) as total FROM revisions WHERE item_type = ? AND item_id = ?', [itemType, itemId]);
 
 		return r ? r.total : 0;
 	}
 
-	public static latestRevision(itemType: ModelType, itemId: string) {
+	public static latestRevision(itemType: ModelType, itemId: string): Promise<RevisionEntity | null> {
 		return this.modelSelectOne('SELECT * FROM revisions WHERE item_type = ? AND item_id = ? ORDER BY item_updated_time DESC LIMIT 1', [itemType, itemId]);
 	}
 
-	public static allByType(itemType: ModelType, itemId: string) {
+	public static allByType(itemType: ModelType, itemId: string): Promise<RevisionEntity[]> {
 		return this.modelSelectAll('SELECT * FROM revisions WHERE item_type = ? AND item_id = ? ORDER BY item_updated_time ASC', [itemType, itemId]);
 	}
 
-	public static async itemsWithRevisions(itemType: ModelType, itemIds: string[]) {
+	public static async itemsWithRevisions(itemType: ModelType, itemIds: string[]): Promise<(string[])> {
 		if (!itemIds.length) return [];
 		const rows = await this.db().selectAll(`SELECT distinct item_id FROM revisions WHERE item_type = ? AND item_id IN ("${itemIds.join('","')}")`, [itemType]);
 
-		return rows.map((r: RevisionEntity) => r.item_id);
+		return rows.map((r: RevisionEntity) => r.item_id ?? '');
 	}
 
-	public static async itemsWithNoRevisions(itemType: ModelType, itemIds: string[]) {
+	public static async itemsWithNoRevisions(itemType: ModelType, itemIds: string[]): Promise<(string[])> {
 		const withRevs = await this.itemsWithRevisions(itemType, itemIds);
-		const output = [];
+		const output: string[] = [];
 		for (let i = 0; i < itemIds.length; i++) {
 			if (withRevs.indexOf(itemIds[i]) < 0) output.push(itemIds[i]);
 		}
 		return ArrayUtils.unique(output);
 	}
 
-	public static moveRevisionToTop(revision: RevisionEntity, revs: RevisionEntity[]) {
+	public static moveRevisionToTop(revision: RevisionEntity, revs: RevisionEntity[]): RevisionEntity[] {
 		let targetIndex = -1;
 		for (let i = revs.length - 1; i >= 0; i--) {
 			const rev = revs[i];
@@ -248,10 +249,10 @@ export default class Revision extends BaseItem {
 	}
 
 	// Note: revs must be sorted by update_time ASC (as returned by allByType)
-	public static async mergeDiffs(revision: RevisionEntity, revs: RevisionEntity[] = null) {
+	public static async mergeDiffs(revision: RevisionEntity, revs: RevisionEntity[] = []): Promise<{ title: string; body: string; metadata: {}; }> {
 		if (!('encryption_applied' in revision) || !!revision.encryption_applied) throw new XilinotaError('Target revision is encrypted', 'revision_encrypted');
 
-		if (!revs) {
+		if (!revs.length) {
 			revs = await this.modelSelectAll('SELECT * FROM revisions WHERE item_type = ? AND item_id = ? AND item_updated_time <= ? ORDER BY item_updated_time ASC', [revision.item_type, revision.item_id, revision.item_updated_time]);
 		} else {
 			revs = revs.slice();
@@ -282,12 +283,12 @@ export default class Revision extends BaseItem {
 		for (const revIndex of revIndexes) {
 			const rev = revs[revIndex];
 			if (rev.encryption_applied) throw new XilinotaError(sprintf('Revision "%s" is encrypted', rev.id), 'revision_encrypted');
-			output.title = this.applyTextPatch(output.title, rev.title_diff);
-			output.body = this.applyTextPatch(output.body, rev.body_diff);
+			output.title = this.applyTextPatch(output.title, rev.title_diff ?? '');
+			output.body = this.applyTextPatch(output.body, rev.body_diff ?? '');
 			try {
-				output.metadata = this.applyObjectPatch(output.metadata, rev.metadata_diff);
+				output.metadata = this.applyObjectPatch(output.metadata, rev.metadata_diff ?? '');
 			} catch (error) {
-				error.message = `Revision ${rev.id}: Could not apply patch: ${error.message}: ${rev.metadata_diff}`;
+				if (error instanceof Error) error.message = `Revision ${rev.id}: Could not apply patch: ${error.message}: ${rev.metadata_diff}`;
 				throw error;
 			}
 		}
@@ -295,7 +296,7 @@ export default class Revision extends BaseItem {
 		return output;
 	}
 
-	public static async deleteOldRevisions(ttl: number) {
+	public static async deleteOldRevisions(ttl: number): Promise<void> {
 		// When deleting old revisions, we need to make sure that the oldest surviving revision
 		// is a "merged" one (as opposed to a diff from a now deleted revision). So every time
 		// we deleted a revision, we need to find if there's a corresponding surviving revision
@@ -331,7 +332,7 @@ export default class Revision extends BaseItem {
 					await this.db().transactionExecBatch(queries);
 				}
 			} catch (error) {
-				if (error.code === 'revision_encrypted') {
+				if (error instanceof XilinotaError && error.code === 'revision_encrypted') {
 					this.logger().info(`Aborted deletion of old revisions for item "${rev.item_id}" (rev "${rev.id}") because one of the revisions is still encrypted`, error);
 				} else {
 					throw error;
@@ -342,9 +343,9 @@ export default class Revision extends BaseItem {
 		}
 	}
 
-	public static async revisionExists(itemType: ModelType, itemId: string, updatedTime: number) {
+	public static async revisionExists(itemType: ModelType, itemId: string, updatedTime: number): Promise<boolean> {
 		const existingRev = await Revision.latestRevision(itemType, itemId);
-		return existingRev && existingRev.item_updated_time === updatedTime;
+		return !!existingRev && existingRev.item_updated_time === updatedTime;
 	}
 
 	private static parsePatch(patch: any): any[] {

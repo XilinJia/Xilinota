@@ -1,20 +1,22 @@
-const React = require('react');
+import React from 'react';
 
 import { connect } from 'react-redux';
 import { PureComponent } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Dimensions, ViewStyle } from 'react-native';
-const Icon = require('react-native-vector-icons/Ionicons').default;
-const { BackButtonService } = require('../services/back-button.js');
+
+import Icon from 'react-native-vector-icons/Ionicons';
+const DialogBox = require('react-native-dialogbox').default;
+
+import BackButtonService from '../services/back-button';
 import NavService from '@xilinota/lib/services/NavService';
 import { Menu, MenuOptions, MenuOption, MenuTrigger } from 'react-native-popup-menu';
 import { _, _n } from '@xilinota/lib/locale';
 import Setting from '@xilinota/lib/models/Setting';
 import Note from '@xilinota/lib/models/Note';
 import Folder from '@xilinota/lib/models/Folder';
-const { themeStyle } = require('./global-style.js');
+import { themeStyle } from './global-style';
 import { OnValueChangedListener } from './Dropdown';
-const { dialogs } = require('../utils/dialogs.js');
-const DialogBox = require('react-native-dialogbox').default;
+import dialogs from '../utils/dialogs';
 import { localSyncInfoFromState } from '@xilinota/lib/services/synchronizer/syncInfoUtils';
 import { showMissingMasterKeyMessage } from '@xilinota/lib/services/e2ee/utils';
 import { FolderEntity } from '@xilinota/lib/services/database/types';
@@ -28,7 +30,7 @@ import { PeersNote } from '@xilinota/lib/models/Peers';
 
 // We need this to suppress the useless warning
 // https://github.com/oblador/react-native-vector-icons/issues/1465
-// eslint-disable-next-line no-console
+
 Icon.loadFont().catch((error: any) => { console.info(error); });
 
 // Rather than applying a padding to the whole bar, it is applied to each
@@ -37,8 +39,8 @@ Icon.loadFont().catch((error: any) => { console.info(error); });
 // default height.
 const PADDING_V = 10;
 
-type OnSelectCallbackType=()=> void;
-type OnPressCallback=()=> void;
+type OnSelectCallbackType = () => void;
+type OnPressCallback = () => void;
 interface NavButtonPressEvent {
 	// Name of the screen to navigate to
 	screen: string;
@@ -51,7 +53,15 @@ export interface MenuOptionType {
 	disabled?: boolean;
 }
 
-type DispatchCommandType=(event: { type: string })=> void;
+export interface FolderPickerOptions {
+	enabled: boolean;
+	selectedFolderId?: string;
+	onValueChange?: OnValueChangedListener;
+	mustSelect?: boolean;
+};
+
+type DispatchCommandType = (event: { type: string }) => void;
+
 interface ScreenHeaderProps {
 	selectedNoteIds: string[];
 	noteSelectionEnabled: boolean;
@@ -60,14 +70,10 @@ interface ScreenHeaderProps {
 	undoButtonDisabled?: boolean;
 	showRedoButton: boolean;
 	menuOptions: MenuOptionType[];
-	title?: string|null;
+	title?: string | null;
 	folders: FolderEntity[];
-	folderPickerOptions?: {
-		enabled: boolean;
-		selectedFolderId?: string;
-		onValueChange?: OnValueChangedListener;
-		mustSelect?: boolean;
-	};
+	folderPickerOptions?: FolderPickerOptions;
+
 	peerPickerOptions?: {
 		enabled: boolean;
 		selectedFolderId?: string;
@@ -105,6 +111,7 @@ interface ScreenHeaderState {
 class ScreenHeaderComponent extends PureComponent<ScreenHeaderProps, ScreenHeaderState> {
 	private cachedStyles: any;
 	public dialogbox?: typeof DialogBox;
+
 	public constructor(props: ScreenHeaderProps) {
 		super(props);
 		this.cachedStyles = {};
@@ -115,7 +122,7 @@ class ScreenHeaderComponent extends PureComponent<ScreenHeaderProps, ScreenHeade
 		if (this.cachedStyles[themeId]) return this.cachedStyles[themeId];
 		this.cachedStyles = {};
 
-		const theme = themeStyle(themeId);
+		const theme = themeStyle(themeId.toString());
 
 		const styleObject: any = {
 			container: {
@@ -235,11 +242,11 @@ class ScreenHeaderComponent extends PureComponent<ScreenHeaderProps, ScreenHeade
 		return this.cachedStyles[themeId];
 	}
 
-	private sideMenuButton_press() {
+	private sideMenuButton_press(): void {
 		this.props.dispatch({ type: 'SIDE_MENU_TOGGLE' });
 	}
 
-	private async backButton_press() {
+	private async backButton_press(): Promise<void> {
 		if (this.props.noteSelectionEnabled) {
 			this.props.dispatch({ type: 'NOTE_SELECTION_END' });
 		} else {
@@ -247,15 +254,15 @@ class ScreenHeaderComponent extends PureComponent<ScreenHeaderProps, ScreenHeade
 		}
 	}
 
-	private selectAllButton_press() {
+	private selectAllButton_press(): void {
 		this.props.dispatch({ type: 'NOTE_SELECT_ALL_TOGGLE' });
 	}
 
-	private searchButton_press() {
+	private searchButton_press(): void {
 		void NavService.go('Search');
 	}
 
-	private async duplicateButton_press() {
+	private async duplicateButton_press(): Promise<void> {
 		const noteIds = this.props.selectedNoteIds;
 
 		this.props.dispatch({ type: 'NOTE_SELECTION_END' });
@@ -265,11 +272,11 @@ class ScreenHeaderComponent extends PureComponent<ScreenHeaderProps, ScreenHeade
 			// original note's name as a root for the new unique identifier.
 			await Note.duplicateMultipleNotes(noteIds, { ensureUniqueTitle: true });
 		} catch (error) {
-			alert(_n('This note could not be duplicated: %s', 'These notes could not be duplicated: %s', noteIds.length, error.message));
+			alert(_n('This note could not be duplicated: %s', 'These notes could not be duplicated: %s', noteIds.length, (error as Error).message));
 		}
 	}
 
-	private async deleteButton_press() {
+	private async deleteButton_press(): Promise<void> {
 		// Dialog needs to be displayed as a child of the parent component, otherwise
 		// it won't be visible within the header component.
 		const noteIds = this.props.selectedNoteIds;
@@ -286,21 +293,21 @@ class ScreenHeaderComponent extends PureComponent<ScreenHeaderProps, ScreenHeade
 			await Note.batchDelete(noteIds);
 			await PeersNote.batchDeleteOnPeers(noteIds);
 		} catch (error) {
-			alert(_n('This note could not be deleted: %s', 'These notes could not be deleted: %s', noteIds.length, error.message));
+			alert(_n('This note could not be deleted: %s', 'These notes could not be deleted: %s', noteIds.length, (error as Error).message));
 		}
 	}
 
-	private menu_select(value: OnSelectCallbackType) {
+	private menu_select(value: OnSelectCallbackType): void {
 		if (typeof value === 'function') {
 			value();
 		}
 	}
 
-	private warningBox_press(event: NavButtonPressEvent) {
+	private warningBox_press(event: NavButtonPressEvent): void {
 		void NavService.go(event.screen);
 	}
 
-	private renderWarningBox(screen: string, message: string) {
+	private renderWarningBox(screen: string, message: string): React.JSX.Element {
 		return (
 			<TouchableOpacity key={screen} style={this.styles().warningBox} onPress={() => this.warningBox_press({ screen: screen })} activeOpacity={0.8}>
 				<Text style={{ flex: 1 }}>{message}</Text>
@@ -308,9 +315,9 @@ class ScreenHeaderComponent extends PureComponent<ScreenHeaderProps, ScreenHeade
 		);
 	}
 
-	public render() {
+	public render(): React.JSX.Element {
 		const themeId = this.props.themeId;
-		function sideMenuButton(styles: any, onPress: OnPressCallback) {
+		function sideMenuButton(styles: any, onPress: OnPressCallback): React.JSX.Element {
 			return (
 				<TouchableOpacity
 					onPress={onPress}
@@ -325,7 +332,7 @@ class ScreenHeaderComponent extends PureComponent<ScreenHeaderProps, ScreenHeade
 			);
 		}
 
-		function backButton(styles: any, onPress: OnPressCallback, disabled: boolean) {
+		function backButton(styles: any, onPress: OnPressCallback, disabled: boolean): React.JSX.Element {
 			return (
 				<TouchableOpacity
 					onPress={onPress}
@@ -345,7 +352,7 @@ class ScreenHeaderComponent extends PureComponent<ScreenHeaderProps, ScreenHeade
 
 		function saveButton(
 			styles: any, onPress: OnPressCallback, disabled: boolean, show: boolean,
-		) {
+		): React.JSX.Element | null {
 			if (!show) return null;
 
 			const icon = disabled ? <Icon name="checkmark" style={styles.savedButtonIcon} /> : <Image style={styles.saveButtonIcon} source={require('./SaveIcon.png')} />;
@@ -370,7 +377,7 @@ class ScreenHeaderComponent extends PureComponent<ScreenHeaderProps, ScreenHeade
 			description: string;
 			onPress: OnPressCallback;
 		}
-		const renderTopButton = (options: TopButtonOptions) => {
+		const renderTopButton = (options: TopButtonOptions): React.JSX.Element | null => {
 			if (!options.visible) return null;
 
 			const icon = <Icon name={options.iconName} style={this.styles().topIcon} />;
@@ -390,7 +397,7 @@ class ScreenHeaderComponent extends PureComponent<ScreenHeaderProps, ScreenHeade
 			);
 		};
 
-		const renderUndoButton = () => {
+		const renderUndoButton = (): React.JSX.Element | null => {
 			return renderTopButton({
 				iconName: 'arrow-undo-circle-sharp',
 				description: _('Undo'),
@@ -400,7 +407,7 @@ class ScreenHeaderComponent extends PureComponent<ScreenHeaderProps, ScreenHeade
 			});
 		};
 
-		const renderRedoButton = () => {
+		const renderRedoButton = (): React.JSX.Element | null => {
 			return renderTopButton({
 				iconName: 'arrow-redo-circle-sharp',
 				description: _('Redo'),
@@ -409,7 +416,7 @@ class ScreenHeaderComponent extends PureComponent<ScreenHeaderProps, ScreenHeade
 			});
 		};
 
-		function selectAllButton(styles: any, onPress: OnPressCallback) {
+		function selectAllButton(styles: any, onPress: OnPressCallback): React.JSX.Element {
 			return (
 				<CustomButton
 					onPress={onPress}
@@ -423,7 +430,7 @@ class ScreenHeaderComponent extends PureComponent<ScreenHeaderProps, ScreenHeade
 			);
 		}
 
-		function searchButton(styles: any, onPress: OnPressCallback) {
+		function searchButton(styles: any, onPress: OnPressCallback): React.JSX.Element {
 			return (
 				<CustomButton
 					onPress={onPress}
@@ -437,7 +444,7 @@ class ScreenHeaderComponent extends PureComponent<ScreenHeaderProps, ScreenHeade
 			);
 		}
 
-		function deleteButton(styles: any, onPress: OnPressCallback, disabled: boolean) {
+		function deleteButton(styles: any, onPress: OnPressCallback, disabled: boolean): React.JSX.Element {
 			return (
 				<CustomButton
 					onPress={onPress}
@@ -446,7 +453,7 @@ class ScreenHeaderComponent extends PureComponent<ScreenHeaderProps, ScreenHeade
 					themeId={themeId}
 					description={_('Delete')}
 					accessibilityHint={
-						disabled ? null : _('Delete selected notes')
+						disabled ? '' : _('Delete selected notes')
 					}
 					contentStyle={disabled ? styles.iconButtonDisabled : styles.iconButton}
 				>
@@ -455,7 +462,7 @@ class ScreenHeaderComponent extends PureComponent<ScreenHeaderProps, ScreenHeade
 			);
 		}
 
-		function duplicateButton(styles: any, onPress: OnPressCallback, disabled: boolean) {
+		function duplicateButton(styles: any, onPress: OnPressCallback, disabled: boolean): React.JSX.Element {
 			return (
 				<CustomButton
 					onPress={onPress}
@@ -464,7 +471,7 @@ class ScreenHeaderComponent extends PureComponent<ScreenHeaderProps, ScreenHeade
 					themeId={themeId}
 					description={_('Duplicate')}
 					accessibilityHint={
-						disabled ? null : _('Duplicate selected notes')
+						disabled ? '' : _('Duplicate selected notes')
 					}
 					contentStyle={disabled ? styles.iconButtonDisabled : styles.iconButton}
 				>
@@ -473,7 +480,7 @@ class ScreenHeaderComponent extends PureComponent<ScreenHeaderProps, ScreenHeade
 			);
 		}
 
-		function sortButton(styles: any, onPress: OnPressCallback) {
+		function sortButton(styles: any, onPress: OnPressCallback): React.JSX.Element {
 			return (
 				<TouchableOpacity
 					onPress={onPress}
@@ -522,7 +529,7 @@ class ScreenHeaderComponent extends PureComponent<ScreenHeaderProps, ScreenHeade
 			);
 		}
 
-		const moveToFolderComponent = (disabled: boolean) => {
+		const moveToFolderComponent = (disabled: boolean): React.JSX.Element => {
 			const folderPickerOptions = this.props.folderPickerOptions;
 
 			if (folderPickerOptions && folderPickerOptions.enabled) {
@@ -530,7 +537,7 @@ class ScreenHeaderComponent extends PureComponent<ScreenHeaderProps, ScreenHeade
 					<FolderPicker
 						themeId={themeId}
 						disabled={disabled}
-						selectedFolderId={'selectedFolderId' in folderPickerOptions ? folderPickerOptions.selectedFolderId : null}
+						selectedFolderId={'selectedFolderId' in folderPickerOptions ? folderPickerOptions.selectedFolderId : ''}
 						onValueChange={async (folderId) => {
 							// If onValueChange is specified, use this as a callback, otherwise do the default
 							// which is to take the selectedNoteIds from the state and move them to the
@@ -548,7 +555,7 @@ class ScreenHeaderComponent extends PureComponent<ScreenHeaderProps, ScreenHeade
 								await PeersNote.sendToPeers(noteIds);
 							} else {
 								const folder = await Folder.load(folderId);
-
+								if (!folder) return;
 								const ok = noteIds.length > 1 ? await dialogs.confirm(this.props.parentComponent, _('Move %d notes to notebook "%s"?', noteIds.length, folder.title)) : true;
 								if (!ok) return;
 
@@ -560,7 +567,7 @@ class ScreenHeaderComponent extends PureComponent<ScreenHeaderProps, ScreenHeade
 										await PeersNote.moveOnPeers(noteIds[i]);
 									}
 								} catch (error) {
-									alert(_n('This note could not be moved: %s', 'These notes could not be moved: %s', noteIds.length, error.message));
+									alert(_n('This note could not be moved: %s', 'These notes could not be moved: %s', noteIds.length, (error as Error).message));
 								}
 							}
 						}}
@@ -569,7 +576,7 @@ class ScreenHeaderComponent extends PureComponent<ScreenHeaderProps, ScreenHeade
 					/>
 				);
 			} else {
-				const title = 'title' in this.props && this.props.title !== null ? this.props.title : '';
+				const title = 'title' in this.props && this.props.title ? this.props.title : '';
 				return <Text ellipsizeMode={'tail'} numberOfLines={1} style={this.styles().titleText}>{title}</Text>;
 			}
 		};
@@ -626,7 +633,7 @@ class ScreenHeaderComponent extends PureComponent<ScreenHeaderProps, ScreenHeade
 		// 	}
 		// };
 
-		const warningComps = [];
+		const warningComps: React.JSX.Element[] = [];
 
 		if (this.props.showMissingMasterKeyMessage) warningComps.push(this.renderWarningBox('EncryptionConfig', _('Press to set the decryption password.')));
 		if (this.props.hasDisabledSyncItems) warningComps.push(this.renderWarningBox('Status', _('Some items cannot be synchronised. Press for more info.')));
@@ -654,7 +661,7 @@ class ScreenHeaderComponent extends PureComponent<ScreenHeaderProps, ScreenHeade
 		const searchButtonComp = !showSearchButton ? null : searchButton(this.styles(), () => this.searchButton_press());
 		const deleteButtonComp = this.props.noteSelectionEnabled ? deleteButton(this.styles(), () => this.deleteButton_press(), headerItemDisabled) : null;
 		const duplicateButtonComp = this.props.noteSelectionEnabled ? duplicateButton(this.styles(), () => this.duplicateButton_press(), headerItemDisabled) : null;
-		const sortButtonComp = !this.props.noteSelectionEnabled && this.props.sortButton_press ? sortButton(this.styles(), () => this.props.sortButton_press()) : null;
+		const sortButtonComp = !this.props.noteSelectionEnabled && this.props.sortButton_press ? sortButton(this.styles(), () => this.props.sortButton_press ? this.props.sortButton_press() : null) : null;
 		const windowHeight = Dimensions.get('window').height - 50;
 
 		const contextMenuStyle: ViewStyle = {
@@ -727,7 +734,7 @@ const ScreenHeader = connect((state: State) => {
 		folders: state.folders,
 		themeId: state.settings.theme,
 		hasDisabledEncryptionItems: state.hasDisabledEncryptionItems,
-		noteSelectionEnabled: state.noteSelectionEnabled,
+		noteSelectionEnabled: state.noteSelectionEnabled ?? false,
 		selectedNoteIds: state.selectedNoteIds,
 		showMissingMasterKeyMessage: showMissingMasterKeyMessage(syncInfo, state.notLoadedMasterKeys),
 		hasDisabledSyncItems: state.hasDisabledSyncItems,

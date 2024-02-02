@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { themeStyle } from '@xilinota/lib/theme';
 import shim from '@xilinota/lib/shim';
 import Setting from '@xilinota/lib/models/Setting';
-const { camelCaseToDash, formatCssSize } = require('@xilinota/lib/string-utils');
+import { camelCaseToDash, formatCssSize } from '@xilinota/lib/string-utils';
 
 interface HookDependencies {
 	pluginId: string;
@@ -20,7 +20,7 @@ function themeToCssVariables(theme: any) {
 
 		const newName = `--joplin-${camelCaseToDash(name)}`;
 
-		const formattedValue = typeof value === 'number' && newName.indexOf('opacity') < 0 ? formatCssSize(value) : value;
+		const formattedValue = typeof value === 'number' && newName.indexOf('opacity') < 0 ? formatCssSize(value.toString()) : value;
 
 		lines.push(`\t${newName}: ${formattedValue};`);
 	}

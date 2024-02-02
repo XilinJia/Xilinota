@@ -1,7 +1,7 @@
 import { htmlentities } from '@xilinota/utils/html';
 const Mark = require('mark.js/dist/mark.min.js');
 const markJsUtils = require('@xilinota/lib/markJsUtils');
-const { replaceRegexDiacritics, pregQuote } = require('@xilinota/lib/string-utils');
+import { replaceRegexDiacritics, pregQuote } from '@xilinota/lib/string-utils';
 
 const getNoteTitleHtml = (highlightedWords: string[], displayTitle: string) => {
 	if (highlightedWords.length) {
@@ -22,7 +22,7 @@ const getNoteTitleHtml = (highlightedWords: string[], displayTitle: string) => {
 				});
 			}
 		} catch (error) {
-			if (error.name !== 'SyntaxError') {
+			if ((error as Error).name !== 'SyntaxError') {
 				throw error;
 			}
 			// An error of 'Regular expression too large' might occour in the markJs library

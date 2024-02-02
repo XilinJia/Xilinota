@@ -1,6 +1,6 @@
 import iterateItems from './iterateItems';
 import { LayoutItem, LayoutItemDirection, tempContainerPrefix } from './types';
-import produce from 'immer';
+import { produce } from 'immer';
 import uuid from '@xilinota/lib/uuid_';
 import validateLayout from './validateLayout';
 
@@ -48,7 +48,7 @@ function resetItemSizes(items: LayoutItem[]) {
 }
 
 export function canMove(direction: MoveDirection, item: LayoutItem, parent: LayoutItem) {
-	if (!parent) return false;
+	if (!parent || !parent.children) return false;
 
 	if (isHorizontalMove(direction)) {
 		if (parent.isRoot) {
@@ -81,10 +81,11 @@ function moveItem(direction: MovementDirection, layout: LayoutItem, key: string,
 	};
 
 	const updatedLayout = produce(layout, (draft: any) => {
-		iterateItems(draft, (itemIndex: number, item: LayoutItem, parent: LayoutItem) => {
+		iterateItems(draft, (itemIndex: number, item: LayoutItem, parent: LayoutItem | null) => {
+			if (!parent) return false;
 			itemParents[item.key] = parent;
 
-			if (item.key !== key || !parent) return true;
+			if (item.key !== key || !parent || !parent.children) return true;
 
 			// - "flow" means we are moving an item horizontally within a
 			//   row
@@ -109,8 +110,10 @@ function moveItem(direction: MovementDirection, layout: LayoutItem, key: string,
 				if (parent.children[newIndex].children) {
 					const newParent = parent.children[newIndex];
 					parent.children.splice(itemIndex, 1);
-					newParent.children.push(item);
-					newParent.children = resetItemSizes(newParent.children);
+					if (newParent.children) {
+						newParent.children.push(item);
+						newParent.children = resetItemSizes(newParent.children);
+					}
 				} else {
 					// If the item is a child of the root container, create
 					// a new column at `newIndex` and move the item that
@@ -141,7 +144,7 @@ function moveItem(direction: MovementDirection, layout: LayoutItem, key: string,
 						parent.children[newIndex] = newParent;
 						parent.children.splice(itemIndex, 1);
 
-						newParent.children = resetItemSizes(newParent.children);
+						newParent.children = resetItemSizes(newParent.children??[]);
 					} else {
 						// Otherwise the default case is simply to move the
 						// item left/right
@@ -150,20 +153,22 @@ function moveItem(direction: MovementDirection, layout: LayoutItem, key: string,
 				}
 			} else {
 				const parentParent = itemParents[parent.key];
-				const parentIndex = findItemIndex(parentParent.children, parent.key);
+				const parentIndex = findItemIndex(parentParent.children??[], parent.key);
 
 				parent.children.splice(itemIndex, 1);
 
 				let newInc = inc;
 				if (parent.children.length <= 1) {
-					parentParent.children[parentIndex] = parent.children[0];
+					if (parentParent.children) parentParent.children[parentIndex] = parent.children[0];
 					newInc = inc < 0 ? inc + 1 : inc;
 				}
 
 				const newItemIndex = parentIndex + newInc;
 
-				parentParent.children.splice(newItemIndex, 0, item);
-				parentParent.children = resetItemSizes(parentParent.children);
+				if (parentParent.children) {
+					parentParent.children.splice(newItemIndex, 0, item);
+					parentParent.children = resetItemSizes(parentParent.children);
+				}
 			}
 
 			return false;

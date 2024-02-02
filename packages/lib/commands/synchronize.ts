@@ -13,8 +13,8 @@ export const declaration: CommandDeclaration = {
 // synchronisation depending on the "syncStarted" parameter
 export const runtime = (): CommandRuntime => {
 	return {
-		execute: async (context: CommandContext, syncStarted: boolean = null) => {
-			syncStarted = syncStarted === null ? context.state.syncStarted : syncStarted;
+		execute: async (context: CommandContext, syncStarted: boolean = false) => {
+			syncStarted = !syncStarted ? context.state.syncStarted : syncStarted;
 
 			const action = syncStarted ? 'cancel' : 'start';
 
@@ -45,7 +45,7 @@ export const runtime = (): CommandRuntime => {
 			} catch (error) {
 				reg.logger().error('Could not initialise synchroniser: ');
 				reg.logger().error(error);
-				error.message = `Could not initialise synchroniser: ${error.message}`;
+				if (error instanceof Error) error.message = `Could not initialise synchroniser: ${error.message}`;
 				utils.store.dispatch({
 					type: 'SYNC_REPORT_UPDATE',
 					report: { errors: [error] },

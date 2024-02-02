@@ -1,15 +1,15 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, ChangeEventHandler } from 'react';
 import StyledInput from '../style/StyledInput';
 
 export interface ChangeEvent {
 	value: string;
 }
 
-type ChangeEventHandler = (event: ChangeEvent)=> void;
+// type ChangeEventHandler = (event: ChangeEvent)=> void;
 
 interface Props {
 	value: string;
-	onChange: ChangeEventHandler;
+	onChange: ChangeEventHandler<HTMLInputElement>;
 }
 
 export const PasswordInput = (props: Props) => {

@@ -7,42 +7,46 @@ import NoteBodyViewer from '../NoteBodyViewer/NoteBodyViewer';
 import checkPermissions from '../../utils/checkPermissions';
 import NoteEditor from '../NoteEditor/NoteEditor';
 
-const FileViewer = require('react-native-file-viewer').default;
-const React = require('react');
-const { Keyboard, View, TextInput, StyleSheet, Linking, Image, Share } = require('react-native');
+import FileViewer from 'react-native-file-viewer';
+import md5 from 'md5';
+// TODO: should replace with react-native-dialog
+const DialogBox = require('react-native-dialogbox').default;
+
+import React from 'react';
+import { Keyboard, View, TextInput, StyleSheet, Linking, Image, Share, NativeSyntheticEvent, TextInputSelectionChangeEventData } from 'react-native';
 import { Platform, PermissionsAndroid } from 'react-native';
-const { connect } = require('react-redux');
+import { connect } from 'react-redux';
 // const { MarkdownEditor } = require('@xilinota/lib/../MarkdownEditor/index.js');
 import Note from '@xilinota/lib/models/Note';
-import BaseItem from '@xilinota/lib/models/BaseItem';
+import BaseItem, { unwantedCharacters } from '@xilinota/lib/models/BaseItem';
 import Resource from '@xilinota/lib/models/Resource';
 import Folder from '@xilinota/lib/models/Folder';
-const Clipboard = require('@react-native-community/clipboard').default;
-const md5 = require('md5');
-const { BackButtonService } = require('../../services/back-button.js');
+import Clipboard from '@react-native-clipboard/clipboard';
 import NavService from '@xilinota/lib/services/NavService';
-import BaseModel from '@xilinota/lib/BaseModel';
+import BaseModel, { ModelType } from '@xilinota/lib/BaseModel';
 import ActionButton from '../ActionButton';
-const { fileExtension, safeFileExtension } = require('@xilinota/lib/path-utils');
-const mimeUtils = require('@xilinota/lib/mime-utils.js').mime;
+import { fileExtension, safeFileExtension } from '@xilinota/lib/path-utils';
+import Checkbox from '../checkbox';
+
+import BackButtonService from '../../services/back-button';
+import mimeUtils from '@xilinota/lib/mime-utils';
+
+import NoteTagsDialog from './NoteTagsDialog';
 import ScreenHeader, { MenuOptionType } from '../ScreenHeader';
-const NoteTagsDialog = require('./NoteTagsDialog');
 import time from '@xilinota/lib/time';
-const { Checkbox } = require('../checkbox.js');
 import { _, currentLocale } from '@xilinota/lib/locale';
 import { reg } from '@xilinota/lib/registry';
 import ResourceFetcher from '@xilinota/lib/services/ResourceFetcher';
-const { BaseScreenComponent } = require('../base-screen.js');
-const { themeStyle, editorFont } = require('../global-style.js');
-const { dialogs } = require('../../utils/dialogs.js');
-const DialogBox = require('react-native-dialogbox').default;
+import BaseScreenComponent from '../base-screen';
+import { themeStyle, editorFont } from '../global-style';
+import dialogs from '../../utils/dialogs';
 import ImageResizer from '@bam.tech/react-native-image-resizer';
-import shared from '@xilinota/lib/components/shared/note-screen-shared';
-import { ImagePickerResponse, launchImageLibrary } from 'react-native-image-picker';
+import Shared from '@xilinota/lib/components/shared/note-screen-shared';
+import { Asset, ImagePickerResponse, launchImageLibrary } from 'react-native-image-picker';
 import SelectDateTimeDialog from '../SelectDateTimeDialog';
 import ShareExtension from '../../utils/ShareExtension.js';
 import CameraView from '../CameraView';
-import { NoteEntity, ResourceEntity } from '@xilinota/lib/services/database/types';
+import { FolderEntity, NoteEntity, ResourceEntity } from '@xilinota/lib/services/database/types';
 import Logger from '@xilinota/utils/Logger';
 import ImageEditor from '../NoteEditor/ImageEditor/ImageEditor';
 import promptRestoreAutosave from '../NoteEditor/ImageEditor/promptRestoreAutosave';
@@ -50,29 +54,106 @@ import isEditableResource from '../NoteEditor/ImageEditor/isEditableResource';
 import VoiceTypingDialog from '../voiceTyping/VoiceTypingDialog';
 import { voskEnabled } from '../../services/voiceTyping/vosk';
 import { isSupportedLanguage } from '../../services/voiceTyping/vosk.android';
-import { ChangeEvent as EditorChangeEvent, UndoRedoDepthChangeEvent } from '@xilinota/editor/events';
+import { ChangeEvent as EditorChangeEvent, SelectionRangeChangeEvent, UndoRedoDepthChangeEvent } from '@xilinota/editor/events';
 import { PeersNote } from '@xilinota/lib/models/Peers';
-const urlUtils = require('@xilinota/lib/urlUtils');
+import urlUtils from '@xilinota/lib/urlUtils';
+import { ItemSlice, itemIsReadOnlySync } from '@xilinota/lib/models/utils/readOnly';
+import ItemChange from '@xilinota/lib/models/ItemChange';
+import { DocumentFileDetail } from '@xilinota/react-native-saf-x';
+import { DocumentPickerResponse } from 'react-native-document-picker';
+import { AppState } from '../../utils/types';
 
 // import Vosk from 'react-native-vosk';
 
-const emptyArray: any[] = [];
+interface Props {
+	noteId: string | null;
+	noteHash: any;
+	folderId: string;
+	itemType: string;
+	folders: FolderEntity[];
+	searchQuery: string;
+	themeId: number;
+	editorFont: number;
+	editorFontSize: number;
+	toolbarEnabled: boolean;
+	ftsEnabled: boolean;
+	sharedData: any;
+	showSideMenu: boolean;
+	provisionalNoteIds: string[];
+	highlightedWords: string[];
+	useRichTextEditor: boolean;
+	dispatch: (event: any) => void;
+}
+
+interface State {
+	lastSavedNote: NoteEntity | null;
+	prevSaveTime: number;
+	mode: string;
+	note: NoteEntity;
+	folder: FolderEntity | null;
+	isLoading: boolean;
+	titleTextInputHeight: number;
+	alarmDialogShown: boolean;
+	heightBumpView: number;
+	noteTagDialogShown: boolean;
+	fromShare: boolean;
+	showCamera: boolean;
+	showImageEditor: boolean;
+	loadImageEditorData: (() => any) | null;
+	imageEditorResource: ResourceEntity | null;
+	noteResources: Record<string, any>;
+	HACK_webviewLoadingState: number;
+	undoRedoButtonState: { canUndo: boolean, canRedo: boolean, };
+	voiceTypingDialogShown: boolean;
+	readOnly: boolean;
+	newAndNoTitleChangeNoteId: string | null;
+}
+
+// const emptyArray: any[] = [];
 
 const logger = Logger.create('screens/Note');
 
-class NoteScreenComponent extends BaseScreenComponent {
+interface FolderPickerOptions {
+	enabled: boolean;
+	selectedFolderId: string | undefined;
+	onValueChange: (itemValue: any) => Promise<void>
+};
+
+class NoteScreenComponent extends BaseScreenComponent<Props, State> {
+
+	private saveActionQueues_: Record<string, AsyncActionQueue>;
+	private doFocusUpdate_: boolean;
+	// private saveButtonHasBeenShown_: boolean;
+	private undoRedoService_: any;
+
+	selection: { start: number; end: number; } | undefined;
+	private styles_: any;
+	editorRef: React.RefObject<any>;
+
+	navHandler: () => Promise<boolean>;
+	backHandler: () => Promise<boolean>;
+	noteTagDialog_closeRequested: () => void;
+	onJoplinLinkClick_: (msg: string) => void;
+	refreshResource: (resource: any, noteBody?: string) => Promise<void>;
+	menuOptionsCache_: Record<string, MenuOptionType[]> = {};
+	focusUpdateIID_: string | null = null;
+	folderPickerOptions_: FolderPickerOptions | undefined;
+	dialogbox: any;
+	// saveNoteMutex_: any;
 
 	public static navigationOptions(): any {
 		return { header: null };
 	}
 
-	public constructor() {
-		super();
+	public constructor(props: Props) {
+		super(props);
+
 		this.state = {
 			note: Note.new(),
 			mode: 'view',
 			folder: null,
 			lastSavedNote: null,
+			prevSaveTime: 0,
 			isLoading: true,
 			titleTextInputHeight: 20,
 			alarmDialogShown: false,
@@ -100,9 +181,9 @@ class NoteScreenComponent extends BaseScreenComponent {
 			},
 
 			voiceTypingDialogShown: false,
+			readOnly: false,
+			newAndNoTitleChangeNoteId: null,
 		};
-
-		this.prevSaveTime = React.createRef(0);
 
 		this.saveActionQueues_ = {};
 
@@ -110,7 +191,7 @@ class NoteScreenComponent extends BaseScreenComponent {
 
 		this.doFocusUpdate_ = false;
 
-		this.saveButtonHasBeenShown_ = false;
+		// this.saveButtonHasBeenShown_ = false;
 
 		this.styles_ = {};
 
@@ -127,17 +208,18 @@ class NoteScreenComponent extends BaseScreenComponent {
 			return false;
 		};
 
-		this.navHandler = async () => {
+		this.navHandler = async (): Promise<boolean> => {
 			return await saveDialog();
 		};
 
-		this.backHandler = async () => {
+		this.backHandler = async (): Promise<boolean> => {
 
 			if (this.isModified()) {
+				console.log('Note note modified')
 				await this.saveNoteButton_press();
 			}
 
-			const isProvisionalNote = this.props.provisionalNoteIds.includes(this.props.noteId);
+			const isProvisionalNote = this.props.provisionalNoteIds.includes(this.props.noteId ?? '');
 
 			if (isProvisionalNote) {
 				return false;
@@ -147,7 +229,7 @@ class NoteScreenComponent extends BaseScreenComponent {
 				Keyboard.dismiss();
 
 				this.setState({
-					note: { ...this.state.lastSavedNote },
+					note: { ...this.state.note },
 					mode: 'view',
 				});
 
@@ -174,7 +256,7 @@ class NoteScreenComponent extends BaseScreenComponent {
 			return false;
 		};
 
-		this.noteTagDialog_closeRequested = () => {
+		this.noteTagDialog_closeRequested = (): void => {
 			this.setState({ noteTagDialogShown: false });
 		};
 
@@ -219,18 +301,18 @@ class NoteScreenComponent extends BaseScreenComponent {
 					}
 				}
 			} catch (error) {
-				dialogs.error(this, error.message);
+				dialogs.error(this, (error as Error).message);
 			}
 		};
 
-		this.refreshResource = async (resource: any, noteBody: string = null) => {
-			if (noteBody === null && this.state.note && this.state.note.body) noteBody = this.state.note.body;
-			if (noteBody === null) return;
+		this.refreshResource = async (resource: any, noteBody: string = '') => {
+			if (!noteBody && this.state.note && this.state.note.body) noteBody = this.state.note.body;
+			if (!noteBody) return;
 
 			const resourceIds = await Note.linkedResourceIds(noteBody);
 			if (resourceIds.indexOf(resource.id) >= 0) {
-				shared.clearResourceCache();
-				const attachedResources = await shared.attachedResources(noteBody);
+				Shared.clearResourceCache();
+				const attachedResources = await Shared.attachedResources(noteBody);
 				this.setState({ noteResources: attachedResources });
 			}
 		};
@@ -252,6 +334,7 @@ class NoteScreenComponent extends BaseScreenComponent {
 		this.screenHeader_undoButtonPress = this.screenHeader_undoButtonPress.bind(this);
 		this.screenHeader_redoButtonPress = this.screenHeader_redoButtonPress.bind(this);
 		this.body_selectionChange = this.body_selectionChange.bind(this);
+		this.body_selectionChange_rich = this.body_selectionChange_rich.bind(this);
 		this.onBodyViewerLoadEnd = this.onBodyViewerLoadEnd.bind(this);
 		this.onBodyViewerCheckboxChange = this.onBodyViewerCheckboxChange.bind(this);
 		this.onBodyChange = this.onBodyChange.bind(this);
@@ -260,27 +343,75 @@ class NoteScreenComponent extends BaseScreenComponent {
 		this.voiceTypingDialog_onDismiss = this.voiceTypingDialog_onDismiss.bind(this);
 	}
 
-	private useEditorBeta(): boolean {
-		return this.props.useEditorBeta;
+	private async initState(): Promise<void> {
+		const isProvisionalNote = this.props.noteId ? this.props.provisionalNoteIds.includes(this.props.noteId) : true;
+		const n = this.props.noteId ? await Note.load(this.props.noteId) : null;
+		const note = n ?? Note.new();
+
+		let mode = 'view';
+
+		if (isProvisionalNote && !this.props.sharedData) {
+			mode = 'edit';
+			this.scheduleFocusUpdate();
+		}
+
+		const folder = note && note.parent_id ? Folder.byId(this.props.folders, note.parent_id) : null;
+
+		this.setState({
+			lastSavedNote: { ...note },
+			note: note,
+			mode: mode,
+			folder: folder,
+			isLoading: false,
+			fromShare: !!this.props.sharedData,
+			noteResources: await Shared.attachedResources(note && note.body ? note.body : ''),
+			readOnly: BaseItem.syncShareCache ? itemIsReadOnlySync(ModelType.Note, ItemChange.SOURCE_UNSPECIFIED, note as ItemSlice, Setting.value('sync.userId'), BaseItem.syncShareCache) : false,
+		});
+
+		if (this.props.sharedData) {
+			if (this.props.sharedData.title) {
+				this.noteComponent_change('title', this.props.sharedData.title);
+			}
+			if (this.props.sharedData.text) {
+				this.noteComponent_change('body', this.props.sharedData.text);
+			}
+			if (this.props.sharedData.resources) {
+				for (let i = 0; i < this.props.sharedData.resources.length; i++) {
+					const resource = this.props.sharedData.resources[i];
+					await this.attachFile(
+						{
+							uri: resource.uri,
+							type: resource.mimeType,
+							name: resource.name,
+						},
+						'',
+					);
+				}
+			}
+		}
+	};
+
+	private useRichTextEditor(): boolean {
+		return this.props.useRichTextEditor;
 	}
 
-	private checkToSave() {
+	private checkToSave(): void {
 		const currentDate = new Date();
 		const curTime = Math.floor(currentDate.getTime() / 1000);
-		const tDiff = curTime - this.prevSaveTime.current;
+		const tDiff = curTime - this.state.prevSaveTime;
 		if (tDiff > 60) {
-			this.prevSaveTime.current = curTime;
+			this.setState({ prevSaveTime: curTime });
 			this.scheduleSave();
 		}
 	}
 
-	private onBodyChange(event: EditorChangeEvent) {
-		shared.noteComponent_change(this, 'body', event.value);
+	private onBodyChange(event: EditorChangeEvent): void {
+		this.noteComponent_change('body', event.value);
 		this.checkToSave();
 	}
 
-	private onUndoRedoDepthChange(event: UndoRedoDepthChangeEvent) {
-		if (this.useEditorBeta()) {
+	private onUndoRedoDepthChange(event: UndoRedoDepthChangeEvent): void {
+		if (this.useRichTextEditor()) {
 			this.setState({
 				undoRedoButtonState: {
 					canUndo: !!event.undoDepth,
@@ -290,8 +421,8 @@ class NoteScreenComponent extends BaseScreenComponent {
 		}
 	}
 
-	private undoRedoService_stackChange() {
-		if (!this.useEditorBeta()) {
+	private undoRedoService_stackChange(): void {
+		if (!this.useRichTextEditor()) {
 			this.setState({
 				undoRedoButtonState: {
 					canUndo: this.undoRedoService_.canUndo,
@@ -301,7 +432,7 @@ class NoteScreenComponent extends BaseScreenComponent {
 		}
 	}
 
-	private async undoRedo(type: string) {
+	private async undoRedo(type: string): Promise<void> {
 		const undoState = await this.undoRedoService_[type](this.undoState());
 		if (!undoState) return;
 
@@ -314,23 +445,25 @@ class NoteScreenComponent extends BaseScreenComponent {
 		});
 	}
 
-	private screenHeader_undoButtonPress() {
-		if (this.useEditorBeta()) {
+	private screenHeader_undoButtonPress(): void {
+		if (this.useRichTextEditor()) {
 			this.editorRef.current.undo();
 		} else {
 			void this.undoRedo('undo');
 		}
 	}
 
-	private screenHeader_redoButtonPress() {
-		if (this.useEditorBeta()) {
+	private screenHeader_redoButtonPress(): void {
+		if (this.useRichTextEditor()) {
 			this.editorRef.current.redo();
 		} else {
 			void this.undoRedo('redo');
 		}
 	}
 
-	public undoState(noteBody: string = null) {
+	public undoState(noteBody: string | null = null): {
+		body: string | undefined;
+	} {
 		return {
 			body: noteBody === null ? this.state.note.body : noteBody,
 		};
@@ -338,7 +471,7 @@ class NoteScreenComponent extends BaseScreenComponent {
 
 	public styles() {
 		const themeId = this.props.themeId;
-		const theme = themeStyle(themeId);
+		const theme = themeStyle(themeId.toString());
 
 		const cacheKey = [themeId, this.state.titleTextInputHeight, this.state.HACK_webviewLoadingState].join('_');
 
@@ -426,16 +559,191 @@ class NoteScreenComponent extends BaseScreenComponent {
 		return this.styles_[cacheKey];
 	}
 
-	public isModified() {
-		return shared.isModified(this);
-	}
+	private async noteExists(noteId: string): Promise<boolean> {
+		const existingNote = await Note.load(noteId);
+		return !!existingNote;
+	};
 
-	public async requestGeoLocationPermissions() {
+	// Note has been deleted while user was modifying it. In that case, we
+	// just save a new note so that user can keep editing.
+	private async handleNoteDeletedWhileEditing_(note: NoteEntity): Promise<NoteEntity | null> {
+		if (await this.noteExists(note.id ?? '')) return null;
+
+		reg.logger().info('Note has been deleted while it was being edited - recreating it.');
+
+		let newNote: NoteEntity = { ...note };
+		delete newNote.id;
+		newNote = await Note.save(newNote);
+
+		return newNote.id ? Note.load(newNote.id) : null;
+	};
+
+	private async saveNoteButton_press_shared(folderId: string = '', options: any = null): Promise<void> {
+		options = { autoTitle: true, ...options };
+
+		const releaseMutex = Shared.aquireNoteMutex;
+
+		let note: NoteEntity = { ...this.state.note };
+
+		const recreatedNote = await this.handleNoteDeletedWhileEditing_(note);
+		if (recreatedNote) note = recreatedNote;
+
+		if (folderId) {
+			note.parent_id = folderId;
+		} else if (!note.parent_id) {
+			const activeFolderId = Setting.value('activeFolderId');
+			let folder = await Folder.load(activeFolderId);
+			if (!folder) folder = await Folder.defaultFolder();
+			if (!folder) return releaseMutex();
+
+			note.parent_id = folder.id ?? '';
+		}
+
+		const isProvisionalNote = note.id ? this.props.provisionalNoteIds.includes(note.id) : true;
+
+		const saveOptions = {
+			userSideValidation: true,
+			fields: this.state.lastSavedNote ? BaseModel.diffObjectsFields(this.state.lastSavedNote, note) : [],
+		};
+
+		const hasAutoTitle = this.state.newAndNoTitleChangeNoteId || (isProvisionalNote && !note.title);
+		if (hasAutoTitle && options.autoTitle) {
+			note.title = Note.defaultTitle(note.body ?? '');
+			note.title = note.title.replace(unwantedCharacters, '');
+			if (saveOptions.fields && saveOptions.fields.indexOf('title') < 0) saveOptions.fields.push('title');
+		}
+
+		const savedNote = !('fields' in saveOptions) || !saveOptions.fields.length ? { ...note } : await Note.save(note, saveOptions);
+		// let savedNote: NoteEntity = null;
+		// if ('fields' in saveOptions && !saveOptions.fields.length) {
+		// 	savedNote = { ...note };
+		// } else {
+		// 	await Note.save(note, saveOptions);
+		// 	await Note.syncToPeers(note.id, workerEmit);
+		// }
+
+		const stateNote = this.state.note;
+
+		// Note was reloaded while being saved.
+		if (!recreatedNote && (!stateNote || stateNote.id !== savedNote.id)) return releaseMutex();
+
+		// Re-assign any property that might have changed during saving (updated_time, etc.)
+		note = { ...note, ...savedNote };
+
+		if (stateNote.id === note.id) {
+			// But we preserve the current title and body because
+			// the user might have changed them between the time
+			// saveNoteButton_press was called and the note was
+			// saved (it's done asynchronously).
+			//
+			// If the title was auto-assigned above, we don't restore
+			// it from the state because it will be empty there.
+			if (!hasAutoTitle) note.title = stateNote.title;
+			note.body = stateNote.body;
+		}
+
+		const newState: any = {
+			lastSavedNote: { ...note },
+			note: note,
+		};
+
+		if (isProvisionalNote && hasAutoTitle) newState.newAndNoTitleChangeNoteId = note.id;
+
+		if (!options.autoTitle) newState.newAndNoTitleChangeNoteId = null;
+
+		this.setState(newState);
+
+		if (isProvisionalNote) {
+			const updateGeoloc = async (): Promise<void> => {
+				if (!note.id) return;
+				const geoNote: NoteEntity | null = await Note.updateGeolocation(note.id);
+
+				const stateNote = this.state.note;
+				if (!stateNote || !geoNote) return;
+				if (stateNote.id !== geoNote.id) return; // Another note has been loaded while geoloc was being retrieved
+
+				// Geo-location for this note has been saved to the database however the properties
+				// are is not in the state so set them now.
+
+				const geoInfo = {
+					longitude: geoNote.longitude,
+					latitude: geoNote.latitude,
+					altitude: geoNote.altitude,
+				};
+
+				const modNote = { ...stateNote, ...geoInfo };
+				const modLastSavedNote = { ...this.state.lastSavedNote, ...geoInfo };
+
+				this.setState({ note: modNote, lastSavedNote: modLastSavedNote });
+			};
+
+			// We don't wait because it can be done in the background
+			void updateGeoloc();
+		}
+
+		releaseMutex();
+	};
+
+	private async saveOneProperty(name: string, value: any): Promise<void> {
+		let note: any = { ...this.state.note };
+
+		const recreatedNote = await this.handleNoteDeletedWhileEditing_(note);
+		if (recreatedNote) note = recreatedNote;
+
+		let toSave: any = { id: note.id };
+		toSave[name] = value;
+		toSave = await Note.save(toSave);
+		note[name] = toSave[name];
+
+		this.setState({
+			lastSavedNote: { ...note },
+			note: note,
+		});
+	};
+
+	private noteComponent_change(propName: string, propValue: any): void {
+		const newState: any = {};
+
+		const note: any = { ...this.state.note };
+		if (propName === 'body' && this.state.newAndNoTitleChangeNoteId) {
+			note.title = Note.defaultTitle(note.body);
+			note.title = note.title.replace(unwantedCharacters, '');
+		}
+		note[propName] = propValue;
+		if (propName === 'title') {
+			note.title = note.title.replace(unwantedCharacters, '');
+		}
+		newState.note = note;
+
+		this.setState(newState);
+	};
+
+	private toggleIsTodo_onPress(): void {
+		const newNote = Note.toggleIsTodo(this.state.note);
+		const newState = { note: newNote };
+		this.setState(newState);
+
+		this.scheduleSave();
+	};
+
+	private isModified(): boolean {
+		if (!this.state.lastSavedNote) {
+			if (!this.state.note) return false;
+			else return true;
+		}
+
+		const diff: Record<string, any> = BaseModel.diffObjects(this.state.lastSavedNote, this.state.note);
+		delete diff.type_;
+		return !!Object.getOwnPropertyNames(diff).length;
+	};
+
+	public async requestGeoLocationPermissions(): Promise<void> {
 		if (!Setting.value('trackLocation')) return;
 
 		const response = await checkPermissions(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION, {
 			message: _('In order to associate a geo-location with the note, the app needs your permission to access your location.\n\nYou may turn off this option at any time in the Configuration screen.'),
 			title: _('Permission needed'),
+			buttonPositive: _('OK'),
 		});
 
 		// If the user simply pressed "Deny", we don't automatically switch it off because they might accept
@@ -447,16 +755,14 @@ class NoteScreenComponent extends BaseScreenComponent {
 		}
 	}
 
-	public async componentDidMount() {
+	public async componentDidMount(): Promise<void> {
 		BackButtonService.addHandler(this.backHandler);
 		NavService.addHandler(this.navHandler);
 
-		this.prevSaveTime.current = 0;
+		Shared.clearResourceCache();
+		Shared.installResourceHandling(this.refreshResource);
 
-		shared.clearResourceCache();
-		shared.installResourceHandling(this.refreshResource);
-
-		await shared.initState(this);
+		await this.initState();
 
 		this.undoRedoService_ = new UndoRedoService();
 		this.undoRedoService_.on('stackChange', this.undoRedoService_stackChange);
@@ -472,11 +778,11 @@ class NoteScreenComponent extends BaseScreenComponent {
 		void this.requestGeoLocationPermissions();
 	}
 
-	public onMarkForDownload(event: any) {
+	public onMarkForDownload(event: { resourceId: string }): void {
 		void ResourceFetcher.instance().markForDownload(event.resourceId);
 	}
 
-	public componentDidUpdate(prevProps: any, prevState: any) {
+	public componentDidUpdate(prevProps: { showSideMenu: boolean; }, prevState: { isLoading: boolean; showImageEditor: boolean; }): void {
 		if (this.doFocusUpdate_) {
 			this.doFocusUpdate_ = false;
 			this.focusUpdate();
@@ -506,73 +812,70 @@ class NoteScreenComponent extends BaseScreenComponent {
 		}
 	}
 
-	public componentWillUnmount() {
+	public componentWillUnmount(): void {
 		BackButtonService.removeHandler(this.backHandler);
 		NavService.removeHandler(this.navHandler);
 
-		shared.uninstallResourceHandling(this.refreshResource);
+		Shared.uninstallResourceHandling(this.refreshResource);
 
-		this.saveActionQueue(this.state.note.id).processAllNow();
+		if (this.state.note.id) this.saveActionQueue(this.state.note.id).processAllNow();
 
 		// It cannot theoretically be undefined, since componentDidMount should always be called before
 		// componentWillUnmount, but with React Native the impossible often becomes possible.
 		if (this.undoRedoService_) this.undoRedoService_.off('stackChange', this.undoRedoService_stackChange);
 	}
 
-	private title_changeText(text: string) {
-		shared.noteComponent_change(this, 'title', text);
+	private title_changeText(text: string): void {
+		this.noteComponent_change('title', text);
 		this.setState({ newAndNoTitleChangeNoteId: null });
 		this.checkToSave();
 	}
 
-	private body_changeText(text: string) {
+	private body_changeText(text: string): void {
 		if (!this.undoRedoService_.canUndo) {
 			this.undoRedoService_.push(this.undoState());
 		} else {
 			this.undoRedoService_.schedulePush(this.undoState());
 		}
-		shared.noteComponent_change(this, 'body', text);
+		this.noteComponent_change('body', text);
 		this.checkToSave();
 	}
 
-	private body_selectionChange(event: any) {
-		if (this.useEditorBeta()) {
-			this.selection = event.selection;
-		} else {
-			this.selection = event.nativeEvent.selection;
-		}
+	private body_selectionChange(event: NativeSyntheticEvent<TextInputSelectionChangeEventData>): void {
+		this.selection = event.nativeEvent.selection;
 	}
 
-	public makeSaveAction() {
+	private body_selectionChange_rich(_event: SelectionRangeChangeEvent): void {
+		// TODO: not working
+		this.selection = { start: _event.from, end: _event.to };
+		// logger.warn('body_selectionChange_rich not implemented');
+	}
+
+	public makeSaveAction(): () => Promise<void> {
 		return async () => {
-			await shared.saveNoteButton_press(this, null, null);
+			await this.saveNoteButton_press_shared('', null);
 			await PeersNote.syncToPeers(this.state.note);
 		};
 	}
 
-	public saveActionQueue(noteId: string) {
+	public saveActionQueue(noteId: string): AsyncActionQueue {
 		if (!this.saveActionQueues_[noteId]) {
 			this.saveActionQueues_[noteId] = new AsyncActionQueue(500);
 		}
 		return this.saveActionQueues_[noteId];
 	}
 
-	public scheduleSave() {
-		reg.logger().info('Prepare saving note');
-		this.saveActionQueue(this.state.note.id).push(this.makeSaveAction());
+	public scheduleSave(): void {
+		if (this.state.note.id) this.saveActionQueue(this.state.note.id).push(this.makeSaveAction());
 	}
 
-	private async saveNoteButton_press(folderId: string = null) {
-		await shared.saveNoteButton_press(this, folderId, null);
+	private async saveNoteButton_press(folderId: string = ''): Promise<void> {
+		await this.saveNoteButton_press_shared(folderId, null);
 		await PeersNote.syncToPeers(this.state.note);
 		Keyboard.dismiss();
 	}
 
-	public async saveOneProperty(name: string, value: any) {
-		await shared.saveOneProperty(this, name, value);
-	}
-
-	private async deleteNote_onPress() {
+	private async deleteNote_onPress(): Promise<void> {
 		const note = this.state.note;
 		if (!note.id) return;
 
@@ -591,10 +894,9 @@ class NoteScreenComponent extends BaseScreenComponent {
 		});
 	}
 
-	private async pickDocuments() {
+	private async pickDocuments(): Promise<DocumentFileDetail[] | DocumentPickerResponse[] | null> {
 		const result = await shim.fsDriver().pickDocument({ multiple: true });
 		if (!result) {
-			// eslint-disable-next-line no-console
 			console.info('pickDocuments: user has cancelled');
 		}
 		return result;
@@ -607,17 +909,17 @@ class NoteScreenComponent extends BaseScreenComponent {
 				(width: number, height: number) => {
 					resolve({ width: width, height: height });
 				},
-				(error: any) => {
+				(error: Error) => {
 					reject(error);
 				},
 			);
 		});
 	}
 
-	public async resizeImage(localFilePath: string, targetPath: string, mimeType: string) {
+	public async resizeImage(localFilePath: string, targetPath: string, mimeType: string): Promise<boolean> {
 		const maxSize = Resource.IMAGE_MAX_DIMENSION;
 		const dimensions: any = await this.imageDimensions(localFilePath);
-		reg.logger().info('Original dimensions ', dimensions);
+		reg.logger().info('resizeImage: Original dimensions ', dimensions);
 
 		const saveOriginalImage = async () => {
 			await shim.fsDriver().copy(localFilePath, targetPath);
@@ -626,10 +928,10 @@ class NoteScreenComponent extends BaseScreenComponent {
 		const saveResizedImage = async () => {
 			dimensions.width = maxSize;
 			dimensions.height = maxSize;
-			reg.logger().info('New dimensions ', dimensions);
+			reg.logger().info('resizeImage: New dimensions ', dimensions);
 
 			const format = mimeType === 'image/png' ? 'PNG' : 'JPEG';
-			reg.logger().info(`Resizing image ${localFilePath}`);
+			reg.logger().debug(`Resizing image ${localFilePath}`);
 			const resizedImage = await ImageResizer.createResizedImage(
 				localFilePath,
 				dimensions.width,
@@ -642,7 +944,7 @@ class NoteScreenComponent extends BaseScreenComponent {
 			);
 
 			const resizedImagePath = resizedImage.uri;
-			reg.logger().info('Resized image ', resizedImagePath);
+			reg.logger().debug('Resized image ', resizedImagePath);
 			reg.logger().info(`Moving ${resizedImagePath} => ${targetPath}`);
 
 			await shim.fsDriver().copy(resizedImagePath, targetPath);
@@ -675,7 +977,7 @@ class NoteScreenComponent extends BaseScreenComponent {
 		return await saveOriginalImage();
 	}
 
-	public async attachFile(pickerResponse: any, fileType: string): Promise<ResourceEntity | null> {
+	public async attachFile(pickerResponse: { uri?: string, name?: string | null, type?: string | null }, fileType: string): Promise<ResourceEntity | null> {
 		if (!pickerResponse) {
 			// User has cancelled
 			return null;
@@ -683,8 +985,12 @@ class NoteScreenComponent extends BaseScreenComponent {
 
 		const localFilePath = Platform.select({
 			android: pickerResponse.uri,
-			ios: decodeURI(pickerResponse.uri),
+			ios: decodeURI(pickerResponse.uri ?? ''),
 		});
+		if (!localFilePath) {
+			logger.warn('attachFile failed as localFilePath is undefined');
+			return null;
+		}
 
 		let mimeType = pickerResponse.type;
 
@@ -702,15 +1008,15 @@ class NoteScreenComponent extends BaseScreenComponent {
 			mimeType = 'image/jpg';
 		}
 
-		reg.logger().info(`Got file: ${localFilePath}`);
-		reg.logger().info(`Got type: ${mimeType}`);
+		reg.logger().debug(`Got file: ${mimeType} ${localFilePath}`);
 
 		let resource: ResourceEntity = Resource.new();
 		resource.id = uuid.create();
-		resource.mime = mimeType;
-		resource.title = pickerResponse.name ? pickerResponse.name : '';
-		resource.file_extension = safeFileExtension(fileExtension(pickerResponse.name ? pickerResponse.name : localFilePath));
-
+		if (mimeType) resource.mime = mimeType;
+		if ('name' in pickerResponse) {
+			resource.title = pickerResponse.name ? pickerResponse.name : '';
+			resource.file_extension = safeFileExtension(fileExtension(pickerResponse.name ? pickerResponse.name : localFilePath));
+		}
 		if (!resource.mime) resource.mime = 'application/octet-stream';
 
 		const targetPath = Resource.fullPath(resource);
@@ -727,7 +1033,7 @@ class NoteScreenComponent extends BaseScreenComponent {
 					await shim.fsDriver().copy(localFilePath, targetPath);
 					const stat = await shim.fsDriver().stat(targetPath);
 
-					if (stat.size >= 200 * 1024 * 1024) {
+					if (stat && stat.size >= 200 * 1024 * 1024) {
 						await shim.fsDriver().remove(targetPath);
 						throw new Error('Resources larger than 200 MB are not currently supported as they may crash the mobile applications. The issue is being investigated and will be fixed at a later time.');
 					}
@@ -735,7 +1041,7 @@ class NoteScreenComponent extends BaseScreenComponent {
 			}
 		} catch (error) {
 			reg.logger().warn('Could not attach file:', error);
-			await dialogs.error(this, error.message);
+			await dialogs.error(this, (error as Error).message);
 			return null;
 		}
 
@@ -743,7 +1049,7 @@ class NoteScreenComponent extends BaseScreenComponent {
 		if (!itDoes) throw new Error(`Resource file was not created: ${targetPath}`);
 
 		const fileStat = await shim.fsDriver().stat(targetPath);
-		resource.size = fileStat.size;
+		resource.size = fileStat?.size ?? 0;
 
 		resource = await Resource.save(resource, { isNew: true });
 
@@ -756,15 +1062,17 @@ class NoteScreenComponent extends BaseScreenComponent {
 
 			if (this.selection) {
 				newText = `\n${resourceTag}\n`;
-				const prefix = newNote.body.substring(0, this.selection.start);
-				const suffix = newNote.body.substring(this.selection.end);
-				newNote.body = `${prefix}${newText}${suffix}`;
+				if (newNote.body) {
+					const prefix = newNote.body.substring(0, this.selection.start);
+					const suffix = newNote.body.substring(this.selection.end);
+					newNote.body = `${prefix}${newText}${suffix}`;
+				}
 			} else {
 				newText = `\n${resourceTag}`;
 				newNote.body = `${newNote.body}\n${newText}`;
 			}
 
-			if (this.useEditorBeta()) {
+			if (this.useRichTextEditor()) {
 				// The beta editor needs to be explicitly informed of changes
 				// to the note's body
 				this.editorRef.current.insertText(newText);
@@ -782,7 +1090,7 @@ class NoteScreenComponent extends BaseScreenComponent {
 		return resource;
 	}
 
-	private async attachPhoto_onPress() {
+	private async attachPhoto_onPress(): Promise<void> {
 		// the selection Limit should be specfied. I think 200 is enough?
 		const response: ImagePickerResponse = await launchImageLibrary({ mediaType: 'photo', includeBase64: false, selectionLimit: 200 });
 
@@ -795,17 +1103,17 @@ class NoteScreenComponent extends BaseScreenComponent {
 			reg.logger().info('User cancelled picker');
 			return;
 		}
-
+		if (!response.assets) return;
 		for (const asset of response.assets) {
 			await this.attachFile(asset, 'image');
 		}
 	}
 
-	private takePhoto_onPress() {
+	private takePhoto_onPress(): void {
 		this.setState({ showCamera: true });
 	}
 
-	private cameraView_onPhoto(data: any) {
+	private cameraView_onPhoto(data: any): void {
 		void this.attachFile(
 			{
 				uri: data.uri,
@@ -817,11 +1125,11 @@ class NoteScreenComponent extends BaseScreenComponent {
 		this.setState({ showCamera: false });
 	}
 
-	private cameraView_onCancel() {
+	private cameraView_onCancel(): void {
 		this.setState({ showCamera: false });
 	}
 
-	private async attachNewDrawing(svgData: string) {
+	private async attachNewDrawing(svgData: string): Promise<ResourceEntity | null> {
 		const filePath = `${Setting.value('resourceDir')}/saved-drawing.xilinota.svg`;
 		await shim.fsDriver().writeFile(filePath, svgData, 'utf8');
 		logger.info('Saved new drawing to', filePath);
@@ -832,7 +1140,7 @@ class NoteScreenComponent extends BaseScreenComponent {
 		}, 'image');
 	}
 
-	private drawPicture_onPress = async () => {
+	private drawPicture_onPress = async (): Promise<void> => {
 		// Create a new empty drawing and attach it now.
 		const resource = await this.attachNewDrawing('');
 
@@ -843,7 +1151,7 @@ class NoteScreenComponent extends BaseScreenComponent {
 		});
 	};
 
-	private async updateDrawing(svgData: string) {
+	private async updateDrawing(svgData: string): Promise<void> {
 		let resource: ResourceEntity | null = this.state.imageEditorResource;
 
 		if (!resource) {
@@ -860,15 +1168,15 @@ class NoteScreenComponent extends BaseScreenComponent {
 		await this.refreshResource(resource);
 	}
 
-	private onSaveDrawing = async (svgData: string) => {
+	private onSaveDrawing = async (svgData: string): Promise<void> => {
 		await this.updateDrawing(svgData);
 	};
 
-	private onCloseDrawing = () => {
+	private onCloseDrawing = (): void => {
 		this.setState({ showImageEditor: false });
 	};
 
-	private async editDrawing(item: BaseItem) {
+	private async editDrawing(item: BaseItem): Promise<void> {
 		const filePath = Resource.fullPath(item);
 		this.setState({
 			showImageEditor: true,
@@ -879,7 +1187,7 @@ class NoteScreenComponent extends BaseScreenComponent {
 		});
 	}
 
-	private onEditResource = async (message: string) => {
+	private onEditResource = async (message: string): Promise<void> => {
 		const messageData = /^edit:(.*)$/.exec(message);
 		if (!messageData) {
 			throw new Error('onEditResource: Error: Invalid message');
@@ -897,37 +1205,32 @@ class NoteScreenComponent extends BaseScreenComponent {
 		}
 	};
 
-	private async attachFile_onPress() {
+	private async attachFile_onPress(): Promise<void> {
 		const response = await this.pickDocuments();
+		if (!response) return;
 		for (const asset of response) {
 			await this.attachFile(asset, 'all');
 		}
 	}
 
-	private toggleIsTodo_onPress() {
-		shared.toggleIsTodo_onPress(this);
-
-		this.scheduleSave();
-	}
-
-	private tags_onPress() {
+	private tags_onPress(): void {
 		if (!this.state.note || !this.state.note.id) return;
 
 		this.setState({ noteTagDialogShown: true });
 	}
 
-	private async share_onPress() {
+	private async share_onPress(): Promise<void> {
 		await Share.share({
 			message: `${this.state.note.title}\n\n${this.state.note.body}`,
 			title: this.state.note.title,
 		});
 	}
 
-	private properties_onPress() {
+	private properties_onPress(): void {
 		this.props.dispatch({ type: 'SIDE_MENU_OPEN' });
 	}
 
-	public async onAlarmDialogAccept(date: Date) {
+	public async onAlarmDialogAccept(date: Date): Promise<void> {
 		const response = await checkPermissions(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
 
 		// The POST_NOTIFICATIONS permission isn't supported on Android API < 33.
@@ -946,47 +1249,61 @@ class NoteScreenComponent extends BaseScreenComponent {
 		this.setState({ alarmDialogShown: false });
 	}
 
-	public onAlarmDialogReject() {
+	public onAlarmDialogReject(): void {
 		this.setState({ alarmDialogShown: false });
 	}
 
-	private async showOnMap_onPress() {
+	private async showOnMap_onPress(): Promise<void> {
 		if (!this.state.note.id) return;
 
 		const note = await Note.load(this.state.note.id);
+		if (!note) return;
 		try {
 			const url = Note.geolocationUrl(note);
 			Linking.openURL(url);
 		} catch (error) {
 			this.props.dispatch({ type: 'SIDE_MENU_CLOSE' });
-			await dialogs.error(this, error.message);
+			await dialogs.error(this, (error as Error).message);
 		}
 	}
 
-	private async showSource_onPress() {
+	private async showSource_onPress(): Promise<void> {
 		if (!this.state.note.id) return;
 
 		const note = await Note.load(this.state.note.id);
+		if (!note) return;
 		try {
-			Linking.openURL(note.source_url);
+			if (note.source_url) Linking.openURL(note.source_url);
 		} catch (error) {
-			await dialogs.error(this, error.message);
+			await dialogs.error(this, (error as Error).message);
 		}
 	}
 
-	private copyMarkdownLink_onPress() {
+	private copyMarkdownLink_onPress(): void {
 		const note = this.state.note;
 		Clipboard.setString(Note.markdownTag(note));
 	}
 
-	public sideMenuOptions() {
+	public sideMenuOptions(): ({
+		title: string;
+		isDivider?: undefined;
+		onPress?: undefined;
+	} | {
+		isDivider: boolean;
+		title?: undefined;
+		onPress?: undefined;
+	} | {
+		title: string;
+		onPress: () => void;
+		isDivider?: undefined;
+	})[] {
 		const note = this.state.note;
 		if (!note) return [];
 
 		const output = [];
 
-		const createdDateString = time.formatMsToLocal(note.user_created_time);
-		const updatedDateString = time.formatMsToLocal(note.user_updated_time);
+		const createdDateString = time.formatMsToLocal(note.user_created_time ?? 0);
+		const updatedDateString = time.formatMsToLocal(note.user_updated_time ?? 0);
 
 		output.push({ title: _('Created: %s', createdDateString) });
 		output.push({ title: _('Updated: %s', updatedDateString) });
@@ -1010,7 +1327,7 @@ class NoteScreenComponent extends BaseScreenComponent {
 		return output;
 	}
 
-	public async showAttachMenu() {
+	public async showAttachMenu(): Promise<void> {
 		// If the keyboard is editing a WebView, the standard Keyboard.dismiss()
 		// may not work. As such, we also need to call hideKeyboard on the editorRef
 		this.editorRef.current?.hideKeyboard();
@@ -1035,76 +1352,13 @@ class NoteScreenComponent extends BaseScreenComponent {
 		if (buttonId === 'attachPhoto') void this.attachPhoto_onPress();
 	}
 
-	// private vosk_:Vosk;
-
-	// private async getVosk() {
-	// 	if (this.vosk_) return this.vosk_;
-	// 	this.vosk_ = new Vosk();
-	// 	await this.vosk_.loadModel('model-fr-fr');
-	// 	return this.vosk_;
-	// }
-
-	// private async voiceRecording_onPress() {
-	// 	logger.info('Vosk: Getting instance...');
-
-	// 	const vosk = await this.getVosk();
-
-	// 	this.voskResult_ = [];
-
-	// 	const eventHandlers: any[] = [];
-
-	// 	eventHandlers.push(vosk.onResult(e => {
-	// 		logger.info('Vosk: result', e.data);
-	// 		this.voskResult_.push(e.data);
-	// 	}));
-
-	// 	eventHandlers.push(vosk.onError(e => {
-	// 		logger.warn('Vosk: error', e.data);
-	// 	}));
-
-	// 	eventHandlers.push(vosk.onTimeout(e => {
-	// 		logger.warn('Vosk: timeout', e.data);
-	// 	}));
-
-	// 	eventHandlers.push(vosk.onFinalResult(e => {
-	// 		logger.info('Vosk: final result', e.data);
-	// 	}));
-
-	// 	logger.info('Vosk: Starting recording...');
-
-	// 	void vosk.start();
-
-	// 	const buttonId = await dialogs.pop(this, 'Voice recording in progress...', [
-	// 		{ text: 'Stop recording', id: 'stop' },
-	// 		{ text: _('Cancel'), id: 'cancel' },
-	// 	]);
-
-	// 	logger.info('Vosk: Stopping recording...');
-	// 	vosk.stop();
-
-	// 	for (const eventHandler of eventHandlers) {
-	// 		eventHandler.remove();
-	// 	}
-
-	// 	logger.info('Vosk: Recording stopped:', this.voskResult_);
-
-	// 	if (buttonId === 'cancel') return;
-
-	// 	const newNote: NoteEntity = { ...this.state.note };
-	// 	newNote.body = `${newNote.body} ${this.voskResult_.join(' ')}`;
-	// 	this.setState({ note: newNote });
-	// 	this.scheduleSave();
-	// }
-
-
-
-	public menuOptions() {
+	public menuOptions(): MenuOptionType[] {
 		const note = this.state.note;
 		const isTodo = note && !!note.is_todo;
 		const isSaved = note && note.id;
 		const readOnly = this.state.readOnly;
 
-		const cacheKey = md5([isTodo, isSaved].join('_'));
+		const cacheKey: string = md5([isTodo, isSaved].join('_'));
 		if (!this.menuOptionsCache_) this.menuOptionsCache_ = {};
 
 		if (this.menuOptionsCache_[cacheKey]) return this.menuOptionsCache_[cacheKey];
@@ -1207,11 +1461,11 @@ class NoteScreenComponent extends BaseScreenComponent {
 		return output;
 	}
 
-	private async todoCheckbox_change(checked: boolean) {
+	private async todoCheckbox_change(checked: boolean): Promise<void> {
 		await this.saveOneProperty('todo_completed', checked ? time.unixMs() : 0);
 	}
 
-	public scheduleFocusUpdate() {
+	public scheduleFocusUpdate(): void {
 		if (this.focusUpdateIID_) shim.clearTimeout(this.focusUpdateIID_);
 
 		this.focusUpdateIID_ = shim.setTimeout(() => {
@@ -1220,17 +1474,20 @@ class NoteScreenComponent extends BaseScreenComponent {
 		}, 100);
 	}
 
-	public focusUpdate() {
+	public focusUpdate(): void {
 		if (this.focusUpdateIID_) shim.clearTimeout(this.focusUpdateIID_);
 		this.focusUpdateIID_ = null;
 
 		if (!this.state.note) return;
-		let fieldToFocus = this.state.note.is_todo ? 'title' : 'body';
-		if (this.state.mode === 'view') fieldToFocus = '';
+		// let fieldToFocus = this.state.note.is_todo ? 'title' : 'body';
+		// if (this.state.mode === 'view') fieldToFocus = '';
 
-		if (fieldToFocus === 'title' && this.refs.titleTextField) {
-			this.refs.titleTextField.focus();
-		}
+		// TODO: Property 'focus' does not exist on type 'ReactInstance'.
+		//   Property 'focus' does not exist on type 'Component<any, {}, any>'
+		// if (fieldToFocus === 'title' && this.refs.titleTextField) {
+		// 	this.refs.titleTextField.focus();
+		// }
+
 		// if (fieldToFocus === 'body' && this.markdownEditorRef.current) {
 		// 	if (this.markdownEditorRef.current) {
 		// 		this.markdownEditorRef.current.focus();
@@ -1238,21 +1495,22 @@ class NoteScreenComponent extends BaseScreenComponent {
 		// }
 	}
 
-	private async folderPickerOptions_valueChanged(itemValue: any) {
+	private async folderPickerOptions_valueChanged(itemValue: any): Promise<void> {
 		const note = this.state.note;
-		const isProvisionalNote = this.props.provisionalNoteIds.includes(note.id);
+		const isProvisionalNote = this.props.provisionalNoteIds.includes(note.id ?? '');
 
 		if (isProvisionalNote) {
 			await this.saveNoteButton_press(itemValue);
 		} else {
-			await Note.moveToFolder(note.id, itemValue);
-			await PeersNote.moveOnPeers(note.id);
-
+			if (note.id) {
+				await Note.moveToFolder(note.id, itemValue);
+				await PeersNote.moveOnPeers(note.id);
+			}
 		}
 
 		note.parent_id = itemValue;
 
-		const folder = await Folder.load(note.parent_id);
+		const folder = await Folder.load(note.parent_id ?? '');
 
 		this.setState({
 			lastSavedNote: { ...note },
@@ -1264,7 +1522,7 @@ class NoteScreenComponent extends BaseScreenComponent {
 	public folderPickerOptions() {
 		const options = {
 			enabled: !this.state.readOnly,
-			selectedFolderId: this.state.folder ? this.state.folder.id : null,
+			selectedFolderId: this.state.folder && this.state.folder.id ? this.state.folder.id : undefined,
 			onValueChange: this.folderPickerOptions_valueChanged,
 		};
 
@@ -1274,7 +1532,7 @@ class NoteScreenComponent extends BaseScreenComponent {
 		return this.folderPickerOptions_;
 	}
 
-	public onBodyViewerLoadEnd() {
+	public onBodyViewerLoadEnd(): void {
 		shim.setTimeout(() => {
 			this.setState({ HACK_webviewLoadingState: 1 });
 			shim.setTimeout(() => {
@@ -1283,18 +1541,18 @@ class NoteScreenComponent extends BaseScreenComponent {
 		}, 5);
 	}
 
-	public onBodyViewerCheckboxChange(newBody: string) {
+	public onBodyViewerCheckboxChange(newBody: string): void {
 		void this.saveOneProperty('body', newBody);
 	}
 
-	private voiceTypingDialog_onText(text: string) {
+	private voiceTypingDialog_onText(text: string): void {
 		if (this.state.mode === 'view') {
 			const newNote: NoteEntity = { ...this.state.note };
 			newNote.body = `${newNote.body} ${text}`;
 			this.setState({ note: newNote });
 			this.scheduleSave();
 		} else {
-			if (this.useEditorBeta()) {
+			if (this.useRichTextEditor()) {
 				// We add a space so that if the feature is used twice in a row,
 				// the sentences are not stuck to each others.
 				this.editorRef.current.insertText(`${text} `);
@@ -1304,11 +1562,11 @@ class NoteScreenComponent extends BaseScreenComponent {
 		}
 	}
 
-	private voiceTypingDialog_onDismiss() {
+	private voiceTypingDialog_onDismiss(): void {
 		this.setState({ voiceTypingDialogShown: false });
 	}
 
-	public render() {
+	public render(): React.JSX.Element {
 		if (this.state.isLoading) {
 			return (
 				<View style={this.styles().screen}>
@@ -1317,12 +1575,14 @@ class NoteScreenComponent extends BaseScreenComponent {
 			);
 		}
 
-		const theme = themeStyle(this.props.themeId);
+		const theme = themeStyle(this.props.themeId.toString());
 		const note: NoteEntity = this.state.note;
 		const isTodo = !!Number(note.is_todo);
 
 		if (this.state.showCamera) {
-			return <CameraView themeId={this.props.themeId} style={{ flex: 1 }} onPhoto={this.cameraView_onPhoto} onCancel={this.cameraView_onCancel} />;
+			// themeId doesn't exist in CameraView
+			// return <CameraView themeId={this.props.themeId} style={{ flex: 1 }} onPhoto={this.cameraView_onPhoto} onCancel={this.cameraView_onCancel} />;
+			return <CameraView style={{ flex: 1 }} onPhoto={this.cameraView_onPhoto} onCancel={this.cameraView_onCancel} />;
 		} else if (this.state.showImageEditor) {
 			return <ImageEditor
 				loadInitialSVGData={this.state.loadImageEditorData}
@@ -1333,14 +1593,14 @@ class NoteScreenComponent extends BaseScreenComponent {
 		}
 
 		// Currently keyword highlighting is supported only when FTS is available.
-		const keywords = this.props.searchQuery && !!this.props.ftsEnabled ? this.props.highlightedWords : emptyArray;
+		const keywords = this.props.searchQuery && !!this.props.ftsEnabled ? this.props.highlightedWords : [];
 
 		let bodyComponent = null;
 		if (this.state.mode === 'view') {
 			// Note: as of 2018-12-29 it's important not to display the viewer if the note body is empty,
 			// to avoid the HACK_webviewLoadingState related bug.
 			bodyComponent =
-				!note || !note.body.trim() ? null : (
+				!note || !note.body || !note.body.trim() ? null : (
 					<NoteBodyViewer
 						onXilinotaLinkClick={this.onJoplinLinkClick_}
 						style={this.styles().noteBodyViewer}
@@ -1348,7 +1608,7 @@ class NoteScreenComponent extends BaseScreenComponent {
 						// action button (so that it doesn't overlap the text)
 						paddingBottom={150}
 						noteBody={note.body}
-						noteMarkupLanguage={note.markup_language}
+						noteMarkupLanguage={note.markup_language ?? 0}
 						noteResources={this.state.noteResources}
 						highlightedKeywords={keywords}
 						themeId={this.props.themeId}
@@ -1376,7 +1636,7 @@ class NoteScreenComponent extends BaseScreenComponent {
 			//     abcde|
 			//     abcde|f
 
-			if (!this.useEditorBeta()) {
+			if (!this.useRichTextEditor()) {
 				bodyComponent = (
 					<TextInput
 						autoCapitalize="sentences"
@@ -1391,9 +1651,10 @@ class NoteScreenComponent extends BaseScreenComponent {
 						keyboardAppearance={theme.keyboardAppearance}
 						placeholder={_('Add body')}
 						placeholderTextColor={theme.colorFaded}
-						// need some extra padding for iOS so that the keyboard won't cover last line of the note
-						// see https://github.com/XilinJia/Xilinota/issues/3607
-						paddingBottom={Platform.OS === 'ios' ? 40 : 0}
+					// need some extra padding for iOS so that the keyboard won't cover last line of the note
+					// see https://github.com/XilinJia/Xilinota/issues/3607
+					// paddingBottom doesn't exist??
+					// paddingBottom={Platform.OS === 'ios' ? 40 : 0}
 					/>
 				);
 			} else {
@@ -1403,10 +1664,10 @@ class NoteScreenComponent extends BaseScreenComponent {
 					ref={this.editorRef}
 					toolbarEnabled={this.props.toolbarEnabled}
 					themeId={this.props.themeId}
-					initialText={note.body}
+					initialText={note.body ?? ''}
 					initialSelection={this.selection}
 					onChange={this.onBodyChange}
-					onSelectionChange={this.body_selectionChange}
+					onSelectionChange={this.body_selectionChange_rich}
 					onUndoRedoDepthChange={this.onUndoRedoDepthChange}
 					onAttach={() => this.showAttachMenu()}
 					readOnly={this.state.readOnly}
@@ -1424,7 +1685,7 @@ class NoteScreenComponent extends BaseScreenComponent {
 			}
 		}
 
-		const renderActionButton = () => {
+		const renderActionButton = (): React.JSX.Element | null => {
 			if (this.state.voiceTypingDialogShown) return null;
 
 			const editButton = {
@@ -1444,9 +1705,9 @@ class NoteScreenComponent extends BaseScreenComponent {
 
 		// Save button is not really needed anymore with the improved save logic
 		const showSaveButton = false; // this.state.mode === 'edit' || this.isModified() || this.saveButtonHasBeenShown_;
-		const saveButtonDisabled = true;// !this.isModified();
+		const saveButtonDisabled = true;	// !this.isModified();
 
-		if (showSaveButton) this.saveButtonHasBeenShown_ = true;
+		// if (showSaveButton) this.saveButtonHasBeenShown_ = true;
 
 		const titleContainerStyle = isTodo ? this.styles().titleContainerTodo : this.styles().titleContainer;
 
@@ -1513,7 +1774,7 @@ class NoteScreenComponent extends BaseScreenComponent {
 	}
 }
 
-const NoteScreen = connect((state: any) => {
+const NoteScreen = connect((state: AppState) => {
 	return {
 		noteId: state.selectedNoteIds.length ? state.selectedNoteIds[0] : null,
 		noteHash: state.selectedNoteHash,
@@ -1522,7 +1783,7 @@ const NoteScreen = connect((state: any) => {
 		folders: state.folders,
 		searchQuery: state.searchQuery,
 		themeId: state.settings.theme,
-		editorFont: [state.settings['style.editor.fontFamily']],
+		editorFont: state.settings['style.editor.fontFamily'],
 		editorFontSize: state.settings['style.editor.fontSize'],
 		toolbarEnabled: state.settings['editor.mobile.toolbarEnabled'],
 		ftsEnabled: state.settings['db.ftsEnabled'],
@@ -1534,7 +1795,7 @@ const NoteScreen = connect((state: any) => {
 		// What we call "beta editor" in this component is actually the (now
 		// default) CodeMirror editor. That should be refactored to make it less
 		// confusing.
-		useEditorBeta: !state.settings['editor.usePlainText'],
+		useRichTextEditor: !state.settings['editor.usePlainText'],
 	};
 })(NoteScreenComponent);
 

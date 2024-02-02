@@ -5,9 +5,9 @@ import shim from '../../shim';
 
 export default class InteropService_Exporter_Jex extends InteropService_Exporter_Base {
 
-	private tempDir_: string;
-	private destPath_: string;
-	private rawExporter_: InteropService_Exporter_Raw;
+	private tempDir_: string = '';
+	private destPath_: string = '';
+	private rawExporter_: InteropService_Exporter_Raw|undefined;
 
 	public async init(destPath: string) {
 		if (await shim.fsDriver().isDirectory(destPath)) throw new Error(`Path is a directory: ${destPath}`);
@@ -19,11 +19,11 @@ export default class InteropService_Exporter_Jex extends InteropService_Exporter
 	}
 
 	public async processItem(itemType: number, item: any) {
-		return this.rawExporter_.processItem(itemType, item);
+		return this.rawExporter_?.processItem(itemType, item);
 	}
 
 	public async processResource(resource: any, filePath: string) {
-		return this.rawExporter_.processResource(resource, filePath);
+		return this.rawExporter_?.processResource(resource, filePath);
 	}
 
 	public async close() {

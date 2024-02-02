@@ -6,10 +6,10 @@ module.exports = {
 		'node': true,
 	},
 	'parser': '@typescript-eslint/parser',
-	'extends': ['eslint:recommended'],
+	'extends': ['eslint:recommended', '@react-native'],
 	'settings': {
 		'react': {
-			'version': '16.12',
+			'version': '18.2',
 		},
 	},
 	'globals': {
@@ -58,6 +58,7 @@ module.exports = {
 		// -------------------------------
 		'react/jsx-uses-react': 'error',
 		'react/jsx-uses-vars': 'error',
+		'@typescript-eslint/no-circular-imports': 'error',
 		'no-unused-vars': ['error', { 'argsIgnorePattern': '^_' }],
 		'@typescript-eslint/no-unused-vars': ['error', { 'argsIgnorePattern': '^_' }],
 		'@typescript-eslint/explicit-member-accessibility': 'off',
@@ -86,8 +87,8 @@ module.exports = {
 		// 'complexity': ['warn', { max: 10 }],
 
 		// Checks rules of Hooks
-		'@seiyab/react-hooks/rules-of-hooks': 'error',
-		'@seiyab/react-hooks/exhaustive-deps': ['error', { 'ignoreThisDependency': 'props' }],
+		'react-hooks/rules-of-hooks': 'error',
+		'react-hooks/exhaustive-deps': ['error', { 'ignoreThisDependency': 'props' }],
 
 		// Checks effect dependencies
 		// Disable because of this: https://github.com/facebook/react/issues/16265
@@ -163,7 +164,8 @@ module.exports = {
 		'@typescript-eslint',
 		// Need to use a fork of the official rules of hooks because of this bug:
 		// https://github.com/facebook/react/issues/16265
-		'@seiyab/eslint-plugin-react-hooks',
+		'eslint-plugin-react-hooks',
+		// '@seiyab/eslint-plugin-react-hooks',
 		// 'react-hooks',
 		'import',
 		'promise',

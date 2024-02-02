@@ -38,7 +38,7 @@ export interface WhenClauseContext {
 	folderIsReadOnly: boolean;
 }
 
-export default function stateToWhenClauseContext(state: State, options: WhenClauseContextOptions = null): WhenClauseContext {
+export default function stateToWhenClauseContext(state: State, options: WhenClauseContextOptions = {}): WhenClauseContext {
 	options = {
 		commandFolderId: '',
 		commandNoteId: '',
@@ -47,10 +47,10 @@ export default function stateToWhenClauseContext(state: State, options: WhenClau
 
 	const selectedNoteIds = state.selectedNoteIds || [];
 	const selectedNoteId = selectedNoteIds.length === 1 ? selectedNoteIds[0] : null;
-	const selectedNote: NoteEntity = selectedNoteId ? BaseModel.byId(state.notes, selectedNoteId) : null;
+	const selectedNote: NoteEntity|null = selectedNoteId ? BaseModel.byId(state.notes, selectedNoteId) : null;
 
 	const commandFolderId = options.commandFolderId || state.selectedFolderId;
-	const commandFolder: FolderEntity = commandFolderId ? BaseModel.byId(state.folders, commandFolderId) : null;
+	const commandFolder: FolderEntity|null = commandFolderId ? BaseModel.byId(state.folders, commandFolderId) : null;
 
 	const settings = state.settings || {};
 
@@ -83,14 +83,14 @@ export default function stateToWhenClauseContext(state: State, options: WhenClau
 
 		// Current context folder
 		folderIsShareRoot: commandFolder ? isRootSharedFolder(commandFolder) : false,
-		folderIsShareRootAndNotOwnedByUser: commandFolder ? isRootSharedFolder(commandFolder) && !isSharedFolderOwner(state, commandFolder.id) : false,
-		folderIsShareRootAndOwnedByUser: commandFolder ? isRootSharedFolder(commandFolder) && isSharedFolderOwner(state, commandFolder.id) : false,
+		folderIsShareRootAndNotOwnedByUser: commandFolder ? isRootSharedFolder(commandFolder) && !isSharedFolderOwner(state, commandFolder.id??'') : false,
+		folderIsShareRootAndOwnedByUser: commandFolder ? isRootSharedFolder(commandFolder) && isSharedFolderOwner(state, commandFolder.id??'') : false,
 		folderIsShared: commandFolder ? !!commandFolder.share_id : false,
 
 		xilinotaServerConnected: [9, 10].includes(settings['sync.target']),
 		joplinCloudAccountType: settings['sync.target'] === 10 ? settings['sync.10.accountType'] : 0,
 
-		hasMultiProfiles: state.profileConfig && state.profileConfig.profiles.length > 1,
+		hasMultiProfiles: !!state.profileConfig && state.profileConfig.profiles.length > 1,
 
 		noteIsReadOnly: selectedNote ? itemIsReadOnlySync(ModelType.Note, ItemChange.SOURCE_UNSPECIFIED, selectedNote as ItemSlice, settings['sync.userId'], state.shareService) : false,
 		folderIsReadOnly: commandFolder ? itemIsReadOnlySync(ModelType.Note, ItemChange.SOURCE_UNSPECIFIED, commandFolder as ItemSlice, settings['sync.userId'], state.shareService) : false,

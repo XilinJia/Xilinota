@@ -1,8 +1,8 @@
-const styled = require('styled-components').default;
-const Color = require('color');
+import styled from 'styled-components';
+import Color from 'color';
 
 const StyledInput = styled.input`
-	border: 1px solid ${(props: any) => Color(props.theme.color3).alpha(0.6)};
+	border: 1px solid ${(props: any) => String(Color(props.theme.color3).alpha(0.6))};
 	border-radius: 3px;
 	font-size: ${(props: any) => props.theme.fontSize}px;
 	color: ${(props: any) => props.theme.color};
@@ -10,7 +10,7 @@ const StyledInput = styled.input`
 	height: ${(props: any) => `${props.theme.toolbarHeight}px`};
 	max-height: ${(props: any) => `${props.theme.toolbarHeight}px`};
 	box-sizing: border-box;
-	background-color: ${(props: any) => Color(props.theme.backgroundColor4).alpha(0.5)};
+	background-color: ${(props: any) => String(Color(props.theme.backgroundColor4).alpha(0.5))};
 
 	&::placeholder {
 		color: ${(props: any) => props.theme.colorFaded};

@@ -19,7 +19,6 @@ export const test = base.extend<XilinotaFixtures>({
 	//
 	// See https://github.com/microsoft/playwright/issues/8798
 	//
-	// eslint-disable-next-line no-empty-pattern
 	electronApp: async ({ }, use) => {
 		const profilePath = resolve(join(dirname(__dirname), 'test-profile'));
 		const profileSubdir = join(profilePath, uuid.createNano());

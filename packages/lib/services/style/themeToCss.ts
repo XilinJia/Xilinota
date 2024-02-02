@@ -1,5 +1,5 @@
 import { Theme } from '../../themes/type';
-const { camelCaseToDash, formatCssSize } = require('../../string-utils');
+import { camelCaseToDash, formatCssSize } from '../../string-utils';
 
 const isColor = (v: any) => {
 	return v && typeof v === 'object' && ('color' in v) && ('model' in v) && ('valpha' in v);
@@ -19,7 +19,7 @@ export default function(theme: Theme) {
 		if (typeof value === 'number' && isNaN(value)) continue;
 
 		const newName = `--xilinota-${camelCaseToDash(name)}`;
-		const formattedValue = typeof value === 'number' && newName.indexOf('opacity') < 0 ? formatCssSize(value) : value;
+		const formattedValue = typeof value === 'number' && newName.indexOf('opacity') < 0 ? formatCssSize(value.toString()) : value;
 		lines.push(`\t${newName}: ${formattedValue};`);
 	}
 

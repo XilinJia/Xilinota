@@ -1,6 +1,6 @@
-const React = require('react');
-const { connect } = require('react-redux');
-const { clipboard } = require('electron');
+import React from 'react';
+import { connect } from 'react-redux';
+import { clipboard } from 'electron';
 import ExtensionBadge from './ExtensionBadge';
 import { themeStyle } from '@xilinota/lib/theme';
 import { _ } from '@xilinota/lib/locale';
@@ -9,9 +9,16 @@ import Setting from '@xilinota/lib/models/Setting';
 import EncryptionService from '@xilinota/lib/services/e2ee/EncryptionService';
 import { AppState } from '../app.reducer';
 
-class ClipperConfigScreenComponent extends React.Component {
-	public constructor() {
-		super();
+interface Props {
+	themeId: number;
+	clipperServerAutoStart: boolean;
+	clipperServer: any;
+	apiToken: string;
+}
+
+class ClipperConfigScreenComponent extends React.Component<Props> {
+	public constructor(props: Props) {
+		super(props);
 
 		this.copyToken_click = this.copyToken_click.bind(this);
 	}
@@ -36,7 +43,7 @@ class ClipperConfigScreenComponent extends React.Component {
 		if (confirm(_('Are you sure you want to renew the authorisation token?'))) {
 			void EncryptionService.instance()
 				.generateApiToken()
-			// eslint-disable-next-line promise/prefer-await-to-then -- Old code before rule was applied
+
 				.then((token) => {
 					Setting.setValue('api.token', token);
 				});
@@ -46,9 +53,11 @@ class ClipperConfigScreenComponent extends React.Component {
 	public render() {
 		const theme = themeStyle(this.props.themeId);
 
-		const containerStyle = { ...theme.containerStyle, overflowY: 'scroll',
+		const containerStyle = {
+			...theme.containerStyle, overflowY: 'scroll',
 			// padding: theme.configScreenPadding,
-			backgroundColor: theme.backgroundColor3 };
+			backgroundColor: theme.backgroundColor3
+		};
 
 		const buttonStyle = { ...theme.buttonStyle, marginRight: 10 };
 
@@ -104,10 +113,12 @@ class ClipperConfigScreenComponent extends React.Component {
 			);
 		}
 
-		const apiTokenStyle = { ...theme.textStyle, color: theme.colorFaded,
+		const apiTokenStyle = {
+			...theme.textStyle, color: theme.colorFaded,
 			wordBreak: 'break-all',
 			paddingTop: 10,
-			paddingBottom: 10 };
+			paddingBottom: 10
+		};
 
 		return (
 			<div>
@@ -126,8 +137,8 @@ class ClipperConfigScreenComponent extends React.Component {
 							<p style={theme.h1Style}>{_('Step 2: Install the extension')}</p>
 							<p style={theme.textStyle}>{_('Download and install the relevant extension for your browser:')}</p>
 							<div style={{ display: 'flex', flexDirection: 'row' }}>
-								<ExtensionBadge themeId={this.props.themeId} type="firefox" url="https://addons.mozilla.org/en-US/firefox/addon/xilinota-web-clipper/"/>
-								<ExtensionBadge style={{ marginLeft: 10 }} themeId={this.props.themeId} type="chrome" url="https://chrome.google.com/webstore/detail/xilinota-web-clipper/alofnhikmmkdbbbgpnglcpdollgjjfek"/>
+								<ExtensionBadge themeId={this.props.themeId} type="firefox" url="https://addons.mozilla.org/en-US/firefox/addon/xilinota-web-clipper/" />
+								<ExtensionBadge style={{ marginLeft: 10 }} themeId={this.props.themeId} type="chrome" url="https://chrome.google.com/webstore/detail/xilinota-web-clipper/alofnhikmmkdbbbgpnglcpdollgjjfek" />
 							</div>
 						</div>
 

@@ -32,7 +32,7 @@ export const Dropdown = (props: Props) => {
 	};
 
 	const onChange = useCallback((event: any) => {
-		props.onChange({ value: event.target.value });
+		props.onChange?.({ value: event.target.value });
 	}, [props.onChange]);
 
 	const classNames = useMemo(() => {

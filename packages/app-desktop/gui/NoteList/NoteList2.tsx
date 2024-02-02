@@ -22,14 +22,14 @@ import * as focusElementNoteList from './commands/focusElementNoteList';
 import CommandService from '@xilinota/lib/services/CommandService';
 import useDragAndDrop from './utils/useDragAndDrop';
 import usePrevious from '../hooks/usePrevious';
-const { connect } = require('react-redux');
+import { connect } from 'react-redux';
 
 const commands = {
 	focusElementNoteList,
 };
 
 const NoteList = (props: Props) => {
-	const listRef = useRef(null);
+	const listRef = useRef<HTMLDivElement>(document.createElement('div')) as React.MutableRefObject<HTMLDivElement>;
 	const itemRefs = useRef<Record<string, HTMLDivElement>>({});
 	const listRenderer = props.listRenderer;
 
@@ -44,7 +44,7 @@ const NoteList = (props: Props) => {
 		if (listRenderer.flow === ItemFlow.TopToBottom) {
 			return 1;
 		} else {
-			return Math.max(1, Math.floor(props.size.width / itemSize.width));
+			return Math.max(1, Math.floor(props.size ? (props.size.width??0 / (itemSize.width??1)) : 0));
 		}
 	}, [listRenderer.flow, props.size.width, itemSize.width]);
 
@@ -115,7 +115,7 @@ const NoteList = (props: Props) => {
 		itemsPerLine,
 	);
 
-	useItemCss(listRenderer.itemCss);
+	useItemCss(listRenderer.itemCss??'');
 
 	useEffect(() => {
 		CommandService.instance().registerRuntime(commands.focusElementNoteList.declaration.name, commands.focusElementNoteList.runtime(focusNote));
@@ -200,23 +200,23 @@ const NoteList = (props: Props) => {
 			output.push(
 				<NoteListItem
 					key={note.id}
-					ref={el => itemRefs.current[note.id] = el}
+					ref={el => { if (el) itemRefs.current[note.id ?? ''] = el; }}
 					index={i}
-					dragIndex={dragOverTargetNoteIndex}
+					dragIndex={dragOverTargetNoteIndex ?? 0}
 					noteCount={props.notes.length}
 					itemSize={itemSize}
-					onChange={listRenderer.onChange}
+					onChange={ listRenderer.onChange }
 					onClick={onNoteClick}
 					onContextMenu={onItemContextMenu}
 					onDragStart={onDragStart}
 					onDragOver={onDragOver}
 					style={noteItemStyle}
 					highlightedWords={highlightedWords}
-					isProvisional={props.provisionalNoteIds.includes(note.id)}
+					isProvisional={props.provisionalNoteIds.includes(note.id??'')}
 					flow={listRenderer.flow}
 					note={note}
-					isSelected={props.selectedNoteIds.includes(note.id)}
-					isWatched={props.watchedNoteFiles.includes(note.id)}
+					isSelected={props.selectedNoteIds.includes(note.id??'')}
+					isWatched={props.watchedNoteFiles.includes(note.id??'')}
 					listRenderer={listRenderer}
 				/>,
 			);
@@ -225,8 +225,8 @@ const NoteList = (props: Props) => {
 		return output;
 	};
 
-	const topFillerHeight = startLineIndex * itemSize.height;
-	const bottomFillerHeight = (totalLineCount - endLineIndex - 1) * itemSize.height;
+	const topFillerHeight = startLineIndex * (itemSize.height??50);
+	const bottomFillerHeight = (totalLineCount - endLineIndex - 1) * (itemSize.height??50);
 
 	const fillerBaseStyle = useMemo(() => {
 		// return { width: 'auto', border: '1px solid red', backgroundColor: 'green' };
@@ -273,7 +273,7 @@ const NoteList = (props: Props) => {
 };
 
 const mapStateToProps = (state: AppState) => {
-	const selectedFolder: FolderEntity = state.notesParentType === 'Folder' ? BaseModel.byId(state.folders, state.selectedFolderId) : null;
+	const selectedFolder: FolderEntity|null = state.notesParentType === 'Folder' ? BaseModel.byId(state.folders, state.selectedFolderId) : null;
 	const userId = state.settings['sync.userId'];
 
 	return {

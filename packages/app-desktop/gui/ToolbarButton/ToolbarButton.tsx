@@ -31,12 +31,12 @@ export default function ToolbarButton(props: Props) {
 	const iconName = getProp(props, 'iconName');
 	if (iconName) {
 		const IconClass = isFontAwesomeIcon(iconName) ? StyledIconI : StyledIconSpan;
-		icon = <IconClass className={iconName} title={title}/>;
+		icon = <IconClass className={iconName} title={title} />;
 	}
 
 	// Keep this for legacy compatibility but for consistency we should use "disabled" prop
 	let isEnabled = getProp(props, 'enabled', null);
-	if (isEnabled === null) isEnabled = true;
+	if (!isEnabled) isEnabled = true;
 	if (props.disabled) isEnabled = false;
 
 	const classes = ['button'];

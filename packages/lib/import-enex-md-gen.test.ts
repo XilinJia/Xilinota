@@ -2,8 +2,8 @@ import { NoteEntity, ResourceEntity, TagEntity } from './services/database/types
 import shim from './shim';
 
 import { readFile, stat } from 'fs/promises';
-const os = require('os');
-const { filename } = require('./path-utils');
+import os from 'os';
+import { filename } from './path-utils';
 import { setupDatabaseAndSynchronizer, switchClient, expectNotThrow, supportDir, expectThrow } from './testing/test-utils';
 const { enexXmlToMd } = require('./import-enex-md-gen.js');
 import importEnex from './import-enex';
@@ -63,7 +63,7 @@ describe('import-enex-md-gen', () => {
 				result.push('--------------------------------------------');
 				result.push('');
 
-				// eslint-disable-next-line no-console
+
 				console.info(result.join('\n'));
 
 				expect(false).toBe(true);
@@ -91,7 +91,7 @@ describe('import-enex-md-gen', () => {
 		expect(note.altitude).toBe('96.0000');
 		expect(note.author).toBe('Brett Kelly');
 
-		const tag: TagEntity = (await Tag.tagsByNoteId(note.id))[0];
+		const tag: TagEntity = (await Tag.tagsByNoteId(note.id!))[0];
 		expect(tag.title).toBe('fake-tag');
 
 		const resource: ResourceEntity = (await Resource.all())[0];
@@ -174,8 +174,8 @@ describe('import-enex-md-gen', () => {
 		const svgResource = all.find(r => r.mime === 'image/svg+xml');
 		const pngResource = all.find(r => r.mime === 'image/png');
 
-		expected = expected.replace(/RESOURCE_ID_1/, pngResource.id);
-		expected = expected.replace(/RESOURCE_ID_2/, svgResource.id);
+		if (pngResource) expected = expected.replace(/RESOURCE_ID_1/, pngResource.id!);
+		if (svgResource) expected = expected.replace(/RESOURCE_ID_2/, svgResource.id!);
 
 		expect(note.body).toBe(expected);
 		const filePath = `${enexSampleBaseDir}/invalid_html.enex`;

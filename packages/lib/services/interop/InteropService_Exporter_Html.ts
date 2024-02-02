@@ -5,23 +5,22 @@ import markupLanguageUtils from '../../markupLanguageUtils';
 import Folder from '../../models/Folder';
 import Note from '../../models/Note';
 import Setting from '../../models/Setting';
-import { MarkupToHtml } from '@xilinota/renderer';
-import { NoteEntity, ResourceEntity } from '../database/types';
+import { MarkupToHtml , assetsToHeaders } from '@xilinota/renderer';
+import { FolderEntity, NoteEntity, ResourceEntity } from '../database/types';
 import { contentScriptsToRendererRules } from '../plugins/utils/loadContentScripts';
 import { basename, friendlySafeFilename, rtrimSlashes, dirname } from '../../path-utils';
 import htmlpack from '@xilinota/htmlpack';
-const { themeStyle } = require('../../theme');
-const { escapeHtml } = require('../../string-utils.js');
-const { assetsToHeaders } = require('@xilinota/renderer');
+import { themeStyle } from '../../theme';
+import { escapeHtml } from '../../string-utils';
 
 export default class InteropService_Exporter_Html extends InteropService_Exporter_Base {
 
-	private customCss_: string;
-	private destDir_: string;
-	private filePath_: string;
+	private customCss_: string = '';
+	private destDir_: string = '';
+	private filePath_: string = '';
 	private createdDirs_: string[] = [];
-	private resourceDir_: string;
-	private markupToHtml_: MarkupToHtml;
+	private resourceDir_: string = '';
+	private markupToHtml_: MarkupToHtml|undefined;
 	private resources_: ResourceEntity[] = [];
 	private style_: any;
 	private packIntoSingleFile_ = false;
@@ -35,10 +34,10 @@ export default class InteropService_Exporter_Html extends InteropService_Exporte
 			this.packIntoSingleFile_ = 'packIntoSingleFile' in options ? options.packIntoSingleFile : true;
 		} else {
 			this.destDir_ = path;
-			this.filePath_ = null;
+			this.filePath_ = '';
 		}
 
-		this.resourceDir_ = this.destDir_ ? `${this.destDir_}/_resources` : null;
+		this.resourceDir_ = this.destDir_ ? `${this.destDir_}/_resources` : '';
 
 		await shim.fsDriver().mkdir(this.destDir_);
 		this.markupToHtml_ = markupLanguageUtils.newMarkupToHtml(null, {
@@ -48,25 +47,27 @@ export default class InteropService_Exporter_Html extends InteropService_Exporte
 		this.style_ = themeStyle(Setting.THEME_LIGHT);
 	}
 
-	private async makeDirPath_(item: NoteEntity, pathPart: string = null) {
+	private async makeDirPath_(item: FolderEntity, pathPart: string = '') {
 		let output = '';
 		while (true) {
 			if (item.type_ === BaseModel.TYPE_FOLDER) {
 				if (pathPart) {
 					output = `${pathPart}/${output}`;
 				} else {
-					output = `${friendlySafeFilename(item.title)}/${output}`;
+					output = `${friendlySafeFilename(item.title??'')}/${output}`;
 					output = await shim.fsDriver().findUniqueFilename(output);
 				}
 			}
 			if (!item.parent_id) return output;
-			item = await Folder.load(item.parent_id);
+			const newItem = await Folder.load(item.parent_id);
+			if (!newItem) return output;
+			item = newItem;
 		}
 	}
 
 	private async processNoteResources_(item: NoteEntity) {
 		const target = this.metadata().target;
-		const linkedResourceIds = await Note.linkedResourceIds(item.body);
+		const linkedResourceIds = await Note.linkedResourceIds(item.body??'');
 		const relativePath = target === 'directory' ? rtrimSlashes(await this.makeDirPath_(item, '..')) : '';
 		const resourcePaths = this.context() && this.context().resourcePaths ? this.context().resourcePaths : {};
 
@@ -79,7 +80,7 @@ export default class InteropService_Exporter_Html extends InteropService_Exporte
 				continue;
 			}
 			const resourceContent = `${relativePath ? `${relativePath}/` : ''}_resources/${basename(resourcePaths[id])}`;
-			newBody = newBody.replace(new RegExp(`:/${id}`, 'g'), resourceContent);
+			newBody = newBody?.replace(new RegExp(`:/${id}`, 'g'), resourceContent);
 		}
 
 		return newBody;
@@ -109,7 +110,7 @@ export default class InteropService_Exporter_Html extends InteropService_Exporte
 			}
 
 			const bodyMd = await this.processNoteResources_(item);
-			const result = await this.markupToHtml_.render(item.markup_language, bodyMd, this.style_, {
+			const result = await this.markupToHtml_!.render(item.markup_language, bodyMd??'', this.style_, {
 				resources: this.resources_,
 				plainResourceRendering: true,
 			});

@@ -6,20 +6,20 @@ import ResourceFetcher from '@xilinota/lib/services/ResourceFetcher';
 import Synchronizer from '@xilinota/lib/Synchronizer';
 import { masterKeysWithoutPassword } from '@xilinota/lib/services/e2ee/utils';
 import { appTypeToLockType } from '@xilinota/lib/services/synchronizer/LockHandler';
-const BaseCommand = require('./base-command').default;
+import BaseCommand from './base-command';
 const { app } = require('./app.js');
 const { OneDriveApiNodeUtils } = require('@xilinota/lib/onedrive-api-node-utils.js');
 import { reg } from '@xilinota/lib/registry';
 const { cliUtils } = require('./cli-utils.js');
-const md5 = require('md5');
+import md5 from 'md5';
 import * as locker from 'proper-lockfile';
 import { pathExists, writeFile } from 'fs-extra';
+import XilinotaError from '@xilinota/lib/XilinotaError';
 
 class Command extends BaseCommand {
 
-	private syncTargetId_: number = null;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	private releaseLockFn_: Function = null;
+	private syncTargetId_: number = 0;
+	private releaseLockFn_: Function | null = null;
 	private oneDriveApiUtils_: any = null;
 
 	public usage() {
@@ -55,7 +55,7 @@ class Command extends BaseCommand {
 			this.oneDriveApiUtils_ = new OneDriveApiNodeUtils(syncTarget.api());
 			const auth = await this.oneDriveApiUtils_.oauthDance({
 				log: (...s: any[]) => {
-					return this.stdout(...s);
+					return this.stdout(s.join(' '));
 				},
 			});
 			this.oneDriveApiUtils_ = null;
@@ -116,8 +116,8 @@ class Command extends BaseCommand {
 
 				this.releaseLockFn_ = await Command.lockFile(lockFilePath);
 			} catch (error) {
-				if (error.code === 'ELOCKED') {
-					const msg = _('Lock file is already being hold. If you know that no synchronisation is taking place, you may delete the lock file at "%s" and resume the operation.', error.file);
+				if (error instanceof XilinotaError && error.code === 'ELOCKED') {
+					const msg = _('Lock file is already being hold. If you know that no synchronisation is taking place, you may delete the lock file at "error.file unknown" and resume the operation.');
 					this.stdout(msg);
 					return;
 				}
@@ -176,7 +176,7 @@ class Command extends BaseCommand {
 						Setting.value('clientId'),
 					);
 
-					migrationHandler.setLogger(cliUtils.stdoutLogger(this.stdout.bind(this)));
+					MigrationHandler.setLogger(cliUtils.stdoutLogger(this.stdout.bind(this)));
 
 					await migrationHandler.upgrade();
 				} catch (error) {
@@ -205,7 +205,7 @@ class Command extends BaseCommand {
 				const newContext = await sync.start(options);
 				Setting.setValue(contextKey, JSON.stringify(newContext));
 			} catch (error) {
-				if (error.code === 'alreadyStarted') {
+				if (error instanceof XilinotaError && error.code === 'alreadyStarted') {
 					this.stdout(error.message);
 				} else {
 					throw error;
@@ -261,7 +261,7 @@ class Command extends BaseCommand {
 			this.releaseLockFn_ = null;
 		}
 
-		this.syncTargetId_ = null;
+		this.syncTargetId_ = 0;
 	}
 
 	public cancellable() {

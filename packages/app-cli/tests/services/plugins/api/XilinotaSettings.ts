@@ -58,7 +58,7 @@ describe('XilinotaSettings', () => {
 
 		const folder = (await Folder.all())[0];
 
-		const settingNames: string[] = JSON.parse(folder.title);
+		const settingNames: string[] = JSON.parse(folder.title!);
 		settingNames.sort();
 
 		expect(settingNames.join(',')).toBe('myCustomSetting1,myCustomSetting2');

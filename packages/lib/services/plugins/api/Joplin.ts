@@ -29,19 +29,19 @@ import JoplinImaging from './JoplinImaging';
  */
 export default class Joplin {
 
-	private data_: JoplinData = null;
-	private plugins_: JoplinPlugins = null;
-	private imaging_: JoplinImaging = null;
-	private workspace_: JoplinWorkspace = null;
-	private filters_: JoplinFilters = null;
-	private commands_: JoplinCommands = null;
-	private views_: JoplinViews = null;
-	private interop_: JoplinInterop = null;
-	private settings_: JoplinSettings = null;
-	private contentScripts_: JoplinContentScripts = null;
-	private clipboard_: JoplinClipboard = null;
-	private window_: JoplinWindow = null;
-	private implementation_: BasePlatformImplementation = null;
+	private data_: JoplinData;
+	private plugins_: JoplinPlugins;
+	private imaging_: JoplinImaging;
+	private workspace_: JoplinWorkspace;
+	private filters_: JoplinFilters;
+	private commands_: JoplinCommands;
+	private views_: JoplinViews;
+	private interop_: JoplinInterop;
+	private settings_: JoplinSettings;
+	private contentScripts_: JoplinContentScripts;
+	private clipboard_: JoplinClipboard;
+	private window_: JoplinWindow;
+	private implementation_: BasePlatformImplementation;
 
 	public constructor(implementation: BasePlatformImplementation, plugin: Plugin, store: any) {
 		this.implementation_ = implementation;

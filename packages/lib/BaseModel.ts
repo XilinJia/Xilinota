@@ -1,11 +1,14 @@
 import paginationToSql from './models/utils/paginationToSql';
 
-import Database from './database';
+import Database, { Row } from './database';
 import uuid from './uuid_';
 import time from './time';
 import XilinotaDatabase, { TableField } from './XilinotaDatabase';
 import { LoadOptions, SaveOptions } from './models/utils/types';
-const Mutex = require('async-mutex').Mutex;
+import Logger from '@xilinota/utils/Logger';
+import { SqlParams, StringOrSqlQuery } from './services/database/types';
+
+import { Mutex } from 'async-mutex';
 
 // New code should make use of this enum
 export enum ModelType {
@@ -42,12 +45,14 @@ export interface DeleteOptions {
 	disableReadOnlyCheck?: boolean;
 }
 
+type NameModelTuple = [string, ModelType];
+
 class BaseModel {
 
 	// TODO: This ancient part of Xilinota about model types is a bit of a
 	// mess and should be refactored properly.
 
-	public static typeEnum_: any[] = [
+	public static typeEnum_: (NameModelTuple)[] = [
 		['TYPE_NOTE', ModelType.Note],
 		['TYPE_FOLDER', ModelType.Folder],
 		['TYPE_SETTING', ModelType.Setting],
@@ -83,12 +88,10 @@ class BaseModel {
 	public static TYPE_SMART_FILTER = ModelType.SmartFilter;
 	public static TYPE_COMMAND = ModelType.Command;
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	public static dispatch: Function = function() {};
+	public static dispatch: Function = function() { };
 	private static saveMutexes_: any = {};
 
 	private static db_: XilinotaDatabase;
-
 
 	public static modelType(): ModelType {
 		throw new Error('Must be overriden');
@@ -98,42 +101,57 @@ class BaseModel {
 		throw new Error('Must be overriden');
 	}
 
-	public static setDb(db: any) {
+	public static setDb(db: any): void {
 		this.db_ = db;
 	}
 
-	public static addModelMd(model: any): any {
-		if (!model) return model;
+	// public static addModelMd(model: Row): Row[]|Row|null {
+	// 	if (!model) return model;
 
-		if (Array.isArray(model)) {
-			const output = [];
-			for (let i = 0; i < model.length; i++) {
-				output.push(this.addModelMd(model[i]));
-			}
-			return output;
-		} else {
-			model = { ...model };
-			model.type_ = this.modelType();
-			return model;
-		}
+	// 	if (Array.isArray(model)) {
+	// 		const output = [];
+	// 		for (let i = 0; i < model.length; i++) {
+	// 			output.push(this.addModelMd(model[i]));
+	// 		}
+	// 		return output;
+	// 	} else {
+	// 		model = { ...model };
+	// 		model.type_ = this.modelType();
+	// 		return model;
+	// 	}
+	// }
+
+	public static addModelMd(model: Row): Row {
+		model = { ...model };
+		model.type_ = this.modelType();
+		return model;
 	}
 
-	public static logger() {
+	public static addModelMds(model: Row[]): Row[] {
+		const output = [];
+		for (let i = 0; i < model.length; i++) {
+			output.push(this.addModelMd(model[i]));
+		}
+		return output;
+	}
+
+
+	public static logger(): Logger {
 		return this.db().logger();
 	}
 
-	public static useUuid() {
+	public static useUuid(): boolean {
 		return false;
 	}
 
-	public static byId(items: any[], id: string) {
+	public static byId(items: Row[], id: string): Row | null {
 		for (let i = 0; i < items.length; i++) {
 			if (items[i].id === id) return items[i];
 		}
 		return null;
 	}
 
-	public static defaultValues(fieldNames: string[]) {
+	public static defaultValues(fieldNames: string[]): Record<string, any> {
 		const output: any = {};
 		for (const n of fieldNames) {
 			output[n] = this.db().fieldDefaultValue(this.tableName(), n);
@@ -141,14 +159,14 @@ class BaseModel {
 		return output;
 	}
 
-	public static modelIndexById(items: any[], id: string) {
+	public static modelIndexById(items: Row[], id: string): number {
 		for (let i = 0; i < items.length; i++) {
 			if (items[i].id === id) return i;
 		}
 		return -1;
 	}
 
-	public static modelsByIds(items: any[], ids: string[]) {
+	public static modelsByIds(items: Row[], ids: string[]): Row[] {
 		const output = [];
 		for (let i = 0; i < items.length; i++) {
 			if (ids.indexOf(items[i].id) >= 0) {
@@ -160,36 +178,36 @@ class BaseModel {
 
 	// Prefer the use of this function to compare IDs as it handles the case where
 	// one ID is null and the other is "", in which case they are actually considered to be the same.
-	public static idsEqual(id1: string, id2: string) {
+	public static idsEqual(id1: string, id2: string): boolean {
 		if (!id1 && !id2) return true;
 		if (!id1 && !!id2) return false;
 		if (!!id1 && !id2) return false;
 		return id1 === id2;
 	}
 
-	public static modelTypeToName(type: number) {
+	public static modelTypeToName(type: number): string {
 		for (let i = 0; i < BaseModel.typeEnum_.length; i++) {
 			const e = BaseModel.typeEnum_[i];
-			if (e[1] === type) return e[0].substr(5).toLowerCase();
+			if (e[1] === type) return e[0].substring(5).toLowerCase();
 		}
 		throw new Error(`Unknown model type: ${type}`);
 	}
 
-	public static modelNameToType(name: string) {
+	public static modelNameToType(name: string): ModelType {
 		for (let i = 0; i < BaseModel.typeEnum_.length; i++) {
 			const e = BaseModel.typeEnum_[i];
-			const eName = e[0].substr(5).toLowerCase();
+			const eName = e[0].substring(5).toLowerCase();
 			if (eName === name) return e[1];
 		}
 		throw new Error(`Unknown model name: ${name}`);
 	}
 
-	public static hasField(name: string) {
+	public static hasField(name: string): boolean {
 		const fields = this.fieldNames();
 		return fields.indexOf(name) >= 0;
 	}
 
-	public static fieldNames(withPrefix = false) {
+	public static fieldNames(withPrefix: boolean = false): string[] {
 		const output = this.db().tableFieldNames(this.tableName());
 		if (!withPrefix) return output;
 
@@ -202,12 +220,12 @@ class BaseModel {
 		return temp;
 	}
 
-	public static fieldType(name: string, defaultValue: any = null) {
+	public static fieldType(name: string, defaultValue: number = -1): number {
 		const fields = this.fields();
 		for (let i = 0; i < fields.length; i++) {
 			if (fields[i].name === name) return fields[i].type;
 		}
-		if (defaultValue !== null) return defaultValue;
+		if (defaultValue !== -1) return defaultValue;
 		throw new Error(`Unknown field: ${name}`);
 	}
 
@@ -215,8 +233,8 @@ class BaseModel {
 		return this.db().tableFields(this.tableName());
 	}
 
-	public static removeUnknownFields(model: any) {
-		const newModel: any = {};
+	public static removeUnknownFields(model: Row): Row {
+		const newModel: Row = {};
 		for (const n in model) {
 			if (!model.hasOwnProperty(n)) continue;
 			if (!this.hasField(n) && n !== 'type_') continue;
@@ -225,7 +243,7 @@ class BaseModel {
 		return newModel;
 	}
 
-	public static new() {
+	public static new(): Row {
 		const fields = this.fields();
 		const output: any = {};
 		for (let i = 0; i < fields.length; i++) {
@@ -235,7 +253,7 @@ class BaseModel {
 		return output;
 	}
 
-	public static modOptions(options: any) {
+	public static modOptions(options: Record<string, any>): Record<string, any> {
 		if (!options) {
 			options = {};
 		} else {
@@ -247,31 +265,30 @@ class BaseModel {
 		return options;
 	}
 
-	public static count(options: any = null) {
+	public static count(options: any = null): Promise<number> {
 		if (!options) options = {};
 		let sql = `SELECT count(*) as total FROM \`${this.tableName()}\``;
 		if (options.where) sql += ` WHERE ${options.where}`;
 		return this.db()
 			.selectOne(sql)
-		// eslint-disable-next-line promise/prefer-await-to-then -- Old code before rule was applied
 			.then((r: any) => {
 				return r ? r['total'] : 0;
 			});
 	}
 
-	public static load(id: string, options: LoadOptions = null) {
+	public static load(id: string, options: LoadOptions = {}): Promise<Row | null> {
 		return this.loadByField('id', id, options);
 	}
 
-	public static shortId(id: string) {
-		return id.substr(0, 5);
+	public static shortId(id: string): string {
+		return id.substring(0, 5);
 	}
 
-	public static loadByPartialId(partialId: string) {
+	public static loadByPartialId(partialId: string): Promise<Row[]> {
 		return this.modelSelectAll(`SELECT * FROM \`${this.tableName()}\` WHERE \`id\` LIKE ?`, [`${partialId}%`]);
 	}
 
-	public static applySqlOptions(options: any, sql: string, params: any[] = null) {
+	public static applySqlOptions(options: any, sql: string, params: SqlParams = []): { sql: string; params: any[]; } {
 		if (!options) options = {};
 
 		if (options.order && options.order.length) {
@@ -283,13 +300,13 @@ class BaseModel {
 		return { sql: sql, params: params };
 	}
 
-	public static async allIds(options: any = null) {
+	public static async allIds(options: any = null): Promise<string[]> {
 		const q = this.applySqlOptions(options, `SELECT id FROM \`${this.tableName()}\``);
 		const rows = await this.db().selectAll(q.sql, q.params);
-		return rows.map((r: any) => r.id);
+		return rows.map((r: any) => r.id ?? '');
 	}
 
-	public static async all(options: any = null) {
+	public static async all(options: any = null): Promise<Row[]> {
 		if (!options) options = {};
 		if (!options.fields) options.fields = '*';
 
@@ -304,7 +321,7 @@ class BaseModel {
 		return this.modelSelectAll(q.sql, q.params);
 	}
 
-	public static async byIds(ids: string[], options: any = null) {
+	public static async byIds(ids: string[], options: any = null): Promise<Row[]> {
 		if (!ids.length) return [];
 		if (!options) options = {};
 		if (!options.fields) options.fields = '*';
@@ -315,7 +332,7 @@ class BaseModel {
 		return this.modelSelectAll(q.sql);
 	}
 
-	public static async search(options: any = null) {
+	public static async search(options: any = null): Promise<Row[]> {
 		if (!options) options = {};
 		if (!options.fields) options.fields = '*';
 
@@ -337,28 +354,23 @@ class BaseModel {
 		return this.modelSelectAll(query.sql, query.params);
 	}
 
-	public static modelSelectOne(sql: string, params: any[] = null) {
-		if (params === null) params = [];
+	public static modelSelectOne(sql: string, params: SqlParams = []): Promise<Row | null> {
 		return this.db()
 			.selectOne(sql, params)
-		// eslint-disable-next-line promise/prefer-await-to-then -- Old code before rule was applied
-			.then((model: any) => {
-				return this.filter(this.addModelMd(model));
+			.then((model: Row | null) => {
+				return model ? this.filter(this.addModelMd(model)) : null;
 			});
 	}
 
-	public static modelSelectAll(sql: string, params: any[] = null) {
-		if (params === null) params = [];
+	public static modelSelectAll(sql: string, params: SqlParams = []): Promise<Row[]> {
 		return this.db()
 			.selectAll(sql, params)
-		// eslint-disable-next-line promise/prefer-await-to-then -- Old code before rule was applied
-			.then((models: any[]) => {
-				return this.filterArray(this.addModelMd(models));
+			.then((models: Row[]) => {
+				return this.filterArray(this.addModelMds(models));
 			});
 	}
 
-	public static loadByField(fieldName: string, fieldValue: any, options: LoadOptions = null) {
-		if (!options) options = {};
+	public static loadByField(fieldName: string, fieldValue: any, options: LoadOptions = {}): Promise<Row | null> {
 		if (!('caseInsensitive' in options)) options.caseInsensitive = false;
 		if (!options.fields) options.fields = '*';
 		let sql = `SELECT ${this.db().escapeFields(options.fields)} FROM \`${this.tableName()}\` WHERE \`${fieldName}\` = ?`;
@@ -366,12 +378,11 @@ class BaseModel {
 		return this.modelSelectOne(sql, [fieldValue]);
 	}
 
-	public static loadByFields(fields: any, options: LoadOptions = null) {
-		if (!options) options = {};
+	public static loadByFields(fields: Record<string, any>, options: LoadOptions = {}): Promise<Row | null> {
 		if (!('caseInsensitive' in options)) options.caseInsensitive = false;
 		if (!options.fields) options.fields = '*';
 		const whereSql = [];
-		const params = [];
+		const params: SqlParams = [];
 		for (const fieldName in fields) {
 			whereSql.push(`\`${fieldName}\` = ?`);
 			params.push(fields[fieldName]);
@@ -381,13 +392,13 @@ class BaseModel {
 		return this.modelSelectOne(sql, params);
 	}
 
-	public static loadByTitle(fieldValue: any) {
-		return this.modelSelectOne(`SELECT * FROM \`${this.tableName()}\` WHERE \`title\` = ?`, [fieldValue]);
+	public static loadByTitle(title: string): Promise<Row | null> {
+		return this.modelSelectOne(`SELECT * FROM \`${this.tableName()}\` WHERE \`title\` = ?`, [title]);
 	}
 
-	public static diffObjects(oldModel: any, newModel: any) {
-		const output: any = {};
-		const fields = this.diffObjectsFields(oldModel, newModel);
+	public static diffObjects(oldModel: Row, newModel: Row): Record<string, any> {
+		const output: Record<string, any> = {};
+		const fields: string[] = this.diffObjectsFields(oldModel, newModel);
 		for (let i = 0; i < fields.length; i++) {
 			output[fields[i]] = newModel[fields[i]];
 		}
@@ -395,7 +406,7 @@ class BaseModel {
 		return output;
 	}
 
-	public static diffObjectsFields(oldModel: any, newModel: any) {
+	public static diffObjectsFields(oldModel: Row, newModel: Row): string[] {
 		const output = [];
 		for (const n in newModel) {
 			if (!newModel.hasOwnProperty(n)) continue;
@@ -407,13 +418,13 @@ class BaseModel {
 		return output;
 	}
 
-	public static modelsAreSame(oldModel: any, newModel: any) {
+	public static modelsAreSame(oldModel: Row, newModel: Row): boolean {
 		const diff = this.diffObjects(oldModel, newModel);
 		delete diff.type_;
 		return !Object.getOwnPropertyNames(diff).length;
 	}
 
-	public static saveMutex(modelOrId: any) {
+	public static saveMutex(modelOrId: Row | string): { acquire: () => any; } {
 		const noLockMutex = {
 			acquire: function(): any {
 				return null;
@@ -434,9 +445,8 @@ class BaseModel {
 		return mutex;
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	public static releaseSaveMutex(modelOrId: any, release: Function) {
-		if (!release) return;
+	public static releaseSaveMutex(modelOrId: string | Row, release: Function): Function {
+		if (!release) return release;
 		if (!modelOrId) return release();
 
 		const modelId = typeof modelOrId === 'string' ? modelOrId : modelOrId.id;
@@ -447,11 +457,11 @@ class BaseModel {
 		if (!mutex) return release();
 
 		delete BaseModel.saveMutexes_[modelId];
-		release();
+		return release();
 	}
 
-	public static saveQuery(o: any, options: any) {
-		let temp: any = {};
+	public static saveQuery(o: Row, options: any): Record<string, any> {
+		let temp: Row = {};
 		const fieldNames = this.fieldNames();
 		for (let i = 0; i < fieldNames.length; i++) {
 			const n = fieldNames[i];
@@ -475,7 +485,7 @@ class BaseModel {
 		o = temp;
 
 		let modelId = temp.id;
-		let query: any = {};
+		let query: Record<string, any>;
 
 		const timeNow = time.unixMs();
 
@@ -527,7 +537,7 @@ class BaseModel {
 		return query;
 	}
 
-	public static userSideValidation(o: any) {
+	public static userSideValidation(o: Row): void {
 		if (o.id && !o.id.match(/^[a-f0-9]{32}$/)) {
 			throw new Error('Validation error: ID must a 32-characters lowercase hexadecimal string');
 		}
@@ -538,7 +548,7 @@ class BaseModel {
 		}
 	}
 
-	public static async save(o: any, options: SaveOptions = null) {
+	public static async save(o: Row, options: SaveOptions = {}): Promise<Row> {
 		// When saving, there's a mutex per model ID. This is because the model returned from this function
 		// is basically its input `o` (instead of being read from the database, for performance reasons).
 		// This works well in general except if that model is saved simultaneously in two places. In that
@@ -547,7 +557,6 @@ class BaseModel {
 		// at the same time.
 
 		const mutexRelease = await this.saveMutex(o).acquire();
-
 		options = this.modOptions(options);
 		const isNew = this.isNew(o, options);
 		options.isNew = isNew;
@@ -583,7 +592,7 @@ class BaseModel {
 		let output = null;
 
 		try {
-			await this.db().transactionExecBatch(queries);
+			await this.db().transactionExecBatch(queries as StringOrSqlQuery[]);
 
 			o = { ...o };
 			if (modelId) o.id = modelId;
@@ -609,7 +618,7 @@ class BaseModel {
 		return output;
 	}
 
-	public static isNew(object: any, options: any) {
+	public static isNew(object: Row, options: SaveOptions): boolean {
 		if (options && 'isNew' in options) {
 			// options.isNew can be "auto" too
 			if (options.isNew === true) return true;
@@ -619,7 +628,7 @@ class BaseModel {
 		return !object.id;
 	}
 
-	public static filterArray(models: any[]) {
+	public static filterArray(models: Row[]): Row[] {
 		const output = [];
 		for (let i = 0; i < models.length; i++) {
 			output.push(this.filter(models[i]));
@@ -627,8 +636,7 @@ class BaseModel {
 		return output;
 	}
 
-	public static filter(model: any) {
-		if (!model) return model;
+	public static filter(model: Row): Row {
 
 		const output = { ...model };
 		for (const n in output) {
@@ -650,12 +658,12 @@ class BaseModel {
 		return output;
 	}
 
-	public static delete(id: string) {
+	public static delete(id: string): Promise<any> {
 		if (!id) throw new Error('Cannot delete object without an ID');
 		return this.db().exec(`DELETE FROM ${this.tableName()} WHERE id = ?`, [id]);
 	}
 
-	public static async batchDelete(ids: string[], options: DeleteOptions = null) {
+	public static async batchDelete(ids: string[], options: DeleteOptions = {}): Promise<void> {
 		if (!ids.length) return;
 		options = this.modOptions(options);
 		const idFieldName = options.idFieldName ? options.idFieldName : 'id';
@@ -663,7 +671,7 @@ class BaseModel {
 		await this.db().exec(sql);
 	}
 
-	public static db() {
+	public static db(): XilinotaDatabase {
 		if (!this.db_) throw new Error('Accessing database before it has been initialised');
 		return this.db_;
 	}

@@ -1,5 +1,5 @@
 
-import { ContextMenuEvent, ContextMenuParams } from 'electron';
+import { ContextMenuParams } from 'electron';
 import { useEffect, RefObject } from 'react';
 import { _ } from '@xilinota/lib/locale';
 import Setting from '@xilinota/lib/models/Setting';
@@ -21,14 +21,14 @@ const menuUtils = new MenuUtils(CommandService.instance());
 
 interface ContextMenuProps {
 	plugins: PluginStates;
-	editorCutText: ()=> void;
-	editorCopyText: ()=> void;
-	editorPaste: ()=> void;
+	editorCutText: () => void;
+	editorCopyText: () => void;
+	editorPaste: () => void;
 	editorRef: RefObject<CodeMirrorControl>;
 	editorClassName: string;
 }
 
-const useContextMenu = (props: ContextMenuProps) => {
+const useContextMenu = (props: ContextMenuProps): void => {
 	const editorRef = props.editorRef;
 
 	// The below code adds support for spellchecking when it is enabled
@@ -37,7 +37,7 @@ const useContextMenu = (props: ContextMenuProps) => {
 	useEffect(() => {
 		const isAncestorOfCodeMirrorEditor = (elem: HTMLElement) => {
 			for (; elem.parentElement; elem = elem.parentElement) {
-				if (elem.classList.contains(props.editorClassName)) {
+				if (elem && elem.classList.contains(props.editorClassName)) {
 					return true;
 				}
 			}
@@ -73,7 +73,9 @@ const useContextMenu = (props: ContextMenuProps) => {
 			return rect.x < x && rect.y < y && rect.right > x && rect.bottom > y;
 		}
 
-		async function onContextMenu(event: ContextMenuEvent, params: ContextMenuParams) {
+		// XJ: somehow the original function signature causes complaint on bridge().window().webContents.off('context-menu', onContextMenu);
+		// async function onContextMenu(event: ContextMenuEvent, params: ContextMenuParams)
+		async function onContextMenu(event: any, params: any) {
 			if (!pointerInsideEditor(params)) return;
 
 			// Don't show the default menu.
@@ -81,12 +83,12 @@ const useContextMenu = (props: ContextMenuProps) => {
 
 			const menu = new Menu();
 
-			const hasSelectedText = editorRef.current && !!editorRef.current.getSelection() ;
+			const hasSelectedText = editorRef.current && !!editorRef.current.getSelection();
 
 			menu.append(
 				new MenuItem({
 					label: _('Cut'),
-					enabled: hasSelectedText,
+					enabled: hasSelectedText ?? false,
 					click: async () => {
 						props.editorCutText();
 					},
@@ -96,7 +98,7 @@ const useContextMenu = (props: ContextMenuProps) => {
 			menu.append(
 				new MenuItem({
 					label: _('Copy'),
-					enabled: hasSelectedText,
+					enabled: hasSelectedText ?? false,
 					click: async () => {
 						props.editorCopyText();
 					},
@@ -142,13 +144,13 @@ const useContextMenu = (props: ContextMenuProps) => {
 					label: item.label,
 					click: async () => {
 						const args = item.commandArgs || [];
-						void CommandService.instance().execute(item.commandName, ...args);
+						if (item.commandName) void CommandService.instance().execute(item.commandName, ...args);
 					},
 					type: item.type,
 				}));
 			}
 
-			// eslint-disable-next-line github/array-foreach -- Old code before rule was applied
+
 			menuUtils.pluginContextMenuItems(props.plugins, MenuItemLocation.EditorContextMenu).forEach((item: any) => {
 				menu.append(new MenuItem(item));
 			});
@@ -163,7 +165,9 @@ const useContextMenu = (props: ContextMenuProps) => {
 		window.addEventListener('contextmenu', onBrowserContextMenu);
 
 		return () => {
-			bridge().window().webContents.off('context-menu', onContextMenu);
+			if (bridge().window().webContents?.off) {
+				bridge().window().webContents.off('context-menu', onContextMenu);
+			}
 			window.removeEventListener('contextmenu', onBrowserContextMenu);
 		};
 	}, [

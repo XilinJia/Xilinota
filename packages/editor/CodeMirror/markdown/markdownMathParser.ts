@@ -38,7 +38,7 @@ export const inlineMathTag = Tag.define(mathTag);
 // @param nodeTag Name of the nodes to replace with regions parsed by the sTeX parser.
 // @returns a wrapped sTeX parser.
 const wrappedTeXParser = (nodeTag: string): ParseWrapper => {
-	return parseMixed((node: SyntaxNodeRef, _input: Input): NestedParse => {
+	return parseMixed((node: SyntaxNodeRef, _input: Input): NestedParse | null => {
 		if (node.name !== nodeTag) {
 			return null;
 		}

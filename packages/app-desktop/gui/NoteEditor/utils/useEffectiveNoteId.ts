@@ -9,7 +9,7 @@ export default function useEffectiveNoteId(props: NoteEditorProps) {
 	// See https://github.com/XilinJia/Xilinota/issues/6416
 	// and https://github.com/XilinJia/Xilinota/pull/6430 for details.
 
-	const lastDisplayedNoteId = useRef<string>(null);
+	const lastDisplayedNoteId = useRef<string>('');
 	const whenNoteIdIsTransientlyAbsent = !props.noteId && props.notes.length > 0;
 	const effectiveNoteId = whenNoteIdIsTransientlyAbsent ? lastDisplayedNoteId.current : props.noteId;
 

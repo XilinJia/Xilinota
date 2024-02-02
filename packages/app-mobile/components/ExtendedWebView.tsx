@@ -1,6 +1,6 @@
 // Wraps react-native-webview. Allows loading HTML directly.
 
-import * as React from 'react';
+import React from 'react';
 
 import {
 	forwardRef, Ref, useEffect, useImperativeHandle, useRef, useState,
@@ -28,10 +28,10 @@ interface SourceFileUpdateEvent {
 	filePath: string;
 }
 
-type OnMessageCallback = (event: WebViewMessageEvent)=> void;
-type OnErrorCallback = (event: WebViewErrorEvent)=> void;
-type OnLoadEndCallback = (event: WebViewEvent)=> void;
-type OnFileUpdateCallback = (event: SourceFileUpdateEvent)=> void;
+type OnMessageCallback = (event: WebViewMessageEvent) => void;
+type OnErrorCallback = (event: WebViewErrorEvent) => void;
+type OnLoadEndCallback = (event: WebViewEvent) => void;
+type OnFileUpdateCallback = (event: SourceFileUpdateEvent) => void;
 
 interface Props {
 	themeId: number;
@@ -64,15 +64,16 @@ interface Props {
 	onFileUpdate?: OnFileUpdateCallback;
 }
 
-const ExtendedWebView = (props: Props, ref: Ref<WebViewControl>) => {
+const ExtendedWebView = (props: Props, ref: Ref<WebViewControl>): React.JSX.Element => {
 	const theme: Theme = themeStyle(props.themeId);
-	const webviewRef = useRef(null);
-	const [source, setSource] = useState<WebViewSource|undefined>(undefined);
+	const webviewRef = useRef<WebView>(null);
+	const blankSource: WebViewSource = { uri: '', baseUrl: '', }
+	const [source, setSource] = useState<WebViewSource>(blankSource);
 
 	useImperativeHandle(ref, (): WebViewControl => {
 		return {
 			injectJS(js: string) {
-				webviewRef.current.injectJavaScript(`
+				webviewRef.current?.injectJavaScript(`
 				try {
 					${js}
 				}
@@ -86,10 +87,16 @@ const ExtendedWebView = (props: Props, ref: Ref<WebViewControl>) => {
 		};
 	});
 
+	// props.onLoadEnd = () => {
+	// 	console.log('props.onLoadEnd', webviewRef.current);
+	// 	webviewRef.current?.injectJavaScript(props.injectedJavaScript);
+	// };
+
 	useEffect(() => {
 		let cancelled = false;
-		async function createHtmlFile() {
+		async function createHtmlFile(): Promise<void> {
 			const tempFile = `${Setting.value('resourceDir')}/${props.webviewInstanceId}.html`;
+			// console.log('createHtmlFile:', tempFile);
 			await shim.fsDriver().writeFile(tempFile, props.html, 'utf8');
 			if (cancelled) return;
 
@@ -112,7 +119,7 @@ const ExtendedWebView = (props: Props, ref: Ref<WebViewControl>) => {
 		if (props.html && props.html.length > 0) {
 			void createHtmlFile();
 		} else {
-			setSource(undefined);
+			setSource(blankSource);
 		}
 
 		return () => {
@@ -127,6 +134,8 @@ const ExtendedWebView = (props: Props, ref: Ref<WebViewControl>) => {
 	// to avoid various crashes and errors:
 	// https://github.com/react-native-webview/react-native-webview/issues/2920
 	// https://github.com/react-native-webview/react-native-webview/issues/2995
+
+	const webViewSource = source ? source : undefined;
 	return (
 		<WebView
 			style={{
@@ -135,8 +144,8 @@ const ExtendedWebView = (props: Props, ref: Ref<WebViewControl>) => {
 			}}
 			ref={webviewRef}
 			scrollEnabled={props.scrollEnabled}
-			useWebKit={true}
-			source={source ? source : { uri: undefined }}
+			// useWebKit={true}
+			source={webViewSource}
 			setSupportMultipleWindows={true}
 			hideKeyboardAccessoryView={true}
 			allowingReadAccessToURL={`file://${Setting.value('resourceDir')}`}

@@ -1,5 +1,5 @@
 import Button from '../../Button/Button';
-const styled = require('styled-components').default;
+import styled from 'styled-components';
 
 export const StyledRoot = styled.div`
 	background-color: ${(props: any) => props.theme.backgroundColor2};

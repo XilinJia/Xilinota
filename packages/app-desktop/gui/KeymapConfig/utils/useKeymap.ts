@@ -19,21 +19,24 @@ function allKeymapItems() {
 
 const useKeymap = (): [
 	KeymapItem[],
-	Error,
+	Error|null,
 	(keymapItems: KeymapItem[])=> void,
 	(commandName: string, accelerator: string)=> void,
 	(commandName: string)=> void,
 ] => {
 	const [keymapItems, setKeymapItems] = useState<KeymapItem[]>(() => allKeymapItems());
-	const [keymapError, setKeymapError] = useState<Error>(null);
+	const [keymapError, setKeymapError] = useState<Error|null>(null);
 	const [mustSave, setMustSave] = useState(false);
 
 	const setAccelerator = (commandName: string, accelerator: string) => {
 		setKeymapItems(prevKeymap => {
 			const newKeymap = [...prevKeymap];
-
-			newKeymap.find(item => item.command === commandName).accelerator = accelerator || null /* Disabled */;
-			return newKeymap;
+			const res = newKeymap.find(item => item.command === commandName);
+			if (res) {
+				res.accelerator = accelerator
+				return newKeymap;
+			}
+			return prevKeymap;
 		});
 
 		setMustSave(true);
@@ -43,9 +46,12 @@ const useKeymap = (): [
 		const defaultAccelerator = keymapService.getDefaultAccelerator(commandName);
 		setKeymapItems(prevKeymap => {
 			const newKeymap = [...prevKeymap];
-
-			newKeymap.find(item => item.command === commandName).accelerator = defaultAccelerator;
-			return newKeymap;
+			const res = newKeymap.find(item => item.command === commandName);
+			if (res) {
+				res.accelerator = defaultAccelerator;
+				return newKeymap;
+			}
+			return prevKeymap;
 		});
 
 		setMustSave(true);
@@ -81,8 +87,10 @@ const useKeymap = (): [
 				await keymapService.saveCustomKeymap();
 				setKeymapError(null);
 			} catch (error) {
-				error.message = `Could not save file: ${error.message}`;
-				setKeymapError(error);
+				if (error instanceof Error) {
+					error.message = `Could not save file: ${error.message}`;
+					setKeymapError(error);
+				}
 			}
 		}
 

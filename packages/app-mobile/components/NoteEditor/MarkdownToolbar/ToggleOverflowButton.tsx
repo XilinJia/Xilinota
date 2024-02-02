@@ -1,11 +1,11 @@
-const React = require('react');
+import React from 'react';
 
 import { _ } from '@xilinota/lib/locale';
 import ToolbarButton from './ToolbarButton';
 import { ButtonSpec, StyleSheetData } from './types';
-const MaterialIcon = require('react-native-vector-icons/MaterialIcons').default;
+import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 
-type OnToggleOverflowCallback = ()=> void;
+type OnToggleOverflowCallback = () => void;
 interface ToggleOverflowButtonProps {
 	overflowVisible: boolean;
 	onToggleOverflowVisible: OnToggleOverflowCallback;
@@ -16,7 +16,7 @@ interface ToggleOverflowButtonProps {
 const ToggleOverflowButton = (props: ToggleOverflowButtonProps) => {
 	const spec: ButtonSpec = {
 		icon: (
-			<MaterialIcon name="more-horiz" style={props.styleSheet.styles.text}/>
+			<MaterialIcon name="more-horiz" style={props.styleSheet.styles.text} />
 		),
 		description:
 			props.overflowVisible ? _('Hide more actions') : _('Show more actions'),

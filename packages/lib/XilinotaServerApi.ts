@@ -6,6 +6,7 @@ import { Env } from './models/Setting';
 import Logger from '@xilinota/utils/Logger';
 import personalizedUserContentBaseUrl from './services/xilinotaServer/personalizedUserContentBaseUrl';
 import { getHttpStatusMessage } from './net-utils';
+// XJ: can't upgrade to 8.1.0
 const { stringify } = require('query-string');
 
 const logger = Logger.create('XilinotaServerApi');
@@ -43,7 +44,7 @@ interface Session {
 export default class XilinotaServerApi {
 
 	private options_: Options;
-	private session_: Session;
+	private session_: Session | undefined;
 	private debugRequests_ = false;
 	private debugRequestsShowPasswords_ = false;
 
@@ -63,18 +64,18 @@ export default class XilinotaServerApi {
 		return personalizedUserContentBaseUrl(userId, this.baseUrl(), this.options_.userContentBaseUrl());
 	}
 
-	private async session() {
+	private async session() : Promise<Session> {
 		if (this.session_) return this.session_;
 
 		try {
-			this.session_ = await this.exec_('POST', 'api/sessions', null, {
+			this.session_ = await this.exec_('POST', 'api/sessions', {}, {
 				email: this.options_.username(),
 				password: this.options_.password(),
 			});
 
-			return this.session_;
+			return this.session_!;
 		} catch (error) {
-			logger.error('Could not acquire session:', error.details, '\n', error);
+			logger.error('Could not acquire session:', (error as XilinotaError).details, '\n', error);
 			throw error;
 		}
 	}
@@ -132,9 +133,8 @@ export default class XilinotaServerApi {
 		return output.join(' ');
 	}
 
-	private async exec_(method: string, path = '', query: Record<string, any> = null, body: any = null, headers: any = null, options: ExecOptions = null) {
+	private async exec_(method: string, path = '', query: Record<string, any> = {}, body: any = null, headers: any = null, options: ExecOptions = {}) {
 		if (headers === null) headers = {};
-		if (options === null) options = {};
 		if (!options.responseFormat) options.responseFormat = ExecOptionsResponseFormat.Json;
 		if (!options.target) options.target = ExecOptionsTarget.String;
 
@@ -199,7 +199,7 @@ export default class XilinotaServerApi {
 			}
 
 			const shortResponseText = () => {
-				return (`${responseText}`).substr(0, 1024);
+				return (`${responseText}`).substring(0, 1024);
 			};
 
 			// Creates an error object with as much data as possible as it will appear in the log, which will make debugging easier
@@ -258,7 +258,7 @@ export default class XilinotaServerApi {
 			// Don't print error info for file not found (handled by the
 			// driver), or lock-acquisition errors because it's handled by
 			// LockHandler.
-			if (![404, 'hasExclusiveLock', 'hasSyncLock'].includes(error.code)) {
+			if (error instanceof XilinotaError && ![404, 'hasExclusiveLock', 'hasSyncLock'].includes(error.code)) {
 				logger.warn(this.requestToCurl_(url, fetchOptions));
 				logger.warn('Code:', error.code);
 				logger.warn(error);
@@ -268,15 +268,15 @@ export default class XilinotaServerApi {
 		}
 	}
 
-	public async exec(method: string, path = '', query: Record<string, any> = null, body: any = null, headers: any = null, options: ExecOptions = null) {
+	public async exec(method: string, path = '', query: Record<string, any> = {}, body: any = null, headers: any = null, options: ExecOptions = {}) {
 		for (let i = 0; i < 2; i++) {
 			try {
 				const response = await this.exec_(method, path, query, body, headers, options);
 				return response;
 			} catch (error) {
-				if (error.code === 403 && i === 0) {
+				if (error instanceof XilinotaError && error.code === 403 && i === 0) {
 					logger.info('Session expired or invalid - trying to login again', error);
-					this.session_ = null; // By setting it to null, the service will try to login again
+					this.session_ = undefined; // By setting it to null, the service will try to login again
 				} else {
 					throw error;
 				}

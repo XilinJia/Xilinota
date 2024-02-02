@@ -14,26 +14,26 @@ class LinkSelector {
 	private linkRegex_: RegExp;
 
 	public constructor() {
-		this.noteId_ = null;
-		this.scrollTop_ = null; // used so 'o' won't open unhighlighted link after scrolling
-		this.renderedText_ = null;
-		this.currentLinkIndex_ = null;
-		this.linkStore_ = null;
+		this.noteId_ = '';
+		this.scrollTop_ = 0; // used so 'o' won't open unhighlighted link after scrolling
+		this.renderedText_ = '';
+		this.currentLinkIndex_ = 0;
+		this.linkStore_ = [];
 		this.linkRegex_ = /http:\/\/[0-9.]+:[0-9]+\/[0-9]+/g;
 	}
 
 	public get link(): string | null {
-		if (this.currentLinkIndex_ === null) return null;
+		if (this.currentLinkIndex_ === 0) return null;
 		return this.linkStore_[this.currentLinkIndex_].link;
 	}
 
 	public get noteX(): number | null {
-		if (this.currentLinkIndex_ === null) return null;
+		if (this.currentLinkIndex_ === 0) return null;
 		return this.linkStore_[this.currentLinkIndex_].noteX;
 	}
 
 	public get noteY(): number | null {
-		if (this.currentLinkIndex_ === null) return null;
+		if (this.currentLinkIndex_ === 0) return null;
 		return this.linkStore_[this.currentLinkIndex_].noteY;
 	}
 
@@ -43,7 +43,7 @@ class LinkSelector {
 		for (let i = 0; i < lines.length; i++) {
 			const r = (lines[i] as any).matchAll(this.linkRegex_);
 			const matches = [...r];
-			// eslint-disable-next-line github/array-foreach -- Old code before rule was applied
+
 			matches.forEach((_e, n) => {
 				newLinkStore.push(
 					{
@@ -58,7 +58,7 @@ class LinkSelector {
 	}
 
 	public updateText(renderedText: string): void {
-		this.currentLinkIndex_ = null;
+		this.currentLinkIndex_;
 		this.renderedText_ = renderedText;
 		this.linkStore_ = this.findLinks(this.renderedText_);
 	}
@@ -70,7 +70,7 @@ class LinkSelector {
 	}
 
 	public scrollWidget(textWidget: any): void {
-		if (this.currentLinkIndex_ === null) return;
+		if (this.currentLinkIndex_ === 0) return;
 
 		const noteY = this.linkStore_[this.currentLinkIndex_].noteY;
 
@@ -111,7 +111,7 @@ class LinkSelector {
 
 		let offsetMod = (offset + this.currentLinkIndex_) % this.linkStore_.length;
 
-		if (this.currentLinkIndex_ === null) {
+		if (this.currentLinkIndex_ === 0) {
 			if (offsetMod < 0) this.currentLinkIndex_ = this.linkStore_.length + offsetMod;
 			else if (!offsetMod) this.currentLinkIndex_ = 0;
 			else this.currentLinkIndex_ = offsetMod - 1;

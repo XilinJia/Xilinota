@@ -46,7 +46,7 @@ export default function useNoteSearchBar({ noteSearchBarRef }: UseNoteSearchBarP
 		// https://github.com/XilinJia/Xilinota/issues/5380
 		if (query.length > queryMaxLength) {
 			logger.warn(`Query is longer than ${queryMaxLength} characters - it is going to be trimmed`);
-			query = query.substr(0, queryMaxLength);
+			query = query.substring(0, queryMaxLength);
 		}
 
 		setLocalSearch((prev: LocalSearch) => {

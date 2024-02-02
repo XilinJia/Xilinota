@@ -7,8 +7,10 @@ import ResourceFetcher from '../../services/ResourceFetcher';
 import DecryptionWorker from '../../services/DecryptionWorker';
 import eventManager from '../../eventManager';
 import BaseItem from '../../models/BaseItem';
+import { NoteTagEntity } from '../../services/database/types';
+import { Store } from 'redux';
 
-const reduxSharedMiddleware = async function(store: any, _next: any, action: any) {
+const reduxSharedMiddleware = async function(store: Store, _next: any, action: { type: string; key: string; state: string; decryptedItemCounts: { [x: string]: any; }; isFullSync: any; changedFields: string | string[]; id: any; }): Promise<void> {
 	const newState = store.getState();
 
 	eventManager.appStateEmit(newState);
@@ -72,7 +74,7 @@ const reduxSharedMiddleware = async function(store: any, _next: any, action: any
 		action.type === 'NOTE_SELECT_TOGGLE' ||
 		action.type === 'TAG_UPDATE_ONE' ||
 		action.type === 'TAG_UPDATE_ALL') {
-		let noteTags = [];
+		let noteTags: NoteTagEntity[] = [];
 
 		// We don't need to show tags unless only one note is selected.
 		// For new notes, the old note is still selected, but we don't want to show any tags.
@@ -119,5 +121,7 @@ const reduxSharedMiddleware = async function(store: any, _next: any, action: any
 	}
 };
 
-module.exports = reduxSharedMiddleware;
+export default reduxSharedMiddleware;
+
+// module.exports = reduxSharedMiddleware;
 

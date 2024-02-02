@@ -9,7 +9,7 @@ interface CustomImporter {
 
 export default class InteropService_Importer_Custom extends InteropService_Importer_Base {
 
-	private module_: CustomImporter = null;
+	private module_: CustomImporter;
 
 	public constructor(handler: CustomImporter) {
 		super();

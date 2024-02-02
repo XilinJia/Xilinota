@@ -3,7 +3,7 @@
 // class is undocumented.
 import * as QuickActions from 'react-native-quick-actions';
 import { _ } from '@xilinota/lib/locale';
-const { DeviceEventEmitter } = require('react-native');
+import { DeviceEventEmitter } from 'react-native';
 import Note from '@xilinota/lib/models/Note';
 import { reg } from '@xilinota/lib/registry';
 
@@ -11,7 +11,7 @@ type TData = {
 	type: string;
 };
 
-// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
+
 export default (dispatch: Function, folderId: string) => {
 	const userInfo = { url: '' };
 	QuickActions.setShortcutItems([
@@ -40,7 +40,7 @@ export default (dispatch: Function, folderId: string) => {
 		void Note.save({
 			parent_id: folderId,
 			is_todo: isTodo,
-			// eslint-disable-next-line promise/prefer-await-to-then -- Old code before rule was applied
+
 		}, { provisional: true }).then((newNote: any) => {
 			dispatch({
 				type: 'NAV_GO',
@@ -53,7 +53,7 @@ export default (dispatch: Function, folderId: string) => {
 
 	DeviceEventEmitter.addListener('quickActionShortcut', handleQuickAction);
 
-	// eslint-disable-next-line promise/prefer-await-to-then -- Old code before rule was applied
+
 	QuickActions.popInitialAction().then(handleQuickAction).catch((reason: any) => reg.logger().error(reason));
 };
 

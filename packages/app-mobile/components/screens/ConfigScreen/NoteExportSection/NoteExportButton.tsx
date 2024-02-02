@@ -26,7 +26,7 @@ enum ExportStatus {
 
 const NoteExportButton: FunctionComponent<Props> = props => {
 	const [exportStatus, setExportStatus] = useState<ExportStatus>(ExportStatus.NotStarted);
-	const [exportProgress, setExportProgress] = useState<number|undefined>(0);
+	const [exportProgress, setExportProgress] = useState<number>(0);
 	const [warnings, setWarnings] = useState<string>('');
 
 	const startExport = useCallback(async () => {
@@ -41,15 +41,15 @@ const NoteExportButton: FunctionComponent<Props> = props => {
 
 		try {
 			// Initially, undetermined progress
-			setExportProgress(undefined);
+			setExportProgress(0);
 
 			const status = await exportAllFolders(exportTargetPath, (status, progress) => {
-				if (progress !== null) {
+				if (progress) {
 					setExportProgress(progress);
 				} else if (status === ExportProgressState.Closing || status === ExportProgressState.QueuingItems) {
 					// We don't have a numeric progress value and the closing/queuing state may take a while.
 					// Set a special progress value:
-					setExportProgress(undefined);
+					setExportProgress(0);
 				}
 			});
 
@@ -66,7 +66,7 @@ const NoteExportButton: FunctionComponent<Props> = props => {
 			logger.error('Unable to export:', e);
 
 			// Display a message to the user (e.g. in the case where the user is out of disk space).
-			Alert.alert(_('Error'), _('Unable to export or share data. Reason: %s', e.toString()));
+			Alert.alert(_('Error'), _('Unable to export or share data. Reason: %s', (e as Error).toString()));
 			setExportStatus(ExportStatus.NotStarted);
 		} finally {
 			await shim.fsDriver().remove(exportTargetPath);
@@ -86,7 +86,7 @@ const NoteExportButton: FunctionComponent<Props> = props => {
 			<ConfigScreenButton
 				title={exportStatus === ExportStatus.Exporting ? _('Exporting...') : _('Export all notes as JEX')}
 				disabled={exportStatus === ExportStatus.Exporting}
-				description={exportStatus === ExportStatus.NotStarted ? descriptionText : null}
+				description={exportStatus === ExportStatus.NotStarted ? descriptionText : ''}
 				statusComponent={progressComponent}
 				clickHandler={startExport}
 				styles={props.styles}

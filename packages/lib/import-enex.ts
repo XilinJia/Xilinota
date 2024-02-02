@@ -10,19 +10,20 @@ import { NoteEntity, ResourceEntity } from './services/database/types';
 import { enexXmlToMd } from './import-enex-md-gen';
 import { MarkupToHtml } from '@xilinota/renderer';
 import { fileExtension, friendlySafeFilename } from './path-utils';
-const moment = require('moment');
+
+import moment from 'moment';
 const { wrapError } = require('./errorUtils');
 const { enexXmlToHtml } = require('./import-enex-html-gen.js');
 const Levenshtein = require('levenshtein');
-const md5 = require('md5');
+import md5 from 'md5';
 const { Base64Decode } = require('base64-stream');
-const md5File = require('md5-file');
-const { mime } = require('./mime-utils');
+import md5File from 'md5-file';
+import mimeUtils from './mime-utils';
 
 // const Promise = require('promise');
-const fs = require('fs-extra');
+import fs from 'fs-extra';
 
-function dateToTimestamp(s: string, defaultValue: number = null): number {
+function dateToTimestamp(s: string, defaultValue: number = 0): number {
 	// Most dates seem to be in this format
 	let m = moment(s, 'YYYYMMDDTHHmmssZ');
 
@@ -31,7 +32,7 @@ function dateToTimestamp(s: string, defaultValue: number = null): number {
 	if (!m.isValid()) m = moment(s, 'YYYYMMDDThmmss AZ');
 
 	if (!m.isValid()) {
-		if (defaultValue !== null) return defaultValue;
+		if (defaultValue !== 0) return defaultValue;
 		throw new Error(`Invalid date: ${s}`);
 	}
 
@@ -40,7 +41,7 @@ function dateToTimestamp(s: string, defaultValue: number = null): number {
 
 function extractRecognitionObjId(recognitionXml: string) {
 	const r = recognitionXml.match(/objID="(.*?)"/);
-	return r && r.length >= 2 ? r[1] : null;
+	return r && r.length >= 2 ? r[1] : '';
 }
 
 async function decodeBase64File(sourceFilePath: string, destFilePath: string) {
@@ -63,7 +64,12 @@ async function decodeBase64File(sourceFilePath: string, destFilePath: string) {
 
 		const destFile = fs.openSync(destFilePath, 'w');
 		const sourceStream = fs.createReadStream(sourceFilePath);
-		const destStream = fs.createWriteStream(destFile, {
+		// destFile is number, not path
+		// const destStream = fs.createWriteStream(destFile, {
+		// 	fd: destFile,
+		// 	autoClose: false,
+		// });
+		const destStream = fs.createWriteStream(destFilePath, {
 			fd: destFile,
 			autoClose: false,
 		});
@@ -88,7 +94,7 @@ function removeUndefinedProperties(note: NoteEntity) {
 	for (const n in note) {
 		if (!note.hasOwnProperty(n)) continue;
 		const v = (note as any)[n];
-		if (v === undefined || v === null) continue;
+		if (!v || v === undefined || v === null) continue;
 		output[n] = v;
 	}
 	return output;
@@ -101,7 +107,7 @@ function levenshteinPercent(s1: string, s2: string) {
 }
 
 async function fuzzyMatch(note: ExtractedNote) {
-	if (note.created_time < time.unixMs() - 1000 * 60 * 60 * 24 * 360) {
+	if (note.created_time && note.created_time < time.unixMs() - 1000 * 60 * 60 * 24 * 360) {
 		const notes = await Note.modelSelectAll('SELECT * FROM notes WHERE is_conflict = 0 AND created_time = ? AND title = ?', [note.created_time, note.title]);
 		return notes.length !== 1 ? null : notes[0];
 	}
@@ -114,7 +120,7 @@ async function fuzzyMatch(note: ExtractedNote) {
 	let lowestN = null;
 	for (let i = 0; i < notes.length; i++) {
 		const n = notes[i];
-		const l = levenshteinPercent(note.title, n.title);
+		const l = levenshteinPercent(note.title ?? '', n.title);
 		if (l < lowestL) {
 			lowestL = l;
 			lowestN = n;
@@ -159,11 +165,13 @@ interface ExtractedNote extends NoteEntity {
 async function processNoteResource(resource: ExtractedResource) {
 	if (!resource.hasData) {
 		// Some resources have no data, go figure, so we need a special case for this.
-		resource.id = md5(Date.now() + Math.random());
+		resource.id = md5(Date.now().toString() + Math.random());
 		resource.size = 0;
 		resource.dataFilePath = `${Setting.value('tempDir')}/${resource.id}.empty`;
 		await fs.writeFile(resource.dataFilePath, '');
 	} else {
+		if (!resource.dataFilePath) return resource;
+
 		if (resource.dataEncoding === 'base64') {
 			const decodedFilePath = `${resource.dataFilePath}.decoded`;
 			await decodeBase64File(resource.dataFilePath, decodedFilePath);
@@ -184,7 +192,7 @@ async function processNoteResource(resource: ExtractedResource) {
 
 		if (!resource.id || !resource.size) {
 			const debugTemp = { ...resource };
-			debugTemp.data = debugTemp.data ? `${debugTemp.data.substr(0, 32)}...` : debugTemp.data;
+			debugTemp.data = debugTemp.data ? `${debugTemp.data.substring(0, 32)}...` : debugTemp.data;
 			throw new Error(`This resource was not added because it has no ID or no content: ${JSON.stringify(debugTemp)}`);
 		}
 	}
@@ -193,6 +201,8 @@ async function processNoteResource(resource: ExtractedResource) {
 }
 
 async function saveNoteResources(note: ExtractedNote) {
+	if (!note.resources) return;
+
 	let resourcesCreated = 0;
 	for (let i = 0; i < note.resources.length; i++) {
 		const resource = note.resources[i];
@@ -211,10 +221,10 @@ async function saveNoteResources(note: ExtractedNote) {
 		// The same resource sometimes appear twice in the same enex (exact same ID and file).
 		// In that case, just skip it - it means two different notes might be linked to the
 		// same resource.
-		const existingResource = await Resource.load(toSave.id);
+		const existingResource = await Resource.load(toSave.id ?? '');
 		if (existingResource) continue;
 
-		await fs.move(resource.dataFilePath, Resource.fullPath(toSave), { overwrite: true });
+		if (resource.dataFilePath) await fs.move(resource.dataFilePath, Resource.fullPath(toSave), { overwrite: true });
 		await Resource.save(toSave, { isNew: true });
 		resourcesCreated++;
 	}
@@ -222,6 +232,8 @@ async function saveNoteResources(note: ExtractedNote) {
 }
 
 async function saveNoteTags(note: ExtractedNote) {
+	if (!note.tags) return;
+
 	let notesTagged = 0;
 	for (let i = 0; i < note.tags.length; i++) {
 		const tagTitle = note.tags[i];
@@ -229,7 +241,7 @@ async function saveNoteTags(note: ExtractedNote) {
 		let tag = await Tag.loadByTitle(tagTitle);
 		if (!tag) tag = await Tag.save({ title: tagTitle });
 
-		await Tag.addNote(tag.id, note.id);
+		if (tag.id && note.id) await Tag.addNote(tag.id, note.id);
 
 		notesTagged++;
 	}
@@ -238,9 +250,7 @@ async function saveNoteTags(note: ExtractedNote) {
 
 interface ImportOptions {
 	fuzzyMatching?: boolean;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	onProgress?: Function;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	onError?: Function;
 	outputFormat?: string;
 }
@@ -248,7 +258,7 @@ interface ImportOptions {
 async function saveNoteToStorage(note: ExtractedNote, importOptions: ImportOptions) {
 	importOptions = { fuzzyMatching: false, ...importOptions };
 
-	note = Note.filter(note as any);
+	note = Note.filter(note) as ExtractedNote;
 
 	const existingNote = importOptions.fuzzyMatching ? await fuzzyMatch(note) : null;
 
@@ -261,10 +271,10 @@ async function saveNoteToStorage(note: ExtractedNote, importOptions: ImportOptio
 	};
 
 	const resourcesCreated = await saveNoteResources(note);
-	result.resourcesCreated += resourcesCreated;
+	if (resourcesCreated) result.resourcesCreated += resourcesCreated;
 
 	const notesTagged = await saveNoteTags(note);
-	result.notesTagged += notesTagged;
+	if (notesTagged) result.notesTagged += notesTagged;
 
 	if (existingNote) {
 		const diff = BaseModel.diffObjects(existingNote, note);
@@ -336,20 +346,19 @@ const preProcessFile = async (filePath: string): Promise<string> => {
 	// return newFilePath;
 };
 
-export default async function importEnex(parentFolderId: string, filePath: string, importOptions: ImportOptions = null) {
-	if (!importOptions) importOptions = {};
+export default async function importEnex(this: any, parentFolderId: string, filePath: string, importOptions: ImportOptions = {}) {
+	const self = this;
 	if (!('fuzzyMatching' in importOptions)) importOptions.fuzzyMatching = false;
-	if (!('onProgress' in importOptions)) importOptions.onProgress = function() {};
-	if (!('onError' in importOptions)) importOptions.onError = function() {};
+	if (!('onProgress' in importOptions)) importOptions.onProgress = function() { };
+	if (!('onError' in importOptions)) importOptions.onError = function() { };
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	function handleSaxStreamEvent(fn: Function) {
 		return function(...args: any[]) {
 			// Pass the parser to the wrapped function for debugging purposes
-			if (this._parser) (fn as any)._parser = this._parser;
+			if (self._parser) (fn as any)._parser = self._parser;
 
 			try {
-				fn.call(this, ...args);
+				fn.call(self, ...args);
 			} catch (error) {
 				if (importOptions.onError) {
 					importOptions.onError(error);
@@ -380,12 +389,12 @@ export default async function importEnex(parentFolderId: string, filePath: strin
 		const saxStream = require('@xilinota/fork-sax').createStream(strict, options);
 
 		const nodes: Node[] = []; // LIFO list of nodes so that we know in which node we are in the onText event
-		let note: ExtractedNote = null;
-		let noteAttributes: Record<string, any> = null;
-		let noteResource: ExtractedResource = null;
-		let noteTask: ExtractedTask = null;
-		let noteResourceAttributes: Record<string, any> = null;
-		let noteResourceRecognition: NoteResourceRecognition = null;
+		let note: ExtractedNote | null = null;
+		let noteAttributes: Record<string, any> = {};
+		let noteResource: ExtractedResource | null = null;
+		let noteTask: ExtractedTask | null = null;
+		let noteResourceAttributes: Record<string, any> = {};
+		let noteResourceRecognition: NoteResourceRecognition | null = null;
 		const notes: ExtractedNote[] = [];
 		let processingNotes = false;
 
@@ -409,7 +418,7 @@ export default async function importEnex(parentFolderId: string, filePath: strin
 		};
 
 		stream.on('error', function(error: any) {
-			importOptions.onError(createErrorWithNoteTitle(this, error));
+			if (importOptions.onError) importOptions.onError(createErrorWithNoteTitle(self, error));
 		});
 
 		function currentNodeName() {
@@ -430,7 +439,7 @@ export default async function importEnex(parentFolderId: string, filePath: strin
 
 			while (notes.length) {
 				const note = notes.shift();
-
+				if (!note || !note.resources) continue;
 				try {
 					for (let i = 0; i < note.resources.length; i++) {
 						let resource = note.resources[i];
@@ -438,7 +447,7 @@ export default async function importEnex(parentFolderId: string, filePath: strin
 						try {
 							resource = await processNoteResource(resource);
 						} catch (error) {
-							importOptions.onError(createErrorWithNoteTitle(null, error));
+							if (importOptions.onError) importOptions.onError(createErrorWithNoteTitle(null, error));
 							continue;
 						}
 
@@ -447,7 +456,7 @@ export default async function importEnex(parentFolderId: string, filePath: strin
 
 					const body = importOptions.outputFormat === 'html' ?
 						await enexXmlToHtml(note.bodyXml, note.resources) :
-						await enexXmlToMd(note.bodyXml, note.resources, note.tasks);
+						await enexXmlToMd(note.bodyXml ?? '', note.resources, note.tasks);
 					delete note.bodyXml;
 
 					note.markup_language = importOptions.outputFormat === 'html' ?
@@ -484,10 +493,10 @@ export default async function importEnex(parentFolderId: string, filePath: strin
 					}
 					progressState.resourcesCreated += result.resourcesCreated;
 					progressState.notesTagged += result.notesTagged;
-					importOptions.onProgress(progressState);
+					if (importOptions.onProgress) importOptions.onProgress(progressState);
 				} catch (error) {
 					const newError = wrapError(`Error on note "${note.title}"`, error);
-					importOptions.onError(createErrorWithNoteTitle(null, newError));
+					if (importOptions.onError) importOptions.onError(createErrorWithNoteTitle(null, newError));
 				}
 			}
 
@@ -497,7 +506,7 @@ export default async function importEnex(parentFolderId: string, filePath: strin
 		}
 
 		saxStream.on('error', function(error: any) {
-			importOptions.onError(createErrorWithNoteTitle(this, error));
+			if (importOptions.onError) importOptions.onError(createErrorWithNoteTitle(self, error));
 
 			// We need to reject the promise here, or parsing will get stuck
 			// ("end" handler will never be called).
@@ -507,6 +516,7 @@ export default async function importEnex(parentFolderId: string, filePath: strin
 
 		saxStream.on('text', handleSaxStreamEvent(function(text: string) {
 			const n = currentNodeName();
+			if (!n) return;
 
 			if (noteAttributes) {
 				noteAttributes[n] = text;
@@ -520,7 +530,7 @@ export default async function importEnex(parentFolderId: string, filePath: strin
 					}
 
 					if (!noteResource.dataFilePath) {
-						noteResource.dataFilePath = `${Setting.value('tempDir')}/${md5(Date.now() + Math.random())}.base64`;
+						noteResource.dataFilePath = `${Setting.value('tempDir')}/${md5(Date.now().toString() + Math.random())}.base64`;
 					}
 
 					noteResource.hasData = true;
@@ -546,13 +556,13 @@ export default async function importEnex(parentFolderId: string, filePath: strin
 				} else if (n === 'updated') {
 					note.updated_time = dateToTimestamp(text, 0);
 				} else if (n === 'tag') {
-					note.tags.push(text);
+					note.tags?.push(text);
 				} else if (n === 'note') {
 					// Ignore - white space between the opening tag <note> and the first sub-tag
 				} else if (n === 'content') {
 					// Ignore - white space between the opening tag <content> and the <![CDATA[< block where the content actually is
 				} else {
-					console.warn(createErrorWithNoteTitle(this, new Error(`Unsupported note tag: ${n}`)));
+					console.warn(createErrorWithNoteTitle(self, new Error(`Unsupported note tag: ${n}`)));
 				}
 			}
 		}));
@@ -602,29 +612,29 @@ export default async function importEnex(parentFolderId: string, filePath: strin
 		saxStream.on('closetag', handleSaxStreamEvent(function(n: string) {
 			nodes.pop();
 
-			if (n === 'note') {
+			if (note && n === 'note') {
 				note = removeUndefinedProperties(note);
 
 				progressState.loaded++;
-				importOptions.onProgress(progressState);
+				if (importOptions.onProgress) importOptions.onProgress(progressState);
 
-				notes.push(note);
+				if (note) notes.push(note);
 
 				if (notes.length >= 10) {
-					// eslint-disable-next-line promise/prefer-await-to-then -- Old code before rule was applied
+
 					processNotes().catch(error => {
-						importOptions.onError(createErrorWithNoteTitle(this, error));
+						if (importOptions.onError) importOptions.onError(createErrorWithNoteTitle(self, error));
 					});
 				}
 				note = null;
 			} else if (n === 'recognition' && noteResource) {
-				noteResource.id = noteResourceRecognition.objID;
+				if (noteResourceRecognition) noteResource.id = noteResourceRecognition.objID;
 				noteResourceRecognition = null;
-			} else if (n === 'resource-attributes') {
+			} else if (noteResource && n === 'resource-attributes') {
 				noteResource.filename = noteResourceAttributes['file-name'];
 				if (noteResourceAttributes['source-url']) noteResource.sourceUrl = noteResourceAttributes['source-url'];
-				noteResourceAttributes = null;
-			} else if (n === 'note-attributes') {
+				noteResourceAttributes = {};
+			} else if (note && n === 'note-attributes') {
 				note.latitude = noteAttributes.latitude;
 				note.longitude = noteAttributes.longitude;
 				note.altitude = noteAttributes.altitude;
@@ -636,11 +646,11 @@ export default async function importEnex(parentFolderId: string, filePath: strin
 				note.source = noteAttributes.source ? `evernote.${noteAttributes.source.trim()}` : 'evernote';
 				note.source_url = noteAttributes['source-url'] ? noteAttributes['source-url'].trim() : '';
 
-				noteAttributes = null;
-			} else if (n === 'task') {
+				noteAttributes = {};
+			} else if (note && noteTask && n === 'task') {
 				note.tasks.push(noteTask);
 				noteTask = null;
-			} else if (n === 'resource') {
+			} else if (noteResource && n === 'resource') {
 				let mimeType = noteResource.mime ? noteResource.mime.trim() : '';
 
 				// Evernote sometimes gives an invalid or generic
@@ -650,7 +660,7 @@ export default async function importEnex(parentFolderId: string, filePath: strin
 				// type.
 				// https://discourse.xilinotaapp.org/t/importing-a-note-with-a-zip-file/12123
 				if (noteResource.filename) {
-					const mimeTypeFromFile = mime.fromFilename(noteResource.filename);
+					const mimeTypeFromFile = mimeUtils.fromFilename(noteResource.filename);
 					if (mimeTypeFromFile && mimeTypeFromFile !== mimeType) {
 						// Don't print statement by default because it would show up in test units
 						// console.info(`Invalid mime type "${mimeType}" for resource "${noteResource.filename}". Using "${mimeTypeFromFile}" instead.`);
@@ -658,7 +668,7 @@ export default async function importEnex(parentFolderId: string, filePath: strin
 					}
 				}
 
-				note.resources.push({
+				if (note && note.resources) note.resources.push({
 					id: noteResource.id,
 					dataFilePath: noteResource.dataFilePath,
 					dataEncoding: noteResource.dataEncoding,
@@ -675,7 +685,7 @@ export default async function importEnex(parentFolderId: string, filePath: strin
 		saxStream.on('end', handleSaxStreamEvent(() => {
 			// Wait till there is no more notes to process.
 			const iid = shim.setInterval(() => {
-				// eslint-disable-next-line promise/prefer-await-to-then -- Old code before rule was applied
+
 				void processNotes().then(allDone => {
 					if (allDone) {
 						shim.clearTimeout(iid);

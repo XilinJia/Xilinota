@@ -21,7 +21,7 @@ export interface EditContextMenuFilterObject {
 	items: MenuItem[];
 }
 
-type FilterHandler<T> = (object: T)=> Promise<void>;
+type FilterHandler<T> = (object: T) => Promise<void>;
 
 enum ItemChangeEventType {
 	Create = 1,
@@ -44,9 +44,9 @@ interface ResourceChangeEvent {
 	id: string;
 }
 
-type ItemChangeHandler = (event: ItemChangeEvent)=> void;
-type SyncStartHandler = (event: SyncStartEvent)=> void;
-type ResourceChangeHandler = (event: ResourceChangeEvent)=> void;
+type ItemChangeHandler = (event: ItemChangeEvent) => void;
+type SyncStartHandler = (event: SyncStartEvent) => void;
+type ResourceChangeHandler = (event: ResourceChangeEvent) => void;
 
 /**
  * The workspace service provides access to all the parts of Joplin that
@@ -68,7 +68,6 @@ export default class JoplinWorkspace {
 	/**
 	 * Called when a new note or notes are selected.
 	 */
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public async onNoteSelectionChange(callback: Function): Promise<Disposable> {
 		eventManager.appStateOn('selectedNoteIds', callback);
 
@@ -85,7 +84,6 @@ export default class JoplinWorkspace {
 	 * Called when the content of a note changes.
 	 * @deprecated Use `onNoteChange()` instead, which is reliably triggered whenever the note content, or any note property changes.
 	 */
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public async onNoteContentChange(callback: Function) {
 		eventManager.on('noteContentChange', callback);
 	}
@@ -118,7 +116,6 @@ export default class JoplinWorkspace {
 	/**
 	 * Called when an alarm associated with a to-do is triggered.
 	 */
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public async onNoteAlarmTrigger(handler: Function): Promise<Disposable> {
 		return makeListener(eventManager, 'noteAlarmTrigger', handler);
 	}
@@ -133,7 +130,6 @@ export default class JoplinWorkspace {
 	/**
 	 * Called when the synchronisation process has finished.
 	 */
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public async onSyncComplete(callback: Function): Promise<Disposable> {
 		return makeListener(eventManager, 'syncComplete', callback);
 	}
@@ -161,7 +157,7 @@ export default class JoplinWorkspace {
 	 * interface. In that case, that function would return the last selected
 	 * folder.
 	 */
-	public async selectedFolder(): Promise<FolderEntity> {
+	public async selectedFolder(): Promise<FolderEntity | null> {
 		const folderId = Setting.value('activeFolderId');
 		return folderId ? await Folder.load(folderId) : null;
 	}

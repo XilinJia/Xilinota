@@ -10,11 +10,13 @@ export const declaration: CommandDeclaration = {
 
 export const runtime = (): CommandRuntime => {
 	return {
-		execute: async (context: CommandContext, noteIds: string[] = null) => {
-			if (noteIds === null) noteIds = context.state.selectedNoteIds;
+		execute: async (context: CommandContext, _noteIds: string[] | null = []) => {
+			let noteIds = _noteIds || [];
+			if (!noteIds.length) noteIds = context.state.selectedNoteIds;
 
 			for (let i = 0; i < noteIds.length; i++) {
 				const note = await Note.load(noteIds[i]);
+				if (!note) continue;
 				const newNote = await Note.save(Note.toggleIsTodo(note), { userSideValidation: true });
 				const eventNote = {
 					id: newNote.id,

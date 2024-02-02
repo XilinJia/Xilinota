@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { _ } from '@xilinota/lib/locale';
 import DialogButtonRow from './DialogButtonRow';
-const { themeStyle } = require('@xilinota/lib/theme');
+import { themeStyle } from '@xilinota/lib/theme';
 const Countable = require('@xilinota/lib/countable/Countable');
 import markupLanguageUtils from '../utils/markupLanguageUtils';
 
@@ -10,7 +10,6 @@ interface NoteContentPropertiesDialogProps {
 	themeId: number;
 	text: string;
 	markupLanguage: number;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	onClose: Function;
 }
 
@@ -29,7 +28,7 @@ function markupToHtml() {
 	return markupToHtml_;
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
+
 function countElements(text: string, wordSetter: Function, characterSetter: Function, characterNoSpaceSetter: Function, lineSetter: Function) {
 	Countable.count(text, (counter: any) => {
 		wordSetter(counter.words);
@@ -72,7 +71,7 @@ export default function NoteContentPropertiesDialog(props: NoteContentProperties
 	useEffect(() => {
 		const strippedText: string = markupToHtml().stripMarkup(props.markupLanguage, props.text);
 		countElements(strippedText, setStrippedWords, setStrippedCharacters, setStrippedCharactersNoSpace, setStrippedLines);
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [props.text]);
 
 	useEffect(() => {
@@ -170,7 +169,7 @@ export default function NoteContentPropertiesDialog(props: NoteContentProperties
 				<div style={{ ...labelCompStyle, marginTop: 10 }}>
 					{readTimeLabel}
 				</div>
-				<DialogButtonRow themeId={props.themeId} onClick={buttonRow_click} okButtonShow={false} cancelButtonLabel={_('Close')}/>
+				<DialogButtonRow themeId={props.themeId} onClick={buttonRow_click} okButtonShow={false} cancelButtonLabel={_('Close')} />
 			</div>
 		</div>
 	);

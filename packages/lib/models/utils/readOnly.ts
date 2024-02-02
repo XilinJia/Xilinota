@@ -13,7 +13,7 @@ export interface ItemSlice {
 // This function can be called to wrap any read-only-related code. It should be
 // fast and allows an early exit for cases that don't apply, for example if not
 // synchronising with Joplin Cloud or if not sharing any notebook.
-export const needsReadOnlyChecks = (itemType: ModelType, changeSource: number, shareState: ShareState, disableReadOnlyCheck = false) => {
+export const needsReadOnlyChecks = (itemType: ModelType, changeSource: number, shareState: ShareState, disableReadOnlyCheck = false): boolean => {
 	if (disableReadOnlyCheck) return false;
 	if (Setting.value('sync.target') !== 10) return false;
 	if (changeSource === ItemChange.SOURCE_SYNC) return false;
@@ -25,13 +25,13 @@ export const needsReadOnlyChecks = (itemType: ModelType, changeSource: number, s
 	return true;
 };
 
-export const checkIfItemsCanBeChanged = (itemType: ModelType, changeSource: number, items: ItemSlice[], shareState: ShareState) => {
+export const checkIfItemsCanBeChanged = (itemType: ModelType, changeSource: number, items: ItemSlice[], shareState: ShareState): void => {
 	for (const item of items) {
 		checkIfItemCanBeChanged(itemType, changeSource, item, shareState);
 	}
 };
 
-export const checkIfItemCanBeChanged = (itemType: ModelType, changeSource: number, item: ItemSlice, shareState: ShareState) => {
+export const checkIfItemCanBeChanged = (itemType: ModelType, changeSource: number, item: ItemSlice, shareState: ShareState): void => {
 	if (!needsReadOnlyChecks(itemType, changeSource, shareState)) return;
 	if (!item) return;
 
@@ -40,7 +40,7 @@ export const checkIfItemCanBeChanged = (itemType: ModelType, changeSource: numbe
 	}
 };
 
-export const checkIfItemCanBeAddedToFolder = async (itemType: ModelType, Folder: any, changeSource: number, shareState: ShareState, parentId: string) => {
+export const checkIfItemCanBeAddedToFolder = async (itemType: ModelType, Folder: any, changeSource: number, shareState: ShareState, parentId: string): Promise<void> => {
 	if (needsReadOnlyChecks(itemType, changeSource, shareState) && parentId) {
 		const parentFolder = await Folder.load(parentId, { fields: ['id', 'share_id'] });
 		if (itemIsReadOnlySync(itemType, changeSource, parentFolder, Setting.value('sync.userId'), shareState)) {
@@ -58,7 +58,7 @@ export const itemIsReadOnlySync = (itemType: ModelType, changeSource: number, it
 	if (!item.share_id) return false;
 
 	// Item belongs to the user
-	if (shareState.shares.find(s => s.user.id === userId)) return false;
+	if (shareState.shares.find(s => s.user && s.user.id === userId)) return false;
 
 	const shareUser = shareState.shareInvitations.find(si => si.share.id === item.share_id);
 

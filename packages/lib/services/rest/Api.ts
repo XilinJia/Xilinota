@@ -11,9 +11,10 @@ import route_ping from './routes/ping';
 import route_auth from './routes/auth';
 import route_events from './routes/events';
 import route_revisions from './routes/revisions';
+import { ApiError } from '../../utils/errors';
 
-const { ltrimSlashes } = require('../../path-utils');
-const md5 = require('md5');
+import { ltrimSlashes } from '../../path-utils';
+import md5 from 'md5';
 
 export enum RequestMethod {
 	GET = 'GET',
@@ -74,13 +75,12 @@ interface AuthToken {
 }
 
 export interface RequestContext {
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	dispatch: Function;
 	authToken: AuthToken;
 	token: string;
 }
 
-type RouteFunction = (request: Request, id: string, link: string, context: RequestContext)=> Promise<any | void>;
+type RouteFunction = (request: Request, id: string, link: string, context: RequestContext) => Promise<any | void>;
 
 interface ResourceNameToRoute {
 	[key: string]: RouteFunction;
@@ -88,17 +88,14 @@ interface ResourceNameToRoute {
 
 export default class Api {
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	private token_: string | Function;
-	private authToken_: AuthToken = null;
+	private authToken_: AuthToken | undefined;
 	private knownNounces_: any = {};
 	private actionApi_: any;
 	private resourceNameToRoute_: ResourceNameToRoute = {};
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	private dispatch_: Function;
+	private dispatch_: Function | null = null;
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	public constructor(token: string | Function = null, dispatch: Function = null, actionApi: any = null) {
+	public constructor(token: string | Function = '', dispatch: Function | null = null, actionApi: any = null) {
 		this.token_ = token;
 		this.actionApi_ = actionApi;
 		this.dispatch_ = dispatch;
@@ -131,7 +128,7 @@ export default class Api {
 				status: AuthTokenStatus.Waiting,
 			};
 
-			this.dispatch_({
+			if (this.dispatch_) this.dispatch_({
 				type: 'API_NEED_AUTH_SET',
 				value: true,
 			});
@@ -139,7 +136,8 @@ export default class Api {
 			return;
 		}
 
-		return this.dispatch_(action);
+		if (this.dispatch_) return this.dispatch_(action);
+		return;
 	}
 
 	public acceptAuthToken(accept: boolean) {
@@ -147,7 +145,7 @@ export default class Api {
 
 		this.authToken_.status = accept ? AuthTokenStatus.Accepted : AuthTokenStatus.Rejected;
 
-		this.dispatch_({
+		if (this.dispatch_) this.dispatch_({
 			type: 'API_NEED_AUTH_SET',
 			value: false,
 		});
@@ -168,14 +166,11 @@ export default class Api {
 	}
 
 	// Response can be any valid JSON object, so a string, and array or an object (key/value pairs).
-	public async route(method: RequestMethod, path: string, query: RequestQuery = null, body: any = null, files: RequestFile[] = null): Promise<any> {
-		if (!files) files = [];
-		if (!query) query = {};
-
+	public async route(method: RequestMethod, path: string, query: RequestQuery = {}, body: any = null, files: RequestFile[] = []): Promise<any> {
 		const parsedPath = this.parsePath(path);
 		if (!parsedPath.fn) throw new ErrorNotFound(); // Nothing at the root yet
 
-		if (query && query.nounce) {
+		if (query.nounce) {
 			const requestMd5 = md5(JSON.stringify([method, path, body, query, files.length]));
 			if (this.knownNounces_[query.nounce] === requestMd5) {
 				throw new ErrorBadRequest('Duplicate Nounce');
@@ -202,10 +197,10 @@ export default class Api {
 			query: query ? query : {},
 			body,
 			bodyJson_: null,
-			bodyJson: function(disallowedProperties: string[] = null) {
+			bodyJson: function(disallowedProperties: string[] = []) {
 				if (!this.bodyJson_) this.bodyJson_ = JSON.parse(this.body);
 
-				if (disallowedProperties) {
+				if (disallowedProperties.length) {
 					const filteredBody = { ...this.bodyJson_ };
 					for (let i = 0; i < disallowedProperties.length; i++) {
 						const n = disallowedProperties[i];
@@ -222,6 +217,8 @@ export default class Api {
 
 		this.checkToken_(request);
 
+		if (!this.authToken_) throw new Error('Auth token is not set');
+
 		const context: RequestContext = {
 			dispatch: this.dispatch,
 			token: this.token,
@@ -229,9 +226,9 @@ export default class Api {
 		};
 
 		try {
-			return await parsedPath.fn(request, id, link, context);
+			return await parsedPath.fn(request, id ?? '', link ?? '', context);
 		} catch (error) {
-			if (!error.httpCode) error.httpCode = 500;
+			if (error instanceof ApiError && !error.httpCode) error.httpCode = 500;
 			throw error;
 		}
 	}

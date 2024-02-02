@@ -3,11 +3,11 @@ import { useMemo } from 'react';
 
 const useVisibleRange = (itemsPerLine: number, scrollTop: number, listSize: Size, itemSize: Size, noteCount: number) => {
 	const startLineIndexFloat = useMemo(() => {
-		return scrollTop / itemSize.height;
+		return scrollTop / (itemSize.height??50);
 	}, [scrollTop, itemSize.height]);
 
 	const endLineIndexFloat = useMemo(() => {
-		return startLineIndexFloat + (listSize.height / itemSize.height);
+		return startLineIndexFloat + (listSize.height??50 / (itemSize.height??50));
 	}, [startLineIndexFloat, listSize.height, itemSize.height]);
 
 	const startLineIndex = useMemo(() => {

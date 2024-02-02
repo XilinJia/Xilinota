@@ -1,11 +1,10 @@
 import { themeStyle } from '@xilinota/lib/theme';
-import * as React from 'react';
+import React from 'react';
 const ReactToggleButton = require('react-toggle-button');
-const Color = require('color');
+import Color from 'color';
 
 interface Props {
 	value: boolean;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	onToggle: Function;
 	themeId: number;
 }

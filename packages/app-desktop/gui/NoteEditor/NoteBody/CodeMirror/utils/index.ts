@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-export function cursorPositionToTextOffset(cursorPos: any, body: string) {
+export function cursorPositionToTextOffset(cursorPos: any, body: string): number {
 	if (!body) return 0;
 
 	const noteLines = body.split('\n');

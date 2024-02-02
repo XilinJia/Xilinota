@@ -3,6 +3,8 @@ import 'codemirror/mode/stex/stex';
 import MarkdownUtils from '@xilinota/lib/markdownUtils';
 import Setting from '@xilinota/lib/models/Setting';
 
+// seeme not used?
+
 interface XilinotaModeState {
 	outer: any;
 	openCharacter: string;
@@ -14,7 +16,7 @@ interface XilinotaModeState {
 
 // Xilinota markdown is a the same as markdown mode, but it has configured defaults
 // and support for katex math blocks
-export default function useXilinotaMode(CodeMirror: any) {
+export default function useXilinotaMode(CodeMirror: any): void {
 
 	CodeMirror.defineMode('xilinota-markdown', (config: any) => {
 		const markdownConfig = {
@@ -37,7 +39,7 @@ export default function useXilinotaMode(CodeMirror: any) {
 
 		// Find token will search for a valid katex start or end token
 		// If found then it will return the index, otherwise -1
-		function findToken(stream: any, token: RegExp) {
+		function findToken(stream: { string: string; pos: number; }, token: RegExp): number {
 			const match = token.exec(stream.string.slice(stream.pos));
 
 			return match ? match.index + stream.pos : -1;
@@ -54,7 +56,7 @@ export default function useXilinotaMode(CodeMirror: any) {
 				};
 			},
 
-			copyState: function(state: XilinotaModeState) {
+			copyState: function(state: XilinotaModeState): XilinotaModeState {
 				return {
 					outer: CodeMirror.copyState(markdownMode, state.outer),
 					openCharacter: state.openCharacter,
@@ -64,7 +66,7 @@ export default function useXilinotaMode(CodeMirror: any) {
 				};
 			},
 
-			token: function(stream: any, state: XilinotaModeState) {
+			token: function(stream: any, state: XilinotaModeState): string {
 				let currentMode = markdownMode;
 				let currentState = state.outer;
 
@@ -134,7 +136,7 @@ export default function useXilinotaMode(CodeMirror: any) {
 					isMonospace = true;
 					token = `${token} line-cm-jn-code-block line-background-cm-jn-code-block-background`;
 				} else if (stream.pos > 0 && stream.string[stream.pos - 1] === '`' &&
-										!!token && token.includes('comment')) {
+					!!token && token.includes('comment')) {
 					// This grabs the closing backtick for inline Code
 					isMonospace = true;
 					token = `${token} jn-inline-code`;

@@ -179,7 +179,7 @@ async function main() {
 		for (let i = 0; i < 3; i++) {
 			const response = await fetch(url);
 			const output = await response.json();
-			if (output && output.length) return output;
+			if (output && Array.isArray(output) && output.length) return output;
 		}
 		return null;
 	};
@@ -256,7 +256,7 @@ async function main() {
 }
 
 if (require.main === module) {
-	// eslint-disable-next-line promise/prefer-await-to-then
+
 	main().catch((error) => {
 		console.error('Fatal error');
 		console.error(error);

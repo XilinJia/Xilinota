@@ -68,7 +68,7 @@ export default class ItemUploader {
 			itemsToUpload.push({
 				name: BaseItem.systemPath(local),
 				body: await ItemClass.serializeForSync(local),
-				localItemUpdatedTime: local.updated_time,
+				localItemUpdatedTime: local.updated_time??0,
 			});
 		}
 
@@ -89,6 +89,7 @@ export default class ItemUploader {
 
 		while (itemsToUpload.length) {
 			const itemToUpload = itemsToUpload.pop();
+			if (!itemToUpload) continue;
 			const itemSize = itemToUpload.name.length + itemToUpload.body.length;
 
 			// Although it should be rare, if the item itself is above the

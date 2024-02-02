@@ -3,7 +3,7 @@ import * as React from 'react';
 import NoteListUtils from './utils/NoteListUtils';
 import { Dispatch } from 'redux';
 
-const { buildStyle } = require('@xilinota/lib/theme');
+import { buildStyle } from '@xilinota/lib/theme';
 const bridge = require('@electron/remote').require('./bridge').default;
 
 interface MultiNoteActionsProps {

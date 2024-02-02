@@ -14,7 +14,7 @@ export const makeExportCacheDirectory = async () => {
 const exportFolders = async (path: string, onProgress: OnExportProgressCallback) => {
 	const folders = await Folder.all();
 
-	const sourceFolderIds = folders.map(folder => folder.id);
+	const sourceFolderIds = folders.map(folder => folder.id??'');
 	const exportOptions: ExportOptions = {
 		sourceFolderIds,
 		path,

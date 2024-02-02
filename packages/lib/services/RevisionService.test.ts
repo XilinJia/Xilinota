@@ -25,7 +25,7 @@ describe('services/RevisionService', () => {
 		await Note.save({ id: n1_v1.id, title: 'hello welcome', author: '' });
 		await service.collectRevisions();
 
-		const revisions = await Revision.allByType(BaseModel.TYPE_NOTE, n1_v1.id);
+		const revisions = await Revision.allByType(BaseModel.TYPE_NOTE, n1_v1.id!);
 		expect(revisions.length).toBe(2);
 		expect(revisions[1].parent_id).toBe(revisions[0].id);
 
@@ -42,7 +42,7 @@ describe('services/RevisionService', () => {
 
 		const ttl = Date.now() - time_rev2 - 1;
 		await service.deleteOldRevisions(ttl);
-		const revisions2 = await Revision.allByType(BaseModel.TYPE_NOTE, n1_v1.id);
+		const revisions2 = await Revision.allByType(BaseModel.TYPE_NOTE, n1_v1.id!);
 		expect(revisions2.length).toBe(0);
 	}));
 
@@ -98,11 +98,11 @@ describe('services/RevisionService', () => {
 
 		await Note.save({ id: n1_v1.id, title: 'hello welcome' });
 		await service.collectRevisions();
-		expect((await Revision.allByType(BaseModel.TYPE_NOTE, n1_v1.id)).length).toBe(2);
+		expect((await Revision.allByType(BaseModel.TYPE_NOTE, n1_v1.id!)).length).toBe(2);
 
 		const ttl = Date.now() - time_v1 - 1;
 		await service.deleteOldRevisions(ttl);
-		const revisions = await Revision.allByType(BaseModel.TYPE_NOTE, n1_v1.id);
+		const revisions = await Revision.allByType(BaseModel.TYPE_NOTE, n1_v1.id!);
 		expect(revisions.length).toBe(1);
 
 		const rev1 = await service.revisionNote(revisions, 0);
@@ -129,7 +129,7 @@ describe('services/RevisionService', () => {
 		{
 			const ttl = Date.now() - time_v1 - 1;
 			await service.deleteOldRevisions(ttl);
-			const revisions = await Revision.allByType(BaseModel.TYPE_NOTE, n1_v1.id);
+			const revisions = await Revision.allByType(BaseModel.TYPE_NOTE, n1_v1.id!);
 			expect(revisions.length).toBe(2);
 
 			const rev1 = await service.revisionNote(revisions, 0);
@@ -142,7 +142,7 @@ describe('services/RevisionService', () => {
 		{
 			const ttl = Date.now() - time_v2 - 1;
 			await service.deleteOldRevisions(ttl);
-			const revisions = await Revision.allByType(BaseModel.TYPE_NOTE, n1_v1.id);
+			const revisions = await Revision.allByType(BaseModel.TYPE_NOTE, n1_v1.id!);
 			expect(revisions.length).toBe(1);
 
 			const rev1 = await service.revisionNote(revisions, 0);
@@ -171,14 +171,14 @@ describe('services/RevisionService', () => {
 		await service.deleteOldRevisions(ttl);
 
 		{
-			const revisions = await Revision.allByType(BaseModel.TYPE_NOTE, n1_v1.id);
+			const revisions = await Revision.allByType(BaseModel.TYPE_NOTE, n1_v1.id!);
 			expect(revisions.length).toBe(1);
 			const rev1 = await service.revisionNote(revisions, 0);
 			expect(rev1.title).toBe('note 1 (v2)');
 		}
 
 		{
-			const revisions = await Revision.allByType(BaseModel.TYPE_NOTE, n2_v1.id);
+			const revisions = await Revision.allByType(BaseModel.TYPE_NOTE, n2_v1.id!);
 			expect(revisions.length).toBe(1);
 			const rev1 = await service.revisionNote(revisions, 0);
 			expect(rev1.title).toBe('note 2 (v2)');
@@ -204,14 +204,14 @@ describe('services/RevisionService', () => {
 		const noteId = n1_v1.id;
 		const rev1 = await service.createNoteRevision_(n1_v1);
 		const n1_v2 = await Note.save({ id: noteId, title: 'hello Paul' });
-		await service.createNoteRevision_(n1_v2, rev1.id);
+		if (rev1) await service.createNoteRevision_(n1_v2, rev1.id!);
 		const n1_v3 = await Note.save({ id: noteId, title: 'hello John' });
-		await service.createNoteRevision_(n1_v3, rev1.id);
+		if (rev1) await service.createNoteRevision_(n1_v3, rev1.id!);
 
-		const revisions = await Revision.allByType(BaseModel.TYPE_NOTE, noteId);
+		const revisions = await Revision.allByType(BaseModel.TYPE_NOTE, noteId!);
 		expect(revisions.length).toBe(3);
-		expect(revisions[1].parent_id).toBe(rev1.id);
-		expect(revisions[2].parent_id).toBe(rev1.id);
+		if (rev1) expect(revisions[1].parent_id).toBe(rev1.id!);
+		if (rev1) expect(revisions[2].parent_id).toBe(rev1.id!);
 
 		const revNote1 = await service.revisionNote(revisions, 0);
 		const revNote2 = await service.revisionNote(revisions, 1);
@@ -239,7 +239,7 @@ describe('services/RevisionService', () => {
 		{
 			await Note.save({ id: noteId, title: 'hello 2' });
 			await revisionService().collectRevisions(); // Rev for old note created + Rev for new note
-			const all = await Revision.allByType(BaseModel.TYPE_NOTE, noteId);
+			const all = await Revision.allByType(BaseModel.TYPE_NOTE, noteId!);
 			expect(all.length).toBe(2);
 			const revNote1 = await revisionService().revisionNote(all, 0);
 			const revNote2 = await revisionService().revisionNote(all, 1);
@@ -252,7 +252,7 @@ describe('services/RevisionService', () => {
 
 		{
 			await Note.save({ id: noteId, title: 'hello 3' });
-			const all = await Revision.allByType(BaseModel.TYPE_NOTE, noteId);
+			const all = await Revision.allByType(BaseModel.TYPE_NOTE, noteId!);
 			expect(all.length).toBe(2);
 		}
 	}));
@@ -261,11 +261,11 @@ describe('services/RevisionService', () => {
 		const n1 = await Note.save({ title: 'hello' });
 		const noteId = n1.id;
 
-		await Note.delete(noteId);
+		await Note.delete(noteId!);
 
 		await revisionService().collectRevisions();
 
-		const all = await Revision.allByType(BaseModel.TYPE_NOTE, noteId);
+		const all = await Revision.allByType(BaseModel.TYPE_NOTE, noteId!);
 		expect(all.length).toBe(1);
 		const rev1 = await revisionService().revisionNote(all, 0);
 		expect(rev1.title).toBe('hello');
@@ -278,29 +278,29 @@ describe('services/RevisionService', () => {
 		await Note.save({ id: noteId, title: 'hello Paul' });
 		await revisionService().collectRevisions(); // REV 1
 
-		expect((await Revision.allByType(BaseModel.TYPE_NOTE, n1.id)).length).toBe(1);
+		expect((await Revision.allByType(BaseModel.TYPE_NOTE, n1.id!)).length).toBe(1);
 
-		await Note.delete(noteId);
+		await Note.delete(noteId!);
 
 		// At this point there is no need to create a new revision for the deleted note
 		// because we already have the latest version as REV 1
 		await revisionService().collectRevisions();
 
-		expect((await Revision.allByType(BaseModel.TYPE_NOTE, n1.id)).length).toBe(1);
+		expect((await Revision.allByType(BaseModel.TYPE_NOTE, n1.id!)).length).toBe(1);
 	}));
 
 	it('should not create a revision for new note the first time they are saved', (async () => {
 		const n1 = await Note.save({ title: 'hello' });
 
 		{
-			const revisions = await Revision.allByType(BaseModel.TYPE_NOTE, n1.id);
+			const revisions = await Revision.allByType(BaseModel.TYPE_NOTE, n1.id!);
 			expect(revisions.length).toBe(0);
 		}
 
 		await revisionService().collectRevisions();
 
 		{
-			const revisions = await Revision.allByType(BaseModel.TYPE_NOTE, n1.id);
+			const revisions = await Revision.allByType(BaseModel.TYPE_NOTE, n1.id!);
 			expect(revisions.length).toBe(0);
 		}
 	}));
@@ -313,7 +313,7 @@ describe('services/RevisionService', () => {
 		await Note.save({ id: n1.id, title: 'hello George' }); // CHANGE 3
 		await revisionService().collectRevisions();
 
-		const revisions = await Revision.allByType(BaseModel.TYPE_NOTE, n1.id);
+		const revisions = await Revision.allByType(BaseModel.TYPE_NOTE, n1.id!);
 		expect(revisions.length).toBe(2);
 
 		const encryptedRevId = revisions[0].id;
@@ -488,7 +488,7 @@ describe('services/RevisionService', () => {
 		const revId2 = (await Revision.all())[1].id;
 		await Revision.save({ id: revId2, metadata_diff: corruptedMetadata });
 
-		const note = await Note.load(n1_v0.id);
+		const note = (await Note.load(n1_v0.id!))!;
 		let error = null;
 		try {
 			await revisionService().createNoteRevision_(note);
@@ -497,9 +497,11 @@ describe('services/RevisionService', () => {
 		}
 
 		expect(error).toBeTruthy();
-		expect(error.message).toContain(revId2);
-		expect(error.message).toContain(note.id);
-		expect(error.message).toContain(corruptedMetadata);
+		if (error instanceof Error) {
+			expect(error.message).toContain(revId2);
+			expect(error.message).toContain(note.id);
+			expect(error.message).toContain(corruptedMetadata);
+		}
 	});
 
 	it('note revisions should include certain required properties', async () => {

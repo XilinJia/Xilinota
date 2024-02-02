@@ -11,7 +11,8 @@ export interface SyncTargetUpgradeResult {
 }
 
 export default function useSyncTargetUpgrade(): SyncTargetUpgradeResult {
-	const [upgradeResult, setUpgradeResult] = useState({
+
+	const [upgradeResult, setUpgradeResult] = useState<SyncTargetUpgradeResult>({
 		done: false,
 		error: null,
 	});

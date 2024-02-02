@@ -10,7 +10,7 @@ export const declaration: CommandDeclaration = {
 export const runtime = (): CommandRuntime => {
 	return {
 		execute: async (context: CommandContext) => {
-			await CommandService.instance().execute('switchProfile', profileIdByIndex(context.state.profileConfig, 1));
+			if (context.state.profileConfig) await CommandService.instance().execute('switchProfile', profileIdByIndex(context.state.profileConfig, 1));
 		},
 	};
 };

@@ -5,11 +5,11 @@ import Setting from '@xilinota/lib/models/Setting';
 import { stateUtils } from '@xilinota/lib/reducer';
 import BaseModel from '@xilinota/lib/BaseModel';
 import uuid from '@xilinota/lib/uuid_';
-const { connect } = require('react-redux');
+import { connect } from 'react-redux';
 import Note from '@xilinota/lib/models/Note';
 import { AppState } from '../../app.reducer';
-const debounce = require('debounce');
-const styled = require('styled-components').default;
+import debounce from 'debounce';
+import styled from 'styled-components';
 
 export const Root = styled.div`
 	position: relative;
@@ -21,7 +21,6 @@ export const Root = styled.div`
 interface Props {
 	inputRef?: any;
 	notesParentType: string;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	dispatch?: Function;
 	selectedNoteId: string;
 	isFocused?: boolean;
@@ -33,8 +32,7 @@ function SearchBar(props: Props) {
 	const searchId = useRef(uuid.create());
 
 	useEffect(() => {
-		// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-		function search(searchId: string, query: string, dispatch: Function) {
+		function search(searchId: string, query: string, dispatch: Function): void {
 			dispatch({
 				type: 'SEARCH_UPDATE',
 				search: {
@@ -53,14 +51,14 @@ function SearchBar(props: Props) {
 		}
 
 		const debouncedSearch = debounce(search, 500);
-		if (searchStarted) debouncedSearch(searchId.current, query, props.dispatch);
+		if (searchStarted && props.dispatch) debouncedSearch(searchId.current, query, props.dispatch);
 		return () => {
 			debouncedSearch.clear();
 		};
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [query, searchStarted]);
 
-	const onExitSearch = useCallback(async (navigateAway = true) => {
+	const onExitSearch = useCallback(async (navigateAway = true): Promise<void> => {
 		setQuery('');
 		setSearchStarted(false);
 
@@ -68,7 +66,7 @@ function SearchBar(props: Props) {
 			const note = props.selectedNoteId ? await Note.load(props.selectedNoteId) : null;
 
 			if (note) {
-				props.dispatch({
+				if (props.dispatch) props.dispatch({
 					type: 'FOLDER_AND_NOTE_SELECT',
 					folderId: note.parent_id,
 					noteId: note.id,
@@ -76,17 +74,17 @@ function SearchBar(props: Props) {
 			} else {
 				const folderId = Setting.value('activeFolderId');
 				if (folderId) {
-					props.dispatch({
+					if (props.dispatch) props.dispatch({
 						type: 'FOLDER_SELECT',
 						id: folderId,
 					});
 				}
 			}
 		}
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [props.selectedNoteId]);
 
-	function onChange(event: any) {
+	function onChange(event: { value: React.SetStateAction<string>; }): void {
 		if (event.value.length === 0) {
 			// Revert to previous state if query string becomes empty
 			void onExitSearch();
@@ -96,44 +94,44 @@ function SearchBar(props: Props) {
 		setQuery(event.value);
 	}
 
-	function onFocus() {
-		props.dispatch({
+	function onFocus(): void {
+		if (props.dispatch) props.dispatch({
 			type: 'FOCUS_SET',
 			field: 'globalSearch',
 		});
 	}
 
-	function onBlur() {
+	function onBlur(): void {
 		// Do it after a delay so that the "Clear" button
 		// can be clicked on (otherwise the field loses focus
 		// and is resized before the click event has been processed)
 		setTimeout(() => {
-			props.dispatch({
+			if (props.dispatch) props.dispatch({
 				type: 'FOCUS_CLEAR',
 				field: 'globalSearch',
 			});
 		}, 300);
 	}
 
-	const onKeyDown = useCallback((event: any) => {
+	const onKeyDown = useCallback((event: { key: string; }): void => {
 		if (event.key === 'Escape') {
 			if (document.activeElement) (document.activeElement as any).blur();
 			void onExitSearch();
 		}
 	}, [onExitSearch]);
 
-	const onSearchButtonClick = useCallback(() => {
+	const onSearchButtonClick = useCallback((): void => {
 		if (props.isFocused || searchStarted) {
 			void onExitSearch();
 		} else {
 			setSearchStarted(true);
 			props.inputRef.current.focus();
-			props.dispatch({
+			if (props.dispatch) props.dispatch({
 				type: 'FOCUS_SET',
 				field: 'globalSearch',
 			});
 		}
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [onExitSearch, props.isFocused, searchStarted]);
 
 	useEffect(() => {
@@ -148,14 +146,14 @@ function SearchBar(props: Props) {
 	useEffect(() => {
 		if (props.notesParentType === 'Search' || props.isFocused) {
 			if (props.isFocused) {
-				props.dispatch({
+				if (props.dispatch) props.dispatch({
 					type: 'FOCUS_CLEAR',
 					field: 'globalSearch',
 				});
 			}
 			void onExitSearch(true);
 		}
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, []);
 
 	return (
@@ -177,7 +175,7 @@ function SearchBar(props: Props) {
 const mapStateToProps = (state: AppState) => {
 	return {
 		notesParentType: state.notesParentType,
-		selectedNoteId: stateUtils.selectedNoteId(state),
+		selectedNoteId: stateUtils.selectedNoteId(state) ?? '',
 		isFocused: state.focusedField === 'globalSearch',
 	};
 };

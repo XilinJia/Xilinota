@@ -1,29 +1,31 @@
-import * as React from 'react';
+import React from 'react';
 import { connect } from 'react-redux';
 import NotesScreen from './screens/Notes';
-const { SearchScreen } = require('./screens/search.js');
-import { Component } from 'react';
+import SearchScreen from './screens/search';
 import { KeyboardAvoidingView, Keyboard, Platform, View, KeyboardEvent, Dimensions, EmitterSubscription } from 'react-native';
 import { AppState } from '../utils/types';
-const { themeStyle } = require('./global-style.js');
+import { themeStyle } from './global-style';
+import { Dispatch } from '@reduxjs/toolkit';
+
+interface Props {
+	themeId: number;
+	route: any;
+	screens: any;
+
+	dispatch: Dispatch;
+}
 
 interface State {
 	autoCompletionBarExtraHeight: number;
 	floatingKeyboardEnabled: boolean;
 }
 
-interface Props {
-	route: any;
-	screens: any;
-	dispatch: (action: any)=> void;
-	themeId: number;
-}
+class AppNavComponent extends React.Component<Props, State> {
 
-class AppNavComponent extends Component<Props, State> {
-	private previousRouteName_: string|null = null;
-	private keyboardDidShowListener: EmitterSubscription|null = null;
-	private keyboardDidHideListener: EmitterSubscription|null = null;
-	private keyboardWillChangeFrameListener: EmitterSubscription|null = null;
+	private previousRouteName_: string | null = null;
+	private keyboardDidShowListener: EmitterSubscription | null = null;
+	private keyboardDidHideListener: EmitterSubscription | null = null;
+	private keyboardWillChangeFrameListener: EmitterSubscription | null = null;
 
 	public constructor(props: Props) {
 		super(props);
@@ -35,7 +37,7 @@ class AppNavComponent extends Component<Props, State> {
 		};
 	}
 
-	public UNSAFE_componentWillMount() {
+	public UNSAFE_componentWillMount(): void {
 		if (Platform.OS === 'ios') {
 			this.keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', this.keyboardDidShow.bind(this));
 			this.keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', this.keyboardDidHide.bind(this));
@@ -43,7 +45,7 @@ class AppNavComponent extends Component<Props, State> {
 		}
 	}
 
-	public componentWillUnmount() {
+	public componentWillUnmount(): void {
 		this.keyboardDidShowListener?.remove();
 		this.keyboardDidHideListener?.remove();
 		this.keyboardWillChangeFrameListener?.remove();
@@ -53,15 +55,15 @@ class AppNavComponent extends Component<Props, State> {
 		this.keyboardWillChangeFrameListener = null;
 	}
 
-	public keyboardDidShow() {
+	public keyboardDidShow(): void {
 		this.setState({ autoCompletionBarExtraHeight: 30 });
 	}
 
-	public keyboardDidHide() {
+	public keyboardDidHide(): void {
 		this.setState({ autoCompletionBarExtraHeight: 0 });
 	}
 
-	private keyboardWillChangeFrame = (evt: KeyboardEvent) => {
+	private keyboardWillChangeFrame = (evt: KeyboardEvent): void => {
 		const windowWidth = Dimensions.get('window').width;
 
 		// If the keyboard isn't as wide as the window, the floating keyboard is diabled.
@@ -71,7 +73,7 @@ class AppNavComponent extends Component<Props, State> {
 		});
 	};
 
-	public render() {
+	public render(): React.JSX.Element {
 		if (!this.props.route) throw new Error('Route must not be null');
 
 		// Note: certain screens are kept into memory, in particular Notes and Search
@@ -97,7 +99,7 @@ class AppNavComponent extends Component<Props, State> {
 
 		this.previousRouteName_ = route.routeName;
 
-		const theme = themeStyle(this.props.themeId);
+		const theme = themeStyle(this.props.themeId.toString());
 
 		const style = { flex: 1, backgroundColor: theme.backgroundColor };
 
@@ -109,11 +111,13 @@ class AppNavComponent extends Component<Props, State> {
 		return (
 			<KeyboardAvoidingView
 				enabled={keyboardAvoidingViewEnabled}
-				behavior={Platform.OS === 'ios' ? 'padding' : null}
+				behavior={Platform.OS === 'ios' ? 'padding' : undefined}
 				style={style}
 			>
 				<NotesScreen visible={notesScreenVisible} navigation={{ state: route }} />
+				{/* navigation not exist */}
 				{searchScreenLoaded && <SearchScreen visible={searchScreenVisible} navigation={{ state: route }} />}
+				{/* {searchScreenLoaded && <SearchScreen visible={searchScreenVisible} />} */}
 				{!notesScreenVisible && !searchScreenVisible && <Screen navigation={{ state: route }} themeId={this.props.themeId} dispatch={this.props.dispatch} />}
 				<View style={{ height: this.state.autoCompletionBarExtraHeight }} />
 			</KeyboardAvoidingView>
@@ -128,4 +132,6 @@ const AppNav = connect((state: AppState) => {
 	};
 })(AppNavComponent);
 
-module.exports = { AppNav };
+export default AppNav;
+
+// module.exports = { AppNav };

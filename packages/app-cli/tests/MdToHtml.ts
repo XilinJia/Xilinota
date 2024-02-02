@@ -1,8 +1,8 @@
 import MdToHtml from '@xilinota/renderer/MdToHtml';
-const { filename } = require('@xilinota/lib/path-utils');
+import { filename } from '@xilinota/lib/path-utils';
 import { setupDatabaseAndSynchronizer, switchClient } from '@xilinota/lib/testing/test-utils';
 import shim from '@xilinota/lib/shim';
-const { themeStyle } = require('@xilinota/lib/theme');
+import { themeStyle } from '@xilinota/lib/theme';
 
 function newTestMdToHtml(options: any = null) {
 	options = {
@@ -72,7 +72,7 @@ describe('MdToHtml', () => {
 					'',
 				];
 
-				// eslint-disable-next-line no-console
+
 				console.info(msg.join('\n'));
 
 				expect(false).toBe(true);

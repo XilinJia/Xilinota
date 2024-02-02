@@ -1,24 +1,24 @@
-import { State } from '../reducer';
 import eventManager from '../eventManager';
 import BaseService from './BaseService';
 import shim from '../shim';
 import WhenClause from './WhenClause';
+import { State } from '../reducer';
 
-type LabelFunction = ()=> string;
+type LabelFunction = () => string;
 type EnabledCondition = string;
 
+type AppState = State & any;
 export interface CommandContext {
 	// The state may also be of type "AppState" (used by the desktop app), which inherits from "State" (used by all apps)
-	state: State;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
+	state: AppState;
 	dispatch: Function;
 }
 
 export interface CommandRuntime {
-	execute(context: CommandContext, ...args: any[]): Promise<any | void>;
+	execute: (context: CommandContext, ...args: any[]) => Promise<any | void>;
 	enabledCondition?: EnabledCondition;
 	// Used for the (optional) toolbar button title
-	mapStateToTitle?(state: any): string;
+	mapStateToTitle?: (state: any) => string;
 }
 
 export interface CommandDeclaration {
@@ -60,8 +60,8 @@ interface Commands {
 }
 
 interface ReduxStore {
-	dispatch(action: any): void;
-	getState(): any;
+	dispatch: (action: any) => void;
+	getState: () => any;
 }
 
 interface Utils {
@@ -70,8 +70,8 @@ interface Utils {
 
 export const utils: Utils = {
 	store: {
-		dispatch: () => {},
-		getState: () => {},
+		dispatch: () => { },
+		getState: () => { },
 	},
 };
 
@@ -96,26 +96,22 @@ export default class CommandService extends BaseService {
 	}
 
 	private commands_: Commands = {};
-	private store_: any;
-	private devMode_: boolean;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	private stateToWhenClauseContext_: Function;
+	private store_: ReduxStore | undefined;
+	private devMode_: boolean | undefined;
+	private stateToWhenClauseContext_: ((s: AppState, options?: any) => any) | undefined;
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	public initialize(store: any, devMode: boolean, stateToWhenClauseContext: Function) {
+	public initialize(store: ReduxStore, devMode: boolean, stateToWhenClauseContext: (s: AppState, options?: any) => any): void {
 		utils.store = store;
 		this.store_ = store;
 		this.devMode_ = devMode;
 		this.stateToWhenClauseContext_ = stateToWhenClauseContext;
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	public on(eventName: string, callback: Function) {
+	public on(eventName: string, callback: Function): void {
 		eventManager.on(eventName, callback);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	public off(eventName: string, callback: Function) {
+	public off(eventName: string, callback: Function): void {
 		eventManager.off(eventName, callback);
 	}
 
@@ -148,7 +144,7 @@ export default class CommandService extends BaseService {
 		return output;
 	}
 
-	public commandNames(publicOnly = false) {
+	public commandNames(publicOnly = false): string[] {
 		if (publicOnly) {
 			const output = [];
 			for (const name in this.commands_) {
@@ -161,9 +157,9 @@ export default class CommandService extends BaseService {
 		}
 	}
 
-	public commandByName(name: string, options: CommandByNameOptions = null): Command {
+	public commandByName(name: string, options: CommandByNameOptions = {}): Command | null {
 		options = {
-			mustExist: true,
+			mustExist: false,
 			runtimeMustBeRegistered: false,
 			...options,
 		};
@@ -179,7 +175,7 @@ export default class CommandService extends BaseService {
 		return command;
 	}
 
-	public registerDeclaration(declaration: CommandDeclaration) {
+	public registerDeclaration(declaration: CommandDeclaration): void {
 		declaration = { ...declaration };
 		if (!declaration.label) declaration.label = '';
 		if (!declaration.iconName) declaration.iconName = 'fas fa-cog';
@@ -189,41 +185,51 @@ export default class CommandService extends BaseService {
 		};
 	}
 
-	public registerRuntime(commandName: string, runtime: CommandRuntime) {
+	public registerRuntime(commandName: string, runtime: CommandRuntime): void {
 		if (typeof commandName !== 'string') throw new Error(`Command name must be a string. Got: ${JSON.stringify(commandName)}`);
 
 		const command = this.commandByName(commandName);
 
 		runtime = { ...runtime };
 		if (!runtime.enabledCondition) runtime.enabledCondition = 'true';
-		command.runtime = runtime;
+		if (command) command.runtime = runtime;
 	}
 
-	public registerCommands(commands: any[]) {
+	public registerCommands(commands: Command[]): void {
 		for (const command of commands) {
-			CommandService.instance().registerRuntime(command.declaration.name, command.runtime());
+			if (!command.runtime) {
+				BaseService.logger().warn('command runtime undefined, ignore:', command);
+				continue;
+			}
+			CommandService.instance().registerRuntime(command.declaration.name, command.runtime);
 		}
 	}
 
-	public unregisterCommands(commands: any[]) {
-		for (const command of commands) {
-			CommandService.instance().unregisterRuntime(command.declaration.name);
-		}
-	}
-
-	public componentRegisterCommands(component: any, commands: any[]) {
-		for (const command of commands) {
-			CommandService.instance().registerRuntime(command.declaration.name, command.runtime(component));
-		}
-	}
-
-	public componentUnregisterCommands(commands: any[]) {
+	public unregisterCommands(commands: Command[]): void {
 		for (const command of commands) {
 			CommandService.instance().unregisterRuntime(command.declaration.name);
 		}
 	}
 
-	public unregisterRuntime(commandName: string) {
+	public componentRegisterCommands(_component: any, commands: Command[]): void {
+		for (const command of commands) {
+			if (!command.runtime) {
+				BaseService.logger().warn('command runtime undefined, ignore:', command);
+				continue;
+			}
+			// TODO: not sure what this does
+			// CommandService.instance().registerRuntime(command.declaration.name, command.runtime(component));
+			CommandService.instance().registerRuntime(command.declaration.name, command.runtime);
+		}
+	}
+
+	public componentUnregisterCommands(commands: Command[]): void {
+		for (const command of commands) {
+			CommandService.instance().unregisterRuntime(command.declaration.name);
+		}
+	}
+
+	public unregisterRuntime(commandName: string): void {
 		const command = this.commandByName(commandName, { mustExist: false });
 		if (!command || !command.runtime) return;
 		delete command.runtime;
@@ -231,34 +237,36 @@ export default class CommandService extends BaseService {
 
 	private createContext(): CommandContext {
 		return {
-			state: this.store_.getState(),
+			state: this.store_!.getState(),
 			dispatch: (action: any) => {
-				this.store_.dispatch(action);
+				this.store_!.dispatch(action);
 			},
 		};
 	}
 
 	public async execute(commandName: string, ...args: any[]): Promise<any | void> {
+		// TODO: somehow, commandName can be undefined???
+		if (!commandName) return;
 		const command = this.commandByName(commandName);
 		// Some commands such as "showModalMessage" can be executed many
 		// times per seconds, so we should only display this message in
 		// debug mode.
-		if (commandName !== 'showModalMessage') this.logger().debug('CommandService::execute:', commandName, args);
-		if (!command.runtime) throw new Error(`Cannot execute a command without a runtime: ${commandName}`);
+		if (commandName !== 'showModalMessage') BaseService.logger().debug('CommandService::execute:', commandName, args);
+		if (!command || !command.runtime) throw new Error(`Cannot execute a command without a runtime: ${commandName}`);
 		return command.runtime.execute(this.createContext(), ...args);
 	}
 
-	public scheduleExecute(commandName: string, args: any) {
+	public scheduleExecute(commandName: string, args: any): void {
 		shim.setTimeout(() => {
 			void this.execute(commandName, args);
 		}, 10);
 	}
 
 	public currentWhenClauseContext() {
-		return this.stateToWhenClauseContext_(this.store_.getState());
+		return this.stateToWhenClauseContext_!(this.store_!.getState());		// set during initialize
 	}
 
-	public isPublic(commandName: string) {
+	public isPublic(commandName: string): boolean {
 		return !!this.label(commandName);
 	}
 
@@ -271,18 +279,18 @@ export default class CommandService extends BaseService {
 
 		if (!whenClauseContext) whenClauseContext = this.currentWhenClauseContext();
 
-		const exp = new WhenClause(command.runtime.enabledCondition, this.devMode_);
+		const exp = new WhenClause(command.runtime.enabledCondition ?? '', this.devMode_);
 		return exp.evaluate(whenClauseContext);
 	}
 
 	// The title is dynamic and derived from the state, which is why the state is passed
 	// as an argument. Title can be used for example to display the alarm date on the
 	// "set alarm" toolbar button.
-	public title(commandName: string, state: any = null): string {
+	public title(commandName: string, state: AppState | null = null): string {
 		const command = this.commandByName(commandName);
-		if (!command || !command.runtime) return null;
+		if (!command || !command.runtime) return '';
 
-		state = state || this.store_.getState();
+		state = state || this.store_!.getState();
 
 		if (command.runtime.mapStateToTitle) {
 			return command.runtime.mapStateToTitle(state);
@@ -293,14 +301,22 @@ export default class CommandService extends BaseService {
 
 	public iconName(commandName: string): string {
 		const command = this.commandByName(commandName);
-		if (!command) throw new Error(`No such command: ${commandName}`);
+		if (!command) {
+			// throw new Error(`No such command: ${commandName}`);
+			BaseService.logger().warn('CommandService commandName invalid', commandName);
+			return '';
+		}
 
-		return command.declaration.iconName;
+		return command.declaration.iconName ?? '';
 	}
 
 	public label(commandName: string, fullLabel = false): string {
 		const command = this.commandByName(commandName);
-		if (!command) throw new Error(`Command: ${commandName} is not declared`);
+		if (!command) {
+			// throw new Error(`Command: ${commandName} is not declared`);
+			BaseService.logger().warn('CommandService commandName invalid', commandName);
+			return '';
+		}
 		const output = [];
 
 		const parentLabel = (d: CommandDeclaration): string => {
@@ -316,7 +332,7 @@ export default class CommandService extends BaseService {
 
 	public description(commandName: string): string {
 		const command = this.commandByName(commandName);
-		if (command.declaration.description) return command.declaration.description;
+		if (command && command.declaration.description) return command.declaration.description;
 		return this.label(commandName, true);
 	}
 

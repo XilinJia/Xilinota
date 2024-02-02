@@ -2,7 +2,7 @@ import { pathExists, readFile, writeFile, copyFile, readdir } from 'fs-extra';
 import { dirname } from 'path';
 import { execCommand } from './tool-utils';
 import { fileExtension } from '@xilinota/lib/path-utils';
-const md5File = require('md5-file');
+import md5File from 'md5-file';
 const sharp = require('sharp');
 
 interface Source {
@@ -650,7 +650,7 @@ async function main() {
 				});
 			} else if (destExt === 'ico') {
 				const sources: string[] = operations.filter(o => {
-					return operation.images.includes(o.imageName);
+					return !!operation.images && operation.images.includes(o.imageName??'');
 				}).map(o => {
 					return `${rootDir}/${o.dest}`;
 				});

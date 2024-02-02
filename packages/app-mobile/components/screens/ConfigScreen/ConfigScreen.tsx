@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/explicit-member-accessibility */
 import Slider from '@react-native-community/slider';
-const React = require('react');
-import { Platform, Linking, View, Switch, ScrollView, Text, Button, TouchableOpacity, TextInput, Alert, PermissionsAndroid, TouchableNativeFeedback } from 'react-native';
+import React from 'react';
+import { Platform, Linking, View, Switch, ScrollView, Text, Button, TouchableOpacity, TextInput, Alert, PermissionsAndroid, TouchableNativeFeedback, PermissionStatus } from 'react-native';
 import Setting, { AppType } from '@xilinota/lib/models/Setting';
 import NavService from '@xilinota/lib/services/NavService';
 import ReportService from '@xilinota/lib/services/ReportService';
@@ -12,32 +12,68 @@ import shim from '@xilinota/lib/shim';
 import setIgnoreTlsErrors from '../../../utils/TlsUtils';
 import { reg } from '@xilinota/lib/registry';
 import { State } from '@xilinota/lib/reducer';
-const { BackButtonService } = require('../../../services/back-button.js');
-const VersionInfo = require('react-native-version-info').default;
-const { connect } = require('react-redux');
+import VersionInfo from 'react-native-version-info';
+import { connect } from 'react-redux';
 import ScreenHeader from '../../ScreenHeader';
-const { _ } = require('@xilinota/lib/locale');
-const { BaseScreenComponent } = require('../../base-screen.js');
-const { Dropdown } = require('../../Dropdown');
-const { themeStyle } = require('../../global-style.js');
-const shared = require('@xilinota/lib/components/shared/config/config-shared.js');
+import { _ } from '@xilinota/lib/locale';
+import BaseScreenComponent from '../../base-screen';
+import Dropdown, { DropdownListItem } from '../../Dropdown';
+
+import BackButtonService from '../../../services/back-button';
+import { themeStyle } from '../../global-style';
+
+
+import { shared } from '@xilinota/lib/components/shared/config/config-shared';
 import SyncTargetRegistry from '@xilinota/lib/SyncTargetRegistry';
 import { openDocumentTree } from '@xilinota/react-native-saf-x';
 import biometricAuthenticate from '../../biometrics/biometricAuthenticate';
 import configScreenStyles from './configScreenStyles';
 import NoteExportButton from './NoteExportSection/NoteExportButton';
 import ConfigScreenButton from './ConfigScreenButton';
-import Clipboard from '@react-native-community/clipboard';
+import Clipboard from '@react-native-clipboard/clipboard';
 
-class ConfigScreenComponent extends BaseScreenComponent {
-	public static navigationOptions(): any {
+interface Props {
+	settings: any;
+	themeId: number;
+	navigation: any;
+	dispatch: (event: any) => void;
+}
+
+interface LocalState {
+	creatingReport: boolean;
+	profileExportStatus: string;
+	profileExportPath: string;
+	fileSystemSyncPath: string;
+	settings: any;
+	changedSettingKeys: string[];
+	fixingSearchIndex: boolean;
+
+}
+class ConfigScreenComponent extends BaseScreenComponent<Props, LocalState> {
+	styles_: any;
+	scrollViewRef_: React.RefObject<ScrollView>;
+	selectDirectoryButtonPress: () => Promise<void>;
+	checkSyncConfig_: () => Promise<void>;
+	e2eeConfig_: () => void;
+	saveButton_press: () => Promise<void>;
+	syncStatusButtonPress_: () => void;
+	manageProfilesButtonPress_: () => void;
+	exportDebugButtonPress_: () => Promise<void>;
+	fixSearchEngineIndexButtonPress_: () => Promise<void>;
+	exportProfileButtonPress_: () => Promise<void>;
+	exportProfileButtonPress2_: () => Promise<void>;
+	logButtonPress_: () => void;
+
+	public static navigationOptions(): {
+		header: null;
+	} {
 		return { header: null };
 	}
 
 	private componentsY_: Record<string, number> = {};
 
-	public constructor() {
-		super();
+	public constructor(props: Props) {
+		super(props);
 		this.styles_ = {};
 
 		this.state = {
@@ -45,13 +81,16 @@ class ConfigScreenComponent extends BaseScreenComponent {
 			profileExportStatus: 'idle',
 			profileExportPath: '',
 			fileSystemSyncPath: Setting.value('sync.2.path'),
+			settings: Setting,
+			changedSettingKeys: [],
+			fixingSearchIndex: false,
 		};
 
-		this.scrollViewRef_ = React.createRef();
+		this.scrollViewRef_ = React.createRef<ScrollView>();
 
 		shared.init(this, reg);
 
-		this.selectDirectoryButtonPress = async () => {
+		this.selectDirectoryButtonPress = async (): Promise<void> => {
 			try {
 				const doc = await openDocumentTree(true);
 				if (doc?.uri) {
@@ -65,7 +104,7 @@ class ConfigScreenComponent extends BaseScreenComponent {
 			}
 		};
 
-		this.checkSyncConfig_ = async () => {
+		this.checkSyncConfig_ = async (): Promise<void> => {
 			// to ignore TLS erros we need to chage the global state of the app, if the check fails we need to restore the original state
 			// this call sets the new value and returns the previous one which we can use later to revert the change
 			const prevIgnoreTlsErrors = await setIgnoreTlsErrors(this.state.settings['net.ignoreTlsErrors']);
@@ -75,11 +114,11 @@ class ConfigScreenComponent extends BaseScreenComponent {
 			}
 		};
 
-		this.e2eeConfig_ = () => {
+		this.e2eeConfig_ = (): void => {
 			void NavService.go('EncryptionConfig');
 		};
 
-		this.saveButton_press = async () => {
+		this.saveButton_press = async (): Promise<void> => {
 			if (this.state.changedSettingKeys.includes('sync.target') && this.state.settings['sync.target'] === SyncTargetRegistry.nameToId('filesystem')) {
 				if (Platform.OS === 'android') {
 					if (Platform.Version < 29) {
@@ -93,33 +132,33 @@ class ConfigScreenComponent extends BaseScreenComponent {
 			}
 
 			// changedSettingKeys is cleared in shared.saveSettings so reading it now
-			const setIgnoreTlsErrors = this.state.changedSettingKeys.includes('net.ignoreTlsErrors');
+			const ignoreTlsErrors = this.state.changedSettingKeys.includes('net.ignoreTlsErrors');
 
 			await shared.saveSettings(this);
 
-			if (setIgnoreTlsErrors) {
+			if (ignoreTlsErrors) {
 				await setIgnoreTlsErrors(Setting.value('net.ignoreTlsErrors'));
 			}
 		};
 
 		this.saveButton_press = this.saveButton_press.bind(this);
 
-		this.syncStatusButtonPress_ = () => {
+		this.syncStatusButtonPress_ = (): void => {
 			void NavService.go('Status');
 		};
 
-		this.manageProfilesButtonPress_ = () => {
+		this.manageProfilesButtonPress_ = (): void => {
 			this.props.dispatch({
 				type: 'NAV_GO',
 				routeName: 'ProfileSwitcher',
 			});
 		};
 
-		this.exportDebugButtonPress_ = async () => {
+		this.exportDebugButtonPress_ = async (): Promise<void> => {
 			this.setState({ creatingReport: true });
 			const service = new ReportService();
 
-			const logItems = await reg.logger().lastEntries(null);
+			const logItems = await reg.logger().lastEntries(0);
 			const logItemRows = [['Date', 'Level', 'Message']];
 			for (let i = 0; i < logItems.length; i++) {
 				const item = logItems[i];
@@ -144,13 +183,13 @@ class ConfigScreenComponent extends BaseScreenComponent {
 			this.setState({ creatingReport: false });
 		};
 
-		this.fixSearchEngineIndexButtonPress_ = async () => {
+		this.fixSearchEngineIndexButtonPress_ = async (): Promise<void> => {
 			this.setState({ fixingSearchIndex: true });
 			await SearchEngine.instance().rebuildIndex();
 			this.setState({ fixingSearchIndex: false });
 		};
 
-		this.exportProfileButtonPress_ = async () => {
+		this.exportProfileButtonPress_ = async (): Promise<void> => {
 			const externalDir = await shim.fsDriver().getExternalDirectoryPath();
 			if (!externalDir) {
 				return;
@@ -163,7 +202,7 @@ class ConfigScreenComponent extends BaseScreenComponent {
 			});
 		};
 
-		this.exportProfileButtonPress2_ = async () => {
+		this.exportProfileButtonPress2_ = async (): Promise<void> => {
 			this.setState({ profileExportStatus: 'exporting' });
 
 			const dbPath = '/data/data/ac.mdiq.xilinota/databases';
@@ -196,20 +235,20 @@ class ConfigScreenComponent extends BaseScreenComponent {
 
 				alert('Profile has been exported!');
 			} catch (error) {
-				alert(`Could not export files: ${error.message}`);
+				alert(`Could not export files: ${(error as Error).message}`);
 			} finally {
 				this.setState({ profileExportStatus: 'idle' });
 			}
 		};
 
-		this.logButtonPress_ = () => {
+		this.logButtonPress_ = (): void => {
 			void NavService.go('Log');
 		};
 
 		this.handleSetting = this.handleSetting.bind(this);
 	}
 
-	public async checkFilesystemPermission() {
+	public async checkFilesystemPermission(): Promise<true | PermissionStatus> {
 		if (Platform.OS !== 'android') {
 			// Not implemented yet
 			return true;
@@ -221,11 +260,11 @@ class ConfigScreenComponent extends BaseScreenComponent {
 		});
 	}
 
-	public UNSAFE_componentWillMount() {
+	public UNSAFE_componentWillMount(): void {
 		this.setState({ settings: this.props.settings });
 	}
 
-	public styles() {
+	public styles(): any {
 		const themeId = this.props.themeId;
 
 		if (this.styles_[themeId]) return this.styles_[themeId];
@@ -235,12 +274,12 @@ class ConfigScreenComponent extends BaseScreenComponent {
 		return this.styles_[themeId];
 	}
 
-	private onHeaderLayout(key: string, event: any) {
+	private onHeaderLayout(key: string, event: any): void {
 		const layout = event.nativeEvent.layout;
 		this.componentsY_[`header_${key}`] = layout.y;
 	}
 
-	private onSectionLayout(key: string, event: any) {
+	private onSectionLayout(key: string, event: any): void {
 		const layout = event.nativeEvent.layout;
 		this.componentsY_[`section_${key}`] = layout.y;
 	}
@@ -259,7 +298,7 @@ class ConfigScreenComponent extends BaseScreenComponent {
 		};
 
 		if (this.state.changedSettingKeys.length > 0) {
-			const dialogTitle: string|null = null;
+			const dialogTitle: string = '';
 			Alert.alert(
 				dialogTitle,
 				_('There are unsaved changes.'),
@@ -282,10 +321,10 @@ class ConfigScreenComponent extends BaseScreenComponent {
 		return false;
 	};
 
-	public componentDidMount() {
+	public componentDidMount(): void {
 		if (this.props.navigation.state.sectionName) {
 			setTimeout(() => {
-				this.scrollViewRef_.current.scrollTo({
+				this.scrollViewRef_.current?.scrollTo({
 					x: 0,
 					y: this.componentY(this.props.navigation.state.sectionName),
 					animated: true,
@@ -296,12 +335,12 @@ class ConfigScreenComponent extends BaseScreenComponent {
 		BackButtonService.addHandler(this.handleBackButtonPress);
 	}
 
-	public componentWillUnmount() {
+	public componentWillUnmount(): void {
 		BackButtonService.removeHandler(this.handleBackButtonPress);
 	}
 
-	public renderHeader(key: string, title: string) {
-		const theme = themeStyle(this.props.themeId);
+	public renderHeader(key: string, title: string): React.JSX.Element {
+		const theme = themeStyle(this.props.themeId.toString());
 		return (
 			<View key={key} style={this.styles().headerWrapperStyle} onLayout={(event: any) => this.onHeaderLayout(key, event)}>
 				<Text style={theme.headerStyle}>{title}</Text>
@@ -309,7 +348,7 @@ class ConfigScreenComponent extends BaseScreenComponent {
 		);
 	}
 
-	private renderButton(key: string, title: string, clickHandler: ()=> void, options: any = null) {
+	private renderButton(key: string, title: string, clickHandler: () => void, options: any = null): React.JSX.Element {
 		return (
 			<ConfigScreenButton
 				key={key}
@@ -322,7 +361,7 @@ class ConfigScreenComponent extends BaseScreenComponent {
 		);
 	}
 
-	public sectionToComponent(key: string, section: any, settings: any) {
+	public sectionToComponent(key: string, section: any, settings: any): React.JSX.Element | null {
 		const settingComps = [];
 
 		for (let i = 0; i < section.metadatas.length; i++) {
@@ -386,9 +425,8 @@ class ConfigScreenComponent extends BaseScreenComponent {
 		);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	private renderToggle(key: string, label: string, value: any, updateSettingValue: Function, descriptionComp: any = null) {
-		const theme = themeStyle(this.props.themeId);
+	private renderToggle(key: string, label: string, value: any, updateSettingValue: Function, descriptionComp: any = null): React.JSX.Element {
+		const theme = themeStyle(this.props.themeId.toString());
 
 		return (
 			<View key={key}>
@@ -417,7 +455,7 @@ class ConfigScreenComponent extends BaseScreenComponent {
 				shared.updateSettingValue(this, key, value, async () => await this.saveButton_press());
 			} catch (error) {
 				shared.updateSettingValue(this, key, false);
-				Alert.alert(error.message);
+				Alert.alert((error as Error).message);
 			}
 			return true;
 		}
@@ -432,7 +470,7 @@ class ConfigScreenComponent extends BaseScreenComponent {
 
 	public settingToComponent(key: string, value: any) {
 		const themeId = this.props.themeId;
-		const theme = themeStyle(themeId);
+		const theme = themeStyle(themeId.toString());
 		const output: any = null;
 
 		const updateSettingValue = async (key: string, value: any) => {
@@ -449,17 +487,20 @@ class ConfigScreenComponent extends BaseScreenComponent {
 		if (md.isEnum) {
 			value = value.toString();
 
-			const items = Setting.enumOptionsToValueLabels(md.options(), md.optionsOrder ? md.optionsOrder() : []);
-
+			const items_ = Setting.enumOptionsToValueLabels(md.options ? md.options() : {}, md.optionsOrder ? md.optionsOrder() : []);
+			const items: DropdownListItem[] = items_.map((item) => ({
+				label: item.label,
+				value: item.value,
+			}));
 			return (
 				<View key={key} style={{ flexDirection: 'column', borderBottomWidth: 1, borderBottomColor: theme.dividerColor }}>
 					<View style={containerStyle}>
 						<Text key="label" style={this.styles().settingText}>
-							{md.label()}
+							{md.label ? md.label() : ''}
 						</Text>
 						<Dropdown
 							key="control"
-							style={this.styles().settingControl}
+							// style={this.styles().settingControl}
 							items={items}
 							selectedValue={value}
 							itemListStyle={{
@@ -482,7 +523,7 @@ class ConfigScreenComponent extends BaseScreenComponent {
 				</View>
 			);
 		} else if (md.type === Setting.TYPE_BOOL) {
-			return this.renderToggle(key, md.label(), value, updateSettingValue, descriptionComp);
+			return this.renderToggle(key, md.label ? md.label() : '', value, updateSettingValue, descriptionComp);
 			// return (
 			// 	<View key={key}>
 			// 		<View style={containerStyle}>
@@ -506,7 +547,7 @@ class ConfigScreenComponent extends BaseScreenComponent {
 			return (
 				<View key={key} style={this.styles().settingContainer}>
 					<Text key="label" style={this.styles().settingText}>
-						{md.label()}
+						{md.label ? md.label() : ''}
 					</Text>
 					<View style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', flex: 1 }}>
 						<Text style={this.styles().sliderUnits}>{unitLabel}</Text>
@@ -520,7 +561,7 @@ class ConfigScreenComponent extends BaseScreenComponent {
 					<TouchableNativeFeedback key={key} onPress={this.selectDirectoryButtonPress} style={this.styles().settingContainer}>
 						<View style={this.styles().settingContainer}>
 							<Text key="label" style={this.styles().settingText}>
-								{md.label()}
+								{md.label ? md.label() : ''}
 							</Text>
 							<Text style={this.styles().settingControl}>
 								{this.state.fileSystemSyncPath}
@@ -533,7 +574,7 @@ class ConfigScreenComponent extends BaseScreenComponent {
 				<View key={key} style={{ flexDirection: 'column', borderBottomWidth: 1, borderBottomColor: theme.dividerColor }}>
 					<View key={key} style={containerStyle}>
 						<Text key="label" style={this.styles().settingText}>
-							{md.label()}
+							{md.label ? md.label() : ''}
 						</Text>
 						<TextInput autoCorrect={false} autoComplete="off" selectionColor={theme.textSelectionColor} keyboardAppearance={theme.keyboardAppearance} autoCapitalize="none" key="control" style={this.styles().settingControl} value={value} onChangeText={(value: any) => void updateSettingValue(key, value)} secureTextEntry={!!md.secure} />
 					</View>
@@ -547,22 +588,22 @@ class ConfigScreenComponent extends BaseScreenComponent {
 		return output;
 	}
 
-	private renderFeatureFlags(settings: any, featureFlagKeys: string[]): any[] {
-		const updateSettingValue = (key: string, value: any) => {
+	private renderFeatureFlags(settings: any, featureFlagKeys: string[]): React.JSX.Element[] {
+		const updateSettingValue = (key: string, value: any): void => {
 			return shared.updateSettingValue(this, key, value);
 		};
 
-		const output: any[] = [];
+		const output: React.JSX.Element[] = [];
 		for (const key of featureFlagKeys) {
 			output.push(this.renderToggle(key, key, settings[key], updateSettingValue));
 		}
 		return output;
 	}
 
-	public render() {
+	public render(): React.JSX.Element {
 		const settings = this.state.settings;
 
-		const theme = themeStyle(this.props.themeId);
+		const theme = themeStyle(this.props.themeId.toString());
 
 		const settingComps = shared.settingsToComponents2(this, 'mobile', settings);
 
@@ -639,19 +680,19 @@ class ConfigScreenComponent extends BaseScreenComponent {
 			</View>,
 		);
 
-		// settingComps.push(
-		// 	<View key="website_link" style={this.styles().settingContainer}>
-		// 		<TouchableOpacity
-		// 			onPress={() => {
-		// 				void Linking.openURL('https://xilinotaapp.org/');
-		// 			}}
-		// 		>
-		// 			<Text key="label" style={this.styles().linkText}>
-		// 				{_('Xilinota website')}
-		// 			</Text>
-		// 		</TouchableOpacity>
-		// 	</View>,
-		// );
+		settingComps.push(
+			<View key="website_link" style={this.styles().settingContainer}>
+				<TouchableOpacity
+					onPress={() => {
+						void Linking.openURL('https://github.com/XilinJia/Xilinota');
+					}}
+				>
+					<Text key="label" style={this.styles().linkText}>
+						{_('Xilinota website')}
+					</Text>
+				</TouchableOpacity>
+			</View>,
+		);
 
 		settingComps.push(
 			<View key="privacy_link" style={this.styles().settingContainer}>

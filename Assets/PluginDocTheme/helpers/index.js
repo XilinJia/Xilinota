@@ -17,7 +17,7 @@ module.exports = {
 	jpFormatClassName: function(className) {
 		if (className.indexOf('Xilinota') !== 0 || className.indexOf(' ') >= 0) return className;
 
-		const p = className.substr(6);
+		const p = className.substring(6);
 		if (p === '') return 'xilinota';
 
 		return `xilinota.${camelCaseToDots(p)

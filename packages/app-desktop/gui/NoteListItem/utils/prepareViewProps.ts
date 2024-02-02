@@ -5,6 +5,7 @@ import Note from '@xilinota/lib/models/Note';
 
 const prepareViewProps = async (dependencies: ListRendererDepependency[], note: NoteEntity, itemSize: Size, selected: boolean, noteTitleHtml: string, noteIsWatched: boolean, noteTags: TagEntity[]) => {
 	const output: any = {};
+	if (!note.id) return output;
 
 	for (const dep of dependencies) {
 
@@ -25,9 +26,14 @@ const prepareViewProps = async (dependencies: ListRendererDepependency[], note: 
 				// property not present there, we need to load the full note.
 				// One such missing property is the note body, which we don't
 				// load by default.
-				if (!(propName in note)) note = await Note.load(note.id);
-				if (!(propName in note)) throw new Error(`Invalid dependency name: ${dep}`);
-				output.note[propName] = (note as any)[propName];
+				if (propName) {
+					if (!(propName in note)) {
+						const note_ = await Note.load(note.id!);
+						if (!note_ || !(propName in note_)) throw new Error(`Invalid dependency name: ${dep}`);
+						note = note_;
+					}
+					output.note[propName] = (note as any)[propName];
+				}
 			}
 		}
 
@@ -37,8 +43,10 @@ const prepareViewProps = async (dependencies: ListRendererDepependency[], note: 
 			const propName = splitted.pop();
 			if (!output.item) output.item = {};
 			if (!output.item.size) output.item.size = {};
-			if (!(propName in itemSize)) throw new Error(`Invalid dependency name: ${dep}`);
-			output.item.size[propName] = (itemSize as any)[propName];
+			if (propName) {
+				if (!(propName in itemSize)) throw new Error(`Invalid dependency name: ${dep}`);
+				output.item.size[propName] = (itemSize as any)[propName];
+			}
 		}
 
 		if (dep === 'item.selected') {

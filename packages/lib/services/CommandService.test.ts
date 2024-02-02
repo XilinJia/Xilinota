@@ -4,6 +4,7 @@ import CommandService, { CommandDeclaration, CommandRuntime } from '../services/
 import stateToWhenClauseContext from '../services/commands/stateToWhenClauseContext';
 import KeymapService from '../services/KeymapService';
 import { setupDatabaseAndSynchronizer, switchClient, expectThrow, expectNotThrow } from '../testing/test-utils';
+import { Store } from '@reduxjs/toolkit';
 
 interface TestCommand {
 	declaration: CommandDeclaration;
@@ -13,9 +14,8 @@ interface TestCommand {
 function newService(): CommandService {
 	const service = new CommandService();
 	const mockStore = {
-		getState: () => {
-			return {};
-		},
+		dispatch: (_a: any) => { },
+		getState: () => { },
 	};
 	service.initialize(mockStore, true, stateToWhenClauseContext);
 	return service;
@@ -83,12 +83,12 @@ describe('services_CommandService', () => {
 		const toolbarButtonUtils = new ToolbarButtonUtils(service);
 
 		registerCommand(service, createCommand('test1', {
-			execute: () => {},
+			execute: () => { },
 			enabledCondition: 'oneNoteSelected',
 		}));
 
 		registerCommand(service, createCommand('test2', {
-			execute: () => {},
+			execute: () => { },
 			enabledCondition: 'multipleNotesSelected',
 		}));
 
@@ -105,7 +105,7 @@ describe('services_CommandService', () => {
 		const service = newService();
 
 		registerCommand(service, createCommand('test1', {
-			execute: () => {},
+			execute: () => { },
 		}));
 
 		expect(service.isEnabled('test1', {})).toBe(true);
@@ -116,12 +116,12 @@ describe('services_CommandService', () => {
 		const toolbarButtonUtils = new ToolbarButtonUtils(service);
 
 		registerCommand(service, createCommand('test1', {
-			execute: () => {},
+			execute: () => { },
 			enabledCondition: 'cond1',
 		}));
 
 		registerCommand(service, createCommand('test2', {
-			execute: () => {},
+			execute: () => { },
 			enabledCondition: 'cond2',
 		}));
 
@@ -165,11 +165,11 @@ describe('services_CommandService', () => {
 		const locale = 'fr_FR';
 
 		registerCommand(service, createCommand('test1', {
-			execute: () => {},
+			execute: () => { },
 		}));
 
 		registerCommand(service, createCommand('test2', {
-			execute: () => {},
+			execute: () => { },
 		}));
 
 		const clickedCommands: string[] = [];
@@ -180,8 +180,8 @@ describe('services_CommandService', () => {
 
 		const menuItems = utils.commandsToMenuItems(['test1', 'test2'], onClick, locale);
 
-		menuItems.test1.click();
-		menuItems.test2.click();
+		if (menuItems.test1.click) menuItems.test1.click();
+		if (menuItems.test2.click) menuItems.test2.click();
 
 		expect(clickedCommands.join('_')).toBe('test1_test2');
 
@@ -197,12 +197,12 @@ describe('services_CommandService', () => {
 		const utils = new MenuUtils(service);
 
 		registerCommand(service, createCommand('test1', {
-			execute: () => {},
+			execute: () => { },
 			enabledCondition: 'cond1',
 		}));
 
 		registerCommand(service, createCommand('test2', {
-			execute: () => {},
+			execute: () => { },
 			enabledCondition: 'cond2',
 		}));
 
@@ -243,7 +243,7 @@ describe('services_CommandService', () => {
 		}));
 
 		const menuItem = utils.commandToStatefulMenuItem('test1', 'hello');
-		menuItem.click();
+		if (menuItem.click) menuItem.click();
 
 		expect(propValue).toBe('hello');
 	}));
@@ -252,7 +252,7 @@ describe('services_CommandService', () => {
 		const service = newService();
 
 		registerCommand(service, createCommand('test1', {
-			execute: () => {},
+			execute: () => { },
 			enabledCondition: 'cond1 && cond2',
 		}));
 
@@ -273,12 +273,12 @@ describe('services_CommandService', () => {
 				iconName,
 			},
 			runtime: {
-				execute: async () => {},
+				execute: async () => { },
 			},
 		});
 
 		const command = service.commandByName('test-command-with-icon');
-		expect(command.declaration.iconName).toBe(iconName);
+		expect(command?.declaration.iconName).toBe(iconName);
 	});
 
 	it('commands should have a non-empty default icon', () => {
@@ -290,11 +290,11 @@ describe('services_CommandService', () => {
 				label: 'Test toolbar icon',
 			},
 			runtime: {
-				execute: async () => {},
+				execute: async () => { },
 			},
 		});
 
 		const command = service.commandByName('test1');
-		expect(command.declaration.iconName).toBe('fas fa-cog');
+		expect(command?.declaration.iconName).toBe('fas fa-cog');
 	});
 });

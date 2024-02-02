@@ -21,7 +21,7 @@ export default function MiniViewerApp(props: MiniViewerAppProps) {
 	const pdfDocument = usePdfDocument(props.pdfPath);
 	const isFocused = useIsFocused();
 	const [zoom, setZoom] = useState<number>(1);
-	const containerEl = useRef<HTMLDivElement>(null);
+	const containerEl = useRef<HTMLDivElement>(document.createElement('div'));
 	const [activePage, setActivePage] = useState(1);
 
 	const onActivePageChange = useCallback((page: number) => {
@@ -29,7 +29,7 @@ export default function MiniViewerApp(props: MiniViewerAppProps) {
 	}, []);
 
 	const onDoubleClick = useCallback((pageNo: number) => {
-		props.messageService.openFullScreenViewer(props.resourceId, pageNo);
+		props.messageService.openFullScreenViewer(props.resourceId??'', pageNo);
 	}, [props.messageService, props.resourceId]);
 
 	if (!pdfDocument) {

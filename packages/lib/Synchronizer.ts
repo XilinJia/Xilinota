@@ -30,7 +30,7 @@ import handleConflictAction, { ConflictAction } from './services/synchronizer/ut
 import resourceRemotePath from './services/synchronizer/utils/resourceRemotePath';
 import syncDeleteStep from './services/synchronizer/utils/syncDeleteStep';
 import { ErrorCode } from './errors';
-const { sprintf } = require('sprintf-js');
+import { sprintf } from 'sprintf-js';
 const { Dirnames } = require('./services/synchronizer/utils/types');
 
 const logger = Logger.create('Synchronizer');
@@ -61,26 +61,24 @@ export default class Synchronizer {
 	private logger_: Logger = new Logger();
 	protected state_ = 'idle';
 	protected cancelling_ = false;
-	public maxResourceSize_: number = null;
+	public maxResourceSize_: number = 0;
 	protected downloadQueue_: any = null;
 	protected clientId_: string;
-	private lockHandler_: LockHandler;
-	private migrationHandler_: MigrationHandler;
-	private encryptionService_: EncryptionService = null;
-	private resourceService_: ResourceService = null;
+	private lockHandler_: LockHandler | undefined;
+	private migrationHandler_: MigrationHandler | undefined;
+	private encryptionService_: EncryptionService | undefined;
+	private resourceService_: ResourceService | undefined;
 	protected syncTargetIsLocked_ = false;
-	protected shareService_: ShareService = null;
-	private lockClientType_: LockClientType = null;
+	protected shareService_: ShareService | null = null;
+	private lockClientType_: LockClientType | undefined;
 
 	// Debug flags are used to test certain hard-to-test conditions
 	// such as cancelling in the middle of a loop.
 	public testingHooks_: string[] = [];
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	protected onProgress_: Function;
 	protected progressReport_: any = {};
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public dispatch: Function;
 
 	public constructor(db: XilinotaDatabase, api: FileApi, appType: AppType) {
@@ -140,11 +138,11 @@ export default class Synchronizer {
 	}
 
 	public maxResourceSize() {
-		if (this.maxResourceSize_ !== null) return this.maxResourceSize_;
+		if (this.maxResourceSize_) return this.maxResourceSize_;
 		return this.appType_ === AppType.Mobile ? 100 * 1000 * 1000 : Infinity;
 	}
 
-	public setShareService(v: ShareService) {
+	public setShareService(v: ShareService | null) {
 		this.shareService_ = v;
 	}
 
@@ -152,8 +150,8 @@ export default class Synchronizer {
 		this.encryptionService_ = v;
 	}
 
-	public encryptionService() {
-		return this.encryptionService_;
+	public encryptionService(): EncryptionService {
+		return this.encryptionService_!;	// set in BaseSyncTarget init
 	}
 
 	public setResourceService(v: ResourceService) {
@@ -161,7 +159,7 @@ export default class Synchronizer {
 	}
 
 	protected resourceService(): ResourceService {
-		return this.resourceService_;
+		return this.resourceService_!;	// set in BaseSyncTarget init
 	}
 
 	public async waitForSyncToFinish() {
@@ -194,12 +192,12 @@ export default class Synchronizer {
 		if (report.fetchingTotal && report.fetchingProcessed) lines.push(_('Fetched items: %d/%d.', report.fetchingProcessed, report.fetchingTotal));
 		if (report.cancelling && !report.completedTime) lines.push(_('Cancelling...'));
 		if (report.completedTime) lines.push(_('Completed: %s (%s)', time.formatMsToLocal(report.completedTime), this.completionTime(report)));
-		if (this.reportHasErrors(report)) lines.push(_('Last error: %s', report.errors[report.errors.length - 1].toString().substr(0, 500)));
+		if (this.reportHasErrors(report)) lines.push(_('Last error: %s', report.errors[report.errors.length - 1].toString().substring(0, 500)));
 
 		return lines;
 	}
 
-	public logSyncOperation(action: string, local: any = null, remote: RemoteItem = null, message: string = null, actionCount = 1) {
+	public logSyncOperation(action: string, local: any = null, remote: RemoteItem | null = null, message: string = '', actionCount = 1) {
 		const line = ['Sync'];
 		line.push(action);
 		if (message) line.push(message);
@@ -351,7 +349,7 @@ export default class Synchronizer {
 			// does not do special processing on the original error. For example, if a resource could not be downloaded,
 			// don't mark it as a "cannotSyncItem" since we don't know that.
 			if (lockStatus) {
-				throw new XilinotaError(`Sync target lock error: ${lockStatus}. Original error was: ${error.message}`, 'lockError');
+				throw new XilinotaError(`Sync target lock error: ${lockStatus}. Original error was: ${(error as Error).message}`, 'lockError');
 			} else {
 				throw error;
 			}
@@ -429,7 +427,7 @@ export default class Synchronizer {
 			await Folder.updateAllShareIds(this.resourceService());
 			if (this.shareService_) await this.shareService_.checkShareConsistency();
 		} catch (error) {
-			if (error && error.code === ErrorCode.IsReadOnly) {
+			if (error && error instanceof XilinotaError && error.code === ErrorCode.IsReadOnly) {
 				// We ignore it because the functions above tried to modify a
 				// read-only item and failed. Normally it shouldn't happen since
 				// the UI should prevent, but if there's a bug in the UI or some
@@ -507,7 +505,7 @@ export default class Synchronizer {
 					// await uploadSyncInfo(this.api(), remoteInfo);
 				}
 			} catch (error) {
-				if (error.code === 'outdatedSyncTarget') {
+				if (error instanceof XilinotaError && error.code === 'outdatedSyncTarget') {
 					Setting.setValue('sync.upgradeState', Setting.SYNC_UPGRADE_STATE_SHOULD_DO);
 				}
 				throw error;
@@ -619,7 +617,7 @@ export default class Synchronizer {
 							try {
 								remoteContent = await this.apiCall('get', path);
 							} catch (error) {
-								if (error.code === 'rejectedByTarget') {
+								if (error instanceof XilinotaError && error.code === 'rejectedByTarget') {
 									this.progressReport_.errors.push(error);
 									logger.warn(`Rejected by target: ${path}: ${error.message}`);
 									completeItemProcessing(path);
@@ -647,7 +645,7 @@ export default class Synchronizer {
 						// in the database for extra safety. In a future
 						// version, once it's confirmed that the new E2EE system
 						// works well, we can delete them.
-						if (local.type_ === ModelType.MasterKey) action = null;
+						if (local.type_ === ModelType.MasterKey) action = '';
 
 						this.logSyncOperation(action, local, remote, reason);
 
@@ -697,16 +695,16 @@ export default class Synchronizer {
 									local = resource as any;
 									const localResourceContentPath = result.path;
 
-									if (resource.size >= 10 * 1000 * 1000) {
+									if (resource.size && resource.size >= 10 * 1000 * 1000) {
 										logger.warn(`Uploading a large resource (resourceId: ${local.id}, size:${resource.size} bytes) which may tie up the sync process.`);
 									}
 
 									await this.apiCall('put', remoteContentPath, null, { path: localResourceContentPath, source: 'file', shareId: resource.share_id });
 								} catch (error) {
 									if (isCannotSyncError(error)) {
-										await handleCannotSyncItem(ItemClass, syncTargetId, local, error.message);
+										await handleCannotSyncItem(ItemClass, syncTargetId, local, (error as Error).message);
 										action = null;
-									} else if (error && error.code === ErrorCode.IsReadOnly) {
+									} else if (error instanceof XilinotaError && error.code === ErrorCode.IsReadOnly) {
 										action = getConflictType(local);
 										itemIsReadOnly = true;
 										logger.info('Resource is readonly and cannot be modified - handling it as a conflict:', local);
@@ -724,10 +722,10 @@ export default class Synchronizer {
 								if (this.testingHooks_.indexOf('itemIsReadOnly') >= 0) throw new XilinotaError('Testing isReadOnly', ErrorCode.IsReadOnly);
 								await itemUploader.serializeAndUploadItem(ItemClass, path, local);
 							} catch (error) {
-								if (error && error.code === 'rejectedByTarget') {
+								if (error instanceof XilinotaError && error.code === 'rejectedByTarget') {
 									await handleCannotSyncItem(ItemClass, syncTargetId, local, error.message);
 									canSync = false;
-								} else if (error && error.code === ErrorCode.IsReadOnly) {
+								} else if (error instanceof XilinotaError && error.code === ErrorCode.IsReadOnly) {
 									action = getConflictType(local);
 									itemIsReadOnly = true;
 									canSync = false;
@@ -823,7 +821,7 @@ export default class Synchronizer {
 
 					this.logSyncOperation('fetchingTotal', null, null, 'Fetching delta items from sync target', remotes.length);
 
-					const remoteIds = remotes.map(r => BaseItem.pathToId(r.path));
+					const remoteIds = remotes.map(r => BaseItem.pathToId(r.path ?? ''));
 					const locals = await BaseItem.loadItemsByIds(remoteIds);
 
 					for (const remote of remotes) {
@@ -831,7 +829,7 @@ export default class Synchronizer {
 
 						let needsToDownload = true;
 						if (this.api().supportsAccurateTimestamp) {
-							const local = locals.find(l => l.id === BaseItem.pathToId(remote.path));
+							const local = locals.find(l => l.id === BaseItem.pathToId(remote.path ?? ''));
 							if (local && local.updated_time === remote.jop_updated_time) needsToDownload = false;
 						}
 
@@ -851,7 +849,7 @@ export default class Synchronizer {
 						this.logSyncOperation('fetchingProcessed', null, null, 'Processing fetched item');
 
 						const remote = remotes[i];
-						if (!BaseItem.isSystemPath(remote.path)) continue; // The delta API might return things like the .sync, .resource or the root folder
+						if (!BaseItem.isSystemPath(remote.path ?? '')) continue; // The delta API might return things like the .sync, .resource or the root folder
 
 						const loadContent = async () => {
 							const task = await this.downloadQueue_.waitForResult(path);
@@ -861,7 +859,7 @@ export default class Synchronizer {
 						};
 
 						const path = remote.path;
-						const remoteId = BaseItem.pathToId(path);
+						const remoteId = BaseItem.pathToId(path ?? '');
 						let action = null;
 						let reason = '';
 						let local = locals.find(l => l.id === remoteId);
@@ -895,13 +893,15 @@ export default class Synchronizer {
 								}
 							}
 						} catch (error) {
-							if (error.code === 'rejectedByTarget') {
-								this.progressReport_.errors.push(error);
-								logger.warn(`Rejected by target: ${path}: ${error.message}`);
-								action = null;
-							} else {
-								error.message = `On file ${path}: ${error.message}`;
-								throw error;
+							if (error instanceof XilinotaError) {
+								if (error.code === 'rejectedByTarget') {
+									this.progressReport_.errors.push(error);
+									logger.warn(`Rejected by target: ${path}: ${error.message}`);
+									action = null;
+								} else {
+									error.message = `On file ${path}: ${error.message}`;
+									throw error;
+								}
 							}
 						}
 
@@ -1039,30 +1039,32 @@ export default class Synchronizer {
 				}
 			} // DELTA STEP
 		} catch (error) {
-			if (throwOnError) {
-				errorToThrow = error;
-			} else if (error && ['cannotEncryptEncrypted', 'noActiveMasterKey', 'processingPathTwice', 'failSafe', 'lockError', 'outdatedSyncTarget'].indexOf(error.code) >= 0) {
-				// Only log an info statement for this since this is a common condition that is reported
-				// in the application, and needs to be resolved by the user.
-				// Or it's a temporary issue that will be resolved on next sync.
-				logger.info(error.message);
+			if (error instanceof XilinotaError) {
+				if (throwOnError) {
+					errorToThrow = error;
+				} else if (error && ['cannotEncryptEncrypted', 'noActiveMasterKey', 'processingPathTwice', 'failSafe', 'lockError', 'outdatedSyncTarget'].indexOf(error.code) >= 0) {
+					// Only log an info statement for this since this is a common condition that is reported
+					// in the application, and needs to be resolved by the user.
+					// Or it's a temporary issue that will be resolved on next sync.
+					logger.info(error.message);
 
-				if (error.code === 'failSafe' || error.code === 'lockError') {
-					// Get the message to display on UI, but not in testing to avoid poluting stdout
-					if (!shim.isTestingEnv()) this.progressReport_.errors.push(error.message);
-					this.logLastRequests();
-				}
-			} else if (error.code === 'unknownItemType') {
-				this.progressReport_.errors.push(_('Unknown item type downloaded - please upgrade Xilinota to the latest version'));
-				logger.error(error);
-			} else {
-				logger.error(error);
-				if (error.details) logger.error('Details:', error.details);
+					if (error.code === 'failSafe' || error.code === 'lockError') {
+						// Get the message to display on UI, but not in testing to avoid poluting stdout
+						if (!shim.isTestingEnv()) this.progressReport_.errors.push(error.message);
+						this.logLastRequests();
+					}
+				} else if (error.code === 'unknownItemType') {
+					this.progressReport_.errors.push(_('Unknown item type downloaded - please upgrade Xilinota to the latest version'));
+					logger.error(error);
+				} else {
+					logger.error(error);
+					if (error.details) logger.error('Details:', error.details);
 
-				// Don't save to the report errors that are due to things like temporary network errors or timeout.
-				if (!shim.fetchRequestCanBeRetried(error)) {
-					this.progressReport_.errors.push(error);
-					this.logLastRequests();
+					// Don't save to the report errors that are due to things like temporary network errors or timeout.
+					if (!shim.fetchRequestCanBeRetried(error)) {
+						this.progressReport_.errors.push(error);
+						this.logLastRequests();
+					}
 				}
 			}
 		}

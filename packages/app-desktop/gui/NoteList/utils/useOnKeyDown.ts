@@ -99,7 +99,7 @@ const useOnKeyDown = (
 
 			makeItemIndexVisible(noteIndex);
 
-			focusNote(newSelectedNote.id);
+			if (newSelectedNote.id) focusNote(newSelectedNote.id);
 
 			event.preventDefault();
 		}

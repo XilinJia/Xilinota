@@ -4,6 +4,7 @@ import { DefaultPluginsInfo } from '@xilinota/lib/services/plugins/PluginService
 import getDefaultPluginsInfo from '@xilinota/lib/services/plugins/defaultPlugins/desktopDefaultPluginsInfo';
 import { execCommand } from '@xilinota/utils';
 const fetch = require('node-fetch');
+// import fetch from 'node-fetch';
 
 interface PluginAndVersion {
 	[pluginId: string]: string;
@@ -34,7 +35,7 @@ async function downloadFile(url: string, outputPath: string) {
 	const response = await fetch(url);
 	if (!response.ok) {
 		const responseText = await response.text();
-		throw new Error(`Cannot download file from ${url} : ${responseText.substr(0, 500)}`);
+		throw new Error(`Cannot download file from ${url} : ${responseText.substring(0, 500)}`);
 	}
 	await writeFile(outputPath, await response.buffer());
 }
@@ -58,7 +59,7 @@ export const downloadPlugins = async (localPluginsVersions: PluginAndVersion, de
 
 		if (!response.ok) {
 			const responseText = await response.text();
-			throw new Error(`Cannot fetch ${manifests[pluginId]._npm_package_name} release info from NPM : ${responseText.substr(0, 500)}`);
+			throw new Error(`Cannot fetch ${manifests[pluginId]._npm_package_name} release info from NPM : ${responseText.substring(0, 500)}`);
 		}
 		const releaseText = await response.text();
 		const release = JSON.parse(releaseText);
@@ -87,7 +88,7 @@ async function start(): Promise<void> {
 }
 
 if (require.main === module) {
-// eslint-disable-next-line promise/prefer-await-to-then -- Old code before rule was applied
+
 	start().catch((error) => {
 		console.error('Fatal error');
 		console.error(error);

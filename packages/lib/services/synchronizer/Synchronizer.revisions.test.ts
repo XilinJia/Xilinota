@@ -27,14 +27,14 @@ describe('Synchronizer.revisions', () => {
 		await synchronizerStart();
 		await Note.save({ id: n1.id, title: 'mod from client 2' });
 		await revisionService().collectRevisions();
-		const allRevs1 = await Revision.allByType(BaseModel.TYPE_NOTE, n1.id);
+		const allRevs1 = await Revision.allByType(BaseModel.TYPE_NOTE, n1.id??'');
 		expect(allRevs1.length).toBe(1);
 		await synchronizerStart();
 
 		await switchClient(1);
 
 		await synchronizerStart();
-		const allRevs2 = await Revision.allByType(BaseModel.TYPE_NOTE, n1.id);
+		const allRevs2 = await Revision.allByType(BaseModel.TYPE_NOTE, n1.id??'');
 		expect(allRevs2.length).toBe(1);
 		expect(allRevs2[0].id).toBe(allRevs1[0].id);
 	}));
@@ -46,10 +46,10 @@ describe('Synchronizer.revisions', () => {
 		await switchClient(2);
 
 		await synchronizerStart();
-		await Note.delete(n1.id);
+		await Note.delete(n1.id??'');
 		await revisionService().collectRevisions(); // REV 1
 		{
-			const allRevs = await Revision.allByType(BaseModel.TYPE_NOTE, n1.id);
+			const allRevs = await Revision.allByType(BaseModel.TYPE_NOTE, n1.id??'');
 			expect(allRevs.length).toBe(1);
 		}
 		await synchronizerStart();
@@ -58,7 +58,7 @@ describe('Synchronizer.revisions', () => {
 
 		await synchronizerStart(); // The local note gets deleted here, however a new rev is *not* created
 		{
-			const allRevs = await Revision.allByType(BaseModel.TYPE_NOTE, n1.id);
+			const allRevs = await Revision.allByType(BaseModel.TYPE_NOTE, n1.id??'');
 			expect(allRevs.length).toBe(1);
 		}
 
@@ -92,14 +92,14 @@ describe('Synchronizer.revisions', () => {
 		await synchronizerStart();
 
 		{
-			const allRevs = await Revision.allByType(BaseModel.TYPE_NOTE, n1.id);
+			const allRevs = await Revision.allByType(BaseModel.TYPE_NOTE, n1.id??'');
 			expect(allRevs.length).toBe(1);
 		}
 
 		await revisionService().collectRevisions();
 
 		{
-			const allRevs = await Revision.allByType(BaseModel.TYPE_NOTE, n1.id);
+			const allRevs = await Revision.allByType(BaseModel.TYPE_NOTE, n1.id??'');
 			expect(allRevs.length).toBe(1);
 		}
 	}));
@@ -124,7 +124,7 @@ describe('Synchronizer.revisions', () => {
 		const n1 = await Note.save({ title: 'note' });
 		await Note.save({ id: n1.id, title: 'note REV1' });
 		await revisionService().collectRevisions(); // REV1
-		expect((await Revision.allByType(BaseModel.TYPE_NOTE, n1.id)).length).toBe(1);
+		expect((await Revision.allByType(BaseModel.TYPE_NOTE, n1.id??'')).length).toBe(1);
 		await synchronizer().start();
 
 		await switchClient(2);
@@ -135,10 +135,10 @@ describe('Synchronizer.revisions', () => {
 
 		await Note.save({ id: n1.id, title: 'note REV2' });
 		await revisionService().collectRevisions(); // REV2
-		expect((await Revision.allByType(BaseModel.TYPE_NOTE, n1.id)).length).toBe(1);
+		expect((await Revision.allByType(BaseModel.TYPE_NOTE, n1.id??'')).length).toBe(1);
 		await synchronizer().start(); // Sync the rev that had been skipped above with skipRevisions
 
-		const revisions = await Revision.allByType(BaseModel.TYPE_NOTE, n1.id);
+		const revisions = await Revision.allByType(BaseModel.TYPE_NOTE, n1.id??'');
 		expect(revisions.length).toBe(2);
 
 		expect((await revisionService().revisionNote(revisions, 0)).title).toBe('note REV1');
@@ -172,7 +172,7 @@ describe('Synchronizer.revisions', () => {
 
 		await synchronizerStart();
 
-		Setting.setObjectValue('encryption.passwordCache', masterKey.id, '123456');
+		Setting.setObjectValue('encryption.passwordCache', masterKey.id??'', '123456');
 		await loadMasterKeysFromSettings(encryptionService());
 		await decryptionWorker().start();
 

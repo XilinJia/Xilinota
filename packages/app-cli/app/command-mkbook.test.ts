@@ -18,8 +18,8 @@ describe('command-mkbook', () => {
 		await command.action({ 'new-notebook': 'folder1', options: {} });
 		await command.action({ 'new-notebook': 'folder1_1', options: { parent: 'folder1' } });
 
-		const folder1 = await Folder.loadByTitle('folder1');
-		const folder1_1 = await Folder.loadByTitle('folder1_1');
+		const folder1 = (await Folder.loadByTitle('folder1'))!;
+		const folder1_1 = (await Folder.loadByTitle('folder1_1'))!;
 
 		expect(folder1.title).toBe('folder1');
 		expect(folder1_1.parent_id).toBe(folder1.id);
@@ -43,8 +43,8 @@ describe('command-mkbook', () => {
 		expect(folders3.length).toBe(2);
 
 		// check if something has been created in one of the duplicate entries.
-		expect(await Folder.childrenIds(folders3[0].id)).toEqual([]);
-		expect(await Folder.childrenIds(folders3[1].id)).toEqual([]);
+		expect(await Folder.childrenIds(folders3[0].id!)).toEqual([]);
+		expect(await Folder.childrenIds(folders3[1].id!)).toEqual([]);
 	});
 });
 

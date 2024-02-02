@@ -8,7 +8,7 @@ export const declaration: CommandDeclaration = {
 
 export const runtime = (comp: any): CommandRuntime => {
 	return {
-		execute: async (context: CommandContext, folderId: string = null) => {
+		execute: async (context: CommandContext, folderId: string = '') => {
 			folderId = folderId || context.state.selectedFolderId;
 
 			comp.setState({

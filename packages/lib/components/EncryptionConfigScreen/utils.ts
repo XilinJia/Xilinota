@@ -14,7 +14,9 @@ const { useCallback, useEffect, useState } = shim.react();
 type PasswordChecks = Record<string, boolean>;
 
 export const useStats = () => {
-	const [stats, setStats] = useState<EncryptedItemsStats>({ encrypted: null, total: null });
+	const initialState: EncryptedItemsStats = { encrypted: -1, total: -1 };
+
+	const [stats, setStats] = useState<EncryptedItemsStats>(initialState);
 	const [statsUpdateTime, setStatsUpdateTime] = useState<number>(0);
 
 	useAsyncEffect(async (event: AsyncEffectEvent) => {
@@ -40,13 +42,13 @@ export const useStats = () => {
 };
 
 export const decryptedStatText = (stats: EncryptedItemsStats) => {
-	const doneCount = stats.encrypted !== null ? stats.total - stats.encrypted : '-';
-	const totalCount = stats.total !== null ? stats.total : '-';
+	const doneCount = stats.encrypted ? stats.total - stats.encrypted : '-';
+	const totalCount = stats.total ? stats.total : '-';
 	const result = _('Decrypted items: %s / %s', doneCount, totalCount);
 	return result;
 };
 
-export const enableEncryptionConfirmationMessages = (_masterKey: MasterKeyEntity, hasMasterPassword: boolean) => {
+export const enableEncryptionConfirmationMessages = (_masterKey: MasterKeyEntity | null, hasMasterPassword: boolean) => {
 	const msg = [_('Enabling encryption means *all* your notes and attachments are going to be re-synchronised and sent encrypted to the sync target.')];
 
 	if (hasMasterPassword) {
@@ -85,15 +87,16 @@ export const useToggleShowDisabledMasterKeys = () => {
 };
 
 export const onToggleEnabledClick = (mk: MasterKeyEntity) => {
-	setMasterKeyEnabled(mk.id, !masterKeyEnabled(mk));
+	setMasterKeyEnabled(mk.id??'', !masterKeyEnabled(mk));
 };
 
 export const onSavePasswordClick = (mk: MasterKeyEntity, passwords: Record<string, string>) => {
-	const password = passwords[mk.id];
+	const mkid = mk.id ?? '';
+	const password = passwords[mkid];
 	if (!password) {
-		Setting.deleteObjectValue('encryption.passwordCache', mk.id);
+		Setting.deleteObjectValue('encryption.passwordCache', mkid);
 	} else {
-		Setting.setObjectValue('encryption.passwordCache', mk.id, password);
+		Setting.setObjectValue('encryption.passwordCache', mkid, password);
 	}
 
 	// When setting a master key password, if the master password is not set, we
@@ -117,7 +120,7 @@ export const useInputMasterPassword = (masterKeys: MasterKeyEntity[], activeMast
 		if (!(await masterPasswordIsValid(inputMasterPassword, masterKeys.find(mk => mk.id === activeMasterKeyId)))) {
 			alert('Password is invalid. Please try again.');
 		}
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+		
 	}, [inputMasterPassword]);
 
 	const onMasterPasswordChange = useCallback((password: string) => {
@@ -138,7 +141,7 @@ export const useInputPasswords = (propsPasswords: Record<string, string>) => {
 		setInputPasswords(current => {
 			return {
 				...current,
-				[mk.id]: password,
+				[mk.id??'']: password,
 			};
 		});
 	}, []);
@@ -164,8 +167,8 @@ export const usePasswordChecker = (masterKeys: MasterKeyEntity[], activeMasterKe
 			const mk = masterKeys[i];
 			const password = await findMasterKeyPassword(EncryptionService.instance(), mk, passwords);
 			const ok = password ? await EncryptionService.instance().checkMasterKeyPassword(mk, password) : false;
-			newPasswordChecks[mk.id] = ok;
-			newMasterPasswordKeys[mk.id] = password === masterPassword;
+			newPasswordChecks[mk.id??''] = ok;
+			newMasterPasswordKeys[mk.id??''] = password === masterPassword;
 		}
 
 		newPasswordChecks['master'] = masterPassword ? await masterPasswordIsValid(masterPassword, masterKeys.find(mk => mk.id === activeMasterKeyId)) : true;
@@ -216,6 +219,6 @@ export const upgradeMasterKey = async (masterKey: MasterKeyEntity, password: str
 		void reg.waitForSyncFinishedThenSync();
 		return _('The master key has been upgraded successfully!');
 	} catch (error) {
-		return _('Could not upgrade master key: %s', error.message);
+		return _('Could not upgrade master key: %s', (error as Error).message);
 	}
 };

@@ -22,7 +22,7 @@ export default async (params: Params) => {
 
 	console.info('Checking if notarization should be done...');
 
-	if (!process.env.IS_CONTINUOUS_INTEGRATION || !isDesktopAppTag(process.env.GIT_TAG_NAME)) {
+	if (!process.env.IS_CONTINUOUS_INTEGRATION || !isDesktopAppTag(process.env.GIT_TAG_NAME??'')) {
 		console.info(`Either not running in CI or not processing a desktop app tag - skipping notarization. process.env.IS_CONTINUOUS_INTEGRATION = ${process.env.IS_CONTINUOUS_INTEGRATION}; process.env.GIT_TAG_NAME = ${process.env.GIT_TAG_NAME}`);
 		return;
 	}

@@ -3,12 +3,13 @@ import { PluginMessage } from './services/plugins/PluginRunner';
 import shim from '@xilinota/lib/shim';
 import { isCallbackUrl } from '@xilinota/lib/callbackUrlUtils';
 
-import { BrowserWindow, Tray, screen } from 'electron';
-const url = require('url');
-const path = require('path');
-const { dirname } = require('@xilinota/lib/path-utils');
-const fs = require('fs-extra');
-const { ipcMain } = require('electron');
+import { BrowserWindow, Tray, screen, ipcMain } from 'electron';
+import url from 'url';
+import path from 'path';
+import { dirname } from '@xilinota/lib/path-utils';
+import fs from 'fs-extra';
+
+// import log from 'electron-log/main';
 
 interface RendererProcessQuitReply {
 	canClose: boolean;
@@ -20,18 +21,18 @@ interface PluginWindows {
 
 export default class ElectronAppWrapper {
 
-	private logger_: Logger = null;
+	private logger_: Logger | null = null;
 	private electronApp_: any;
 	private env_: string;
 	private isDebugMode_: boolean;
 	private profilePath_: string;
-	private win_: BrowserWindow = null;
+	private win_: BrowserWindow | undefined;
 	private willQuitApp_ = false;
 	private tray_: any = null;
-	private buildDir_: string = null;
-	private rendererProcessQuitReply_: RendererProcessQuitReply = null;
+	private buildDir_: string = '';
+	private rendererProcessQuitReply_: RendererProcessQuitReply | null = null;
 	private pluginWindows_: PluginWindows = {};
-	private initialCallbackUrl_: string = null;
+	private initialCallbackUrl_: string = '';
 
 	public constructor(electronApp: any, env: string, profilePath: string, isDebugMode: boolean, initialCallbackUrl: string) {
 		this.electronApp_ = electronApp;
@@ -54,6 +55,7 @@ export default class ElectronAppWrapper {
 	}
 
 	public window() {
+		if (!this.win_) throw ('this.win_ not initialized');
 		return this.win_;
 	}
 
@@ -70,7 +72,6 @@ export default class ElectronAppWrapper {
 		const debugEarlyBugs = this.env_ === 'dev' || this.isDebugMode_;
 
 		const windowStateKeeper = require('electron-window-state');
-
 
 		const stateOptions: any = {
 			defaultWidth: Math.round(0.8 * screen.getPrimaryDisplay().workArea.width),
@@ -131,15 +132,20 @@ export default class ElectronAppWrapper {
 		// the easiest is to use a timeout. Keep in mind that if you get a white window on Windows it might be due
 		// to this line though.
 		if (debugEarlyBugs) {
-			setTimeout(() => {
-				try {
-					this.win_.webContents.openDevTools();
-				} catch (error) {
-				// This will throw an exception "Object has been destroyed" if the app is closed
-				// in less that the timeout interval. It can be ignored.
-					console.warn('Error opening dev tools', error);
-				}
-			}, 3000);
+			this.win_.webContents.openDevTools();
+
+			// setTimeout(() => {
+			// 	try {
+			// 		this.win_?.webContents.openDevTools();
+			// 	} catch (error) {
+			// 	// This will throw an exception "Object has been destroyed" if the app is closed
+			// 	// in less that the timeout interval. It can be ignored.
+			// 		console.warn('Error opening dev tools', error);
+			// 	}
+			// }, 3000);
+			this.win_.webContents.on('render-process-gone', (_e, details) => {
+				console.log('render-process-gone', details);
+			});
 		}
 
 		this.win_.on('close', (event: any) => {
@@ -162,7 +168,7 @@ export default class ElectronAppWrapper {
 			} else {
 				if (this.trayShown() && !this.willQuitApp_) {
 					event.preventDefault();
-					this.win_.hide();
+					this.win_?.hide();
 				} else {
 					isGoingToExit = true;
 				}
@@ -180,7 +186,7 @@ export default class ElectronAppWrapper {
 					if (this.rendererProcessQuitReply_.canClose) {
 						// Really quit the app
 						this.rendererProcessQuitReply_ = null;
-						this.win_ = null;
+						// this.win_ = null;
 					} else {
 						// Wait for renderer to finish task
 						event.preventDefault();
@@ -204,13 +210,13 @@ export default class ElectronAppWrapper {
 		ipcMain.on('pluginMessage', (_event: any, message: PluginMessage) => {
 			try {
 				if (message.target === 'mainWindow') {
-					this.win_.webContents.send('pluginMessage', message);
+					this.win_?.webContents.send('pluginMessage', message);
 				}
 
 				if (message.target === 'plugin') {
 					const win = this.pluginWindows_[message.pluginId];
 					if (!win) {
-						this.logger().error(`Trying to send IPC message to non-existing plugin window: ${message.pluginId}`);
+						this.logger()?.error(`Trying to send IPC message to non-existing plugin window: ${message.pluginId}`);
 						return;
 					}
 
@@ -250,7 +256,7 @@ export default class ElectronAppWrapper {
 			const iid = setInterval(() => {
 				if (this.electronApp().isReady()) {
 					clearInterval(iid);
-					resolve(null);
+					resolve();
 				}
 			}, 10);
 		});
@@ -369,7 +375,7 @@ export default class ElectronAppWrapper {
 		});
 
 		this.electronApp_.on('activate', () => {
-			this.win_.show();
+			this.win_?.show();
 		});
 
 		this.electronApp_.on('open-url', (event: any, url: string) => {
@@ -379,7 +385,7 @@ export default class ElectronAppWrapper {
 	}
 
 	public async openCallbackUrl(url: string) {
-		this.win_.webContents.send('asynchronous-message', 'openCallbackUrl', {
+		this.win_?.webContents.send('asynchronous-message', 'openCallbackUrl', {
 			url: url,
 		});
 	}

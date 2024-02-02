@@ -8,19 +8,19 @@ const renderers_: ListRenderer[] = [
 	// defaultLeftToRightItemRenderer,
 ];
 
-export const getListRendererIds = () => {
+export const getListRendererIds = (): string[] => {
 	return renderers_.map(r => r.id);
 };
 
-export const getDefaultListRenderer = () => {
+export const getDefaultListRenderer = (): ListRenderer => {
 	return renderers_[0];
 };
 
-export const getListRendererById = (id: string) => {
+export const getListRendererById = (id: string): ListRenderer | undefined => {
 	return renderers_.find(r => r.id === id);
 };
 
-export const registerRenderer = async (store: Store, renderer: ListRenderer) => {
+export const registerRenderer = async (store: Store, renderer: ListRenderer): Promise<void> => {
 	renderers_.push(renderer);
 
 	store.dispatch({

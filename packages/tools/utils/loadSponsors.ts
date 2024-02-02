@@ -38,9 +38,9 @@ export const loadSponsors = async (): Promise<Sponsors> => {
 				'Authorization': `token ${oauthToken}`,
 			},
 		});
-
+		if (!userResponse) throw new Error('userResponse not valid');
 		if (!userResponse.ok) throw new Error(await userResponse.text());
-		const user = await userResponse.json();
+		const user = await userResponse.json() as { id: string };
 		ghSponsor.id = user.id;
 	}
 

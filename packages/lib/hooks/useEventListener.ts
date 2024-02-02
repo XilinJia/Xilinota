@@ -1,11 +1,9 @@
 import shim from '../shim';
 const { useEffect, useRef } = shim.react();
 
-function useEventListener(
-	eventName: any,
-	handler: any,
-	element?: any,
-) {
+function useEventListener(eventName: string, handler: any, element?: any,): void {
+	// const { useEffect, useRef } = shim.react();
+
 	// Create a ref that stores handler
 	const savedHandler = useRef<any>();
 
@@ -13,7 +11,7 @@ function useEventListener(
 		// Define the listening target
 		const targetElement = element?.current || window;
 		if (!(targetElement && targetElement.addEventListener)) {
-			return null;
+			return () => { };
 		}
 
 		// Update saved handler if necessary
@@ -23,7 +21,6 @@ function useEventListener(
 
 		// Create event listener that calls handler function stored in ref
 		const eventListener = (event: Event) => {
-			// eslint-disable-next-line no-extra-boolean-cast
 			if (!!savedHandler?.current) {
 				savedHandler.current(event);
 			}

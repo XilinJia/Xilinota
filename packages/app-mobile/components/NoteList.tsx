@@ -1,4 +1,4 @@
-const React = require('react');
+import React from 'react';
 
 import { Component } from 'react';
 
@@ -7,13 +7,13 @@ import { FlatList, Text, StyleSheet, Button, View } from 'react-native';
 import { FolderEntity, NoteEntity } from '@xilinota/lib/services/database/types';
 import { AppState } from '../utils/types';
 
-const { _ } = require('@xilinota/lib/locale');
-const { NoteItem } = require('./note-item.js');
-const { themeStyle } = require('./global-style.js');
+import { _ } from '@xilinota/lib/locale';
+import NoteItem from './note-item';
+import { themeStyle } from './global-style';
 
 interface NoteListProps {
 	themeId: string;
-	dispatch: (action: any)=> void;
+	dispatch: (action: any) => void;
 	notesSource: string;
 	items: NoteEntity[];
 	folders: FolderEntity[];
@@ -22,7 +22,7 @@ interface NoteListProps {
 }
 
 class NoteListComponent extends Component<NoteListProps> {
-	private rootRef_: FlatList;
+	private rootRef_: FlatList | null;
 	private styles_: Record<string, StyleSheet.NamedStyles<any>>;
 
 	public constructor(props: NoteListProps) {
@@ -38,7 +38,7 @@ class NoteListComponent extends Component<NoteListProps> {
 		this.createNotebookButton_click = this.createNotebookButton_click.bind(this);
 	}
 
-	private styles() {
+	private styles(): StyleSheet.NamedStyles<any> {
 		const themeId = this.props.themeId;
 		const theme = themeStyle(themeId);
 
@@ -87,7 +87,7 @@ class NoteListComponent extends Component<NoteListProps> {
 				ref={ref => (this.rootRef_ = ref)}
 				data={this.props.items}
 				renderItem={({ item }) => <NoteItem note={item} />}
-				keyExtractor={item => item.id}
+				keyExtractor={item => item.id ?? ''}
 			/>;
 		} else {
 			if (!this.props.folders.length) {

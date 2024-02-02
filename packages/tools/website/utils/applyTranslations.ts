@@ -1,8 +1,8 @@
 import { unique } from '@xilinota/lib/ArrayUtils';
 import { attributesHtml, isSelfClosingTag } from '@xilinota/renderer/htmlUtils';
 import { Translations } from '../../utils/translation';
-const Entities = require('html-entities').AllHtmlEntities;
-const htmlentities = new Entities().encode;
+import { encode } from 'html-entities';
+
 const htmlparser2 = require('@xilinota/fork-htmlparser2');
 
 const trimHtml = (content: string) => {
@@ -35,7 +35,7 @@ const findTranslation = (englishString: string, translations: Translations): str
 };
 
 const encodeHtml = (decodedText: string): string => {
-	return htmlentities(decodedText)
+	return encode(decodedText)
 		.replace(/&Tab;/gi, '\t')
 		.replace(/{{&gt; /gi, '{{> '); // Don't break Mustache partials
 };

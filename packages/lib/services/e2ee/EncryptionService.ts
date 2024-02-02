@@ -6,7 +6,7 @@ import MasterKey from '../../models/MasterKey';
 import BaseItem from '../../models/BaseItem';
 import XilinotaError from '../../XilinotaError';
 import { getActiveMasterKeyId, setActiveMasterKeyId } from '../synchronizer/syncInfoUtils';
-const { padLeft } = require('../../string-utils.js');
+import { padLeft } from '../../string-utils';
 
 const logger = Logger.create('EncryptionService');
 
@@ -43,15 +43,25 @@ export enum EncryptionMethod {
 
 export interface EncryptOptions {
 	encryptionMethod?: EncryptionMethod;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	onProgress?: Function;
 	encryptionHandler?: EncryptionCustomHandler;
 	masterKeyId?: string;
 }
 
+interface Reader {
+	handle: any;
+	read: Function;
+	close: Function;
+}
+
+interface Writer {
+	append: Function;
+	close: Function;
+}
+
 export default class EncryptionService {
 
-	public static instance_: EncryptionService = null;
+	public static instance_: EncryptionService | null = null;
 
 	public static fsDriver_: any = null;
 
@@ -118,6 +128,7 @@ export default class EncryptionService {
 	}
 
 	public isMasterKeyLoaded(masterKey: MasterKeyEntity) {
+		if (!masterKey.id) return false;
 		const d = this.decryptedMasterKeys_[masterKey.id];
 		if (!d) return false;
 		return d.updatedTime === masterKey.updated_time;
@@ -130,14 +141,14 @@ export default class EncryptionService {
 
 		this.decryptedMasterKeys_[model.id] = {
 			plainText: await this.decryptMasterKeyContent(model, password),
-			updatedTime: model.updated_time,
+			updatedTime: model.updated_time ?? 0,
 		};
 
 		if (makeActive) this.setActiveMasterKeyId(model.id);
 	}
 
 	public unloadMasterKey(model: MasterKeyEntity) {
-		delete this.decryptedMasterKeys_[model.id];
+		if (model.id) delete this.decryptedMasterKeys_[model.id];
 	}
 
 	public loadedMasterKey(id: string) {
@@ -182,14 +193,14 @@ export default class EncryptionService {
 		return MasterKey.allWithoutEncryptionMethod(masterKeys, [this.defaultMasterKeyEncryptionMethod_, EncryptionMethod.Custom]);
 	}
 
-	public async reencryptMasterKey(model: MasterKeyEntity, decryptionPassword: string, encryptionPassword: string, decryptOptions: EncryptOptions = null, encryptOptions: EncryptOptions = null): Promise<MasterKeyEntity> {
+	public async reencryptMasterKey(model: MasterKeyEntity, decryptionPassword: string, encryptionPassword: string, decryptOptions: EncryptOptions = {}, encryptOptions: EncryptOptions = {}): Promise<MasterKeyEntity> {
 		const newEncryptionMethod = this.defaultMasterKeyEncryptionMethod_;
 		const plainText = await this.decryptMasterKeyContent(model, decryptionPassword, decryptOptions);
 		const newContent = await this.encryptMasterKeyContent(newEncryptionMethod, plainText, encryptionPassword, encryptOptions);
 		return { ...model, ...newContent };
 	}
 
-	public async encryptMasterKeyContent(encryptionMethod: EncryptionMethod, hexaBytes: string, password: string, options: EncryptOptions = null): Promise<MasterKeyEntity> {
+	public async encryptMasterKeyContent(encryptionMethod: EncryptionMethod | null, hexaBytes: string, password: string, options: EncryptOptions = {}): Promise<MasterKeyEntity> {
 		options = { ...options };
 
 		if (encryptionMethod === null) encryptionMethod = this.defaultMasterKeyEncryptionMethod_;
@@ -210,8 +221,12 @@ export default class EncryptionService {
 		}
 	}
 
-	private async generateMasterKeyContent_(password: string, options: EncryptOptions = null) {
+	private async generateMasterKeyContent_(password: string, options: EncryptOptions = {}) {
 		options = { encryptionMethod: this.defaultMasterKeyEncryptionMethod_, ...options };
+		if (!options.encryptionMethod) {
+			logger.error('generateMasterKeyContent_ encryptionMethod undefined, assuming SJCL')
+			options.encryptionMethod = EncryptionMethod.SJCL
+		}
 
 		const bytes: any[] = await shim.randomBytes(256);
 		const hexaBytes = bytes.map(a => hexPad(a.toString(16), 2)).join('');
@@ -219,7 +234,7 @@ export default class EncryptionService {
 		return this.encryptMasterKeyContent(options.encryptionMethod, hexaBytes, password, options);
 	}
 
-	public async generateMasterKey(password: string, options: EncryptOptions = null) {
+	public async generateMasterKey(password: string, options: EncryptOptions = {}) {
 		const model = await this.generateMasterKeyContent_(password, options);
 
 		const now = Date.now();
@@ -231,15 +246,14 @@ export default class EncryptionService {
 		return model;
 	}
 
-	public async decryptMasterKeyContent(model: MasterKeyEntity, password: string, options: EncryptOptions = null): Promise<string> {
-		options = options || {};
+	public async decryptMasterKeyContent(model: MasterKeyEntity, password: string, options: EncryptOptions = {}): Promise<string> {
 
 		if (model.encryption_method === EncryptionMethod.Custom) {
 			if (!options.encryptionHandler) throw new Error('Master key was encrypted using a custom method, but no encryptionHandler is provided');
-			return options.encryptionHandler.decrypt(options.encryptionHandler.context, model.content, password);
+			return options.encryptionHandler.decrypt(options.encryptionHandler.context, model.content ?? '', password);
 		}
 
-		const plainText = await this.decrypt(model.encryption_method, password, model.content);
+		const plainText = await this.decrypt(model.encryption_method ?? 0, password, model.content ?? '');
 		if (model.encryption_method === EncryptionMethod.SJCL2) {
 			const checksum = this.sha256(plainText);
 			if (checksum !== model.checksum) throw new Error('Could not decrypt master key (checksum failed)');
@@ -270,7 +284,7 @@ export default class EncryptionService {
 
 		const sjcl = shim.sjclModule;
 
-		const handlers: Record<EncryptionMethod, ()=> string> = {
+		const handlers: Record<EncryptionMethod, () => string> = {
 			// 2020-01-23: Deprecated and no longer secure due to the use og OCB2 mode - do not use.
 			[EncryptionMethod.SJCL]: () => {
 				try {
@@ -411,12 +425,16 @@ export default class EncryptionService {
 			}
 		} catch (error) {
 			// SJCL returns a string as error which means stack trace is missing so convert to an error object here
-			throw new Error(error.message);
+			throw new Error((error as Error).message);
 		}
 	}
 
-	private async encryptAbstract_(source: any, destination: any, options: EncryptOptions = null) {
+	private async encryptAbstract_(source: any, destination: any, options: EncryptOptions = {}) {
 		options = { encryptionMethod: this.defaultEncryptionMethod(), ...options };
+		if (!options.encryptionMethod) {
+			logger.error('encryptAbstract_ encryptionMethod undefined, assuming SJCL')
+			options.encryptionMethod = EncryptionMethod.SJCL
+		}
 
 		const method = options.encryptionMethod;
 		const masterKeyId = options.masterKeyId ? options.masterKeyId : this.activeMasterKeyId();
@@ -449,8 +467,7 @@ export default class EncryptionService {
 		}
 	}
 
-	private async decryptAbstract_(source: any, destination: any, options: EncryptOptions = null) {
-		if (!options) options = {};
+	private async decryptAbstract_(source: any, destination: any, options: EncryptOptions = {}) {
 
 		const header: any = await this.decodeHeaderSource_(source);
 		const masterKeyPlainText = this.loadedMasterKey(header.masterKeyId).plainText;
@@ -480,11 +497,11 @@ export default class EncryptionService {
 		const reader = {
 			index: 0,
 			read: function(size: number) {
-				const output = string.substr(reader.index, size);
+				const output = string.substring(reader.index, size);
 				reader.index += size;
 				return !sync ? Promise.resolve(output) : output;
 			},
-			close: function() {},
+			close: function() { },
 		};
 		return reader;
 	}
@@ -498,14 +515,14 @@ export default class EncryptionService {
 			result: function() {
 				return output.data.join('');
 			},
-			close: function() {},
+			close: function() { },
 		};
 		return output;
 	}
 
 	private async fileReader_(path: string, encoding: any) {
 		const handle = await this.fsDriver().open(path, 'r');
-		const reader = {
+		const reader: Reader = {
 			handle: handle,
 			read: async (size: number) => {
 				return this.fsDriver().readFileChunk(reader.handle, size, encoding);
@@ -518,38 +535,39 @@ export default class EncryptionService {
 	}
 
 	private async fileWriter_(path: string, encoding: any) {
-		return {
+		const writer: Writer = {
 			append: async (data: any) => {
 				return this.fsDriver().appendFile(path, data, encoding);
 			},
-			close: function() {},
+			close: function() { },
 		};
+		return writer;
 	}
 
-	public async encryptString(plainText: any, options: EncryptOptions = null): Promise<string> {
+	public async encryptString(plainText: any, options: EncryptOptions = {}): Promise<string> {
 		const source = this.stringReader_(plainText);
 		const destination = this.stringWriter_();
 		await this.encryptAbstract_(source, destination, options);
 		return destination.result();
 	}
 
-	public async decryptString(cipherText: any, options: EncryptOptions = null): Promise<string> {
+	public async decryptString(cipherText: any, options: EncryptOptions = {}): Promise<string> {
 		const source = this.stringReader_(cipherText);
 		const destination = this.stringWriter_();
 		await this.decryptAbstract_(source, destination, options);
 		return destination.data.join('');
 	}
 
-	public async encryptFile(srcPath: string, destPath: string, options: EncryptOptions = null) {
-		let source = await this.fileReader_(srcPath, 'base64');
-		let destination = await this.fileWriter_(destPath, 'ascii');
+	public async encryptFile(srcPath: string, destPath: string, options: EncryptOptions = {}) {
+		let source: Reader | null = await this.fileReader_(srcPath, 'base64');
+		let destination: Writer | null = await this.fileWriter_(destPath, 'ascii');
 
 		const cleanUp = async () => {
 			if (source) await source.close();
 			if (destination) await destination.close();
-			// eslint-disable-next-line require-atomic-updates
+
 			source = null;
-			// eslint-disable-next-line require-atomic-updates
+
 			destination = null;
 		};
 
@@ -565,16 +583,16 @@ export default class EncryptionService {
 		await cleanUp();
 	}
 
-	public async decryptFile(srcPath: string, destPath: string, options: EncryptOptions = null) {
-		let source = await this.fileReader_(srcPath, 'ascii');
-		let destination = await this.fileWriter_(destPath, 'base64');
+	public async decryptFile(srcPath: string, destPath: string, options: EncryptOptions = {}) {
+		let source: Reader | null = await this.fileReader_(srcPath, 'ascii');
+		let destination: Writer | null = await this.fileWriter_(destPath, 'base64');
 
 		const cleanUp = async () => {
 			if (source) await source.close();
 			if (destination) await destination.close();
-			// eslint-disable-next-line require-atomic-updates
+
 			source = null;
-			// eslint-disable-next-line require-atomic-updates
+
 			destination = null;
 		};
 
@@ -626,7 +644,7 @@ export default class EncryptionService {
 		const reader: any = this.stringReader_(headerHexaBytes, true);
 		const identifier = reader.read(3);
 		const version = parseInt(reader.read(2), 16);
-		if (identifier !== 'JED') throw new Error(`Invalid header (missing identifier): ${headerHexaBytes.substr(0, 64)}`);
+		if (identifier !== 'JED') throw new Error(`Invalid header (missing identifier): ${headerHexaBytes.substring(0, 64)}`);
 		const template = this.headerTemplate(version);
 
 		parseInt(reader.read(6), 16); // Read the size and move the reader pointer forward

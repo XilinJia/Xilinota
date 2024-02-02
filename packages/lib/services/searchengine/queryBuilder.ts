@@ -237,7 +237,7 @@ const genericFilter = (terms: Term[], conditions: string[], params: string[], re
 		}
 	};
 
-	// eslint-disable-next-line github/array-foreach -- Old code before rule was applied
+
 	terms.forEach(term => {
 		conditions.push(`
 		${relation} ( ${term.name === 'due' ? 'is_todo IS 1 AND ' : ''} ROWID IN (
@@ -264,7 +264,7 @@ const biConditionalFilter = (terms: Term[], conditions: string[], relation: Rela
 	const values = terms.map(x => x.value);
 
 	// AND and OR are handled differently because FTS restricts how OR can be used.
-	// eslint-disable-next-line github/array-foreach -- Old code before rule was applied
+
 	values.forEach(value => {
 		if (relation === 'AND') {
 			conditions.push(`
@@ -323,6 +323,7 @@ const dateFilter = (terms: Term[], conditons: string[], params: string[], relati
 			return time.formatLocalToMs(date, 'YYYY').toString();
 		} else if (smartValue.test(date)) {
 			const match = smartValue.exec(date);
+			if (!match) throw new Error('Invalid date format!');
 			const timeUnit = match[1]; // eg. day, week, month, year
 			const timeDirection = match[2]; // + or -
 			const num = Number(match[3]); // eg. 1, 12, 15
@@ -343,7 +344,7 @@ const sourceUrlFilter = (terms: Term[], conditons: string[], params: string[], r
 	genericFilter(urlTerms, conditons, params, relation, 'sourceurl', useFts);
 };
 
-const trimQuotes = (str: string) => str.startsWith('"') && str.endsWith('"') ? str.substr(1, str.length - 2) : str;
+const trimQuotes = (str: string) => str.startsWith('"') && str.endsWith('"') ? str.substring(1, str.length - 2) : str;
 
 const textFilter = (terms: Term[], conditions: string[], params: string[], relation: Relation, useFts: boolean) => {
 	const createLikeMatch = (term: Term, negate: boolean) => {
@@ -371,7 +372,7 @@ const textFilter = (terms: Term[], conditions: string[], params: string[], relat
 				params.push(excludedTerms.map(x => x.value).join(' OR '));
 			}
 			if (relation === 'OR') {
-				// eslint-disable-next-line github/array-foreach -- Old code before rule was applied
+
 				excludedTerms.forEach(term => {
 					conditions.push(`
 					OR ROWID IN (
@@ -389,7 +390,7 @@ const textFilter = (terms: Term[], conditions: string[], params: string[], relat
 				});
 			}
 		} else {
-			// eslint-disable-next-line github/array-foreach -- Old code before rule was applied
+
 			excludedTerms.forEach(term => {
 				createLikeMatch(term, true);
 			});
@@ -409,7 +410,7 @@ const textFilter = (terms: Term[], conditions: string[], params: string[], relat
 			const matchQuery = (relation === 'OR') ? termsToMatch.join(' OR ') : termsToMatch.join(' ');
 			params.push(matchQuery);
 		} else {
-			// eslint-disable-next-line github/array-foreach -- Old code before rule was applied
+
 			includedTerms.forEach(term => {
 				createLikeMatch(term, false);
 			});

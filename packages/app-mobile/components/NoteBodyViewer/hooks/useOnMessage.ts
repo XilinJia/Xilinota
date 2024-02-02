@@ -1,15 +1,15 @@
 import { useCallback } from 'react';
-import shared from '@xilinota/lib/components/shared/note-screen-shared';
+import Shared from '@xilinota/lib/components/shared/note-screen-shared';
 
-export type HandleMessageCallback = (message: string)=> void;
-export type OnMarkForDownloadCallback = (resource: { resourceId: string })=> void;
+export type HandleMessageCallback = (message: string) => void;
+export type OnMarkForDownloadCallback = (resource: { resourceId: string }) => void;
 
 interface MessageCallbacks {
 	onMarkForDownload?: OnMarkForDownloadCallback;
 	onXilinotaLinkClick: HandleMessageCallback;
 	onResourceLongPress: HandleMessageCallback;
 	onRequestEditResource?: HandleMessageCallback;
-	onCheckboxChange: HandleMessageCallback;
+	onCheckboxChange: HandleMessageCallback | undefined;
 }
 
 export default function useOnMessage(
@@ -35,11 +35,11 @@ export default function useOnMessage(
 		// https://github.com/XilinJia/Xilinota/issues/4494
 		const msg = event.nativeEvent.data;
 
-		// eslint-disable-next-line no-console
+
 		console.info('Got IPC message: ', msg);
 
 		if (msg.indexOf('checkboxclick:') === 0) {
-			const newBody = shared.toggleCheckbox(msg, noteBody);
+			const newBody = Shared.toggleCheckbox(msg, noteBody);
 			onCheckboxChange?.(newBody);
 		} else if (msg.indexOf('markForDownload:') === 0) {
 			const splittedMsg = msg.split(':');

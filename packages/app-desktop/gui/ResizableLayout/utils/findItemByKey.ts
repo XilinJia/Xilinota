@@ -1,9 +1,9 @@
 import { LayoutItem } from './types';
 
-export default function findItemByKey(layout: LayoutItem, key: string): LayoutItem {
+export default function findItemByKey(layout: LayoutItem, key: string): LayoutItem|null {
 	if (!layout) throw new Error('Layout cannot be null');
 
-	function recurseFind(item: LayoutItem): LayoutItem {
+	function recurseFind(item: LayoutItem): LayoutItem|null {
 		if (item.key === key) return item;
 
 		if (item.children) {

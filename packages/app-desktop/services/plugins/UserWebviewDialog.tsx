@@ -5,7 +5,7 @@ import PluginService from '@xilinota/lib/services/plugins/PluginService';
 import WebviewController from '@xilinota/lib/services/plugins/WebviewController';
 import UserWebview, { Props as UserWebviewProps } from './UserWebview';
 import UserWebviewDialogButtonBar from './UserWebviewDialogButtonBar';
-const styled = require('styled-components').default;
+import styled from 'styled-components';
 
 interface Props extends UserWebviewProps {
 	buttons: ButtonSpec[];
@@ -52,20 +52,20 @@ function defaultButtons(): ButtonSpec[] {
 	];
 }
 
-function findSubmitButton(buttons: ButtonSpec[]): ButtonSpec | null {
+function findSubmitButton(buttons: ButtonSpec[]): ButtonSpec | undefined {
 	return buttons.find((b: ButtonSpec) => {
 		return ['ok', 'yes', 'confirm', 'submit'].includes(b.id);
 	});
 }
 
-function findDismissButton(buttons: ButtonSpec[]): ButtonSpec | null {
+function findDismissButton(buttons: ButtonSpec[]): ButtonSpec | undefined {
 	return buttons.find((b: ButtonSpec) => {
 		return ['cancel', 'no', 'reject'].includes(b.id);
 	});
 }
 
 export default function UserWebviewDialog(props: Props) {
-	const webviewRef = useRef(null);
+	const webviewRef = useRef<any>(null);
 
 	function viewController(): WebviewController {
 		return PluginService.instance().pluginById(props.pluginId).viewController(props.viewId) as WebviewController;
@@ -85,14 +85,14 @@ export default function UserWebviewDialog(props: Props) {
 
 	const onSubmit = useCallback(() => {
 		const submitButton = findSubmitButton(buttons);
-		if (submitButton) {
+		if (submitButton && submitButton.onClick) {
 			submitButton.onClick();
 		}
 	}, [buttons]);
 
 	const onDismiss = useCallback(() => {
 		const dismissButton = findDismissButton(buttons);
-		if (dismissButton) {
+		if (dismissButton && dismissButton.onClick) {
 			dismissButton.onClick();
 		}
 	}, [buttons]);
@@ -106,7 +106,9 @@ export default function UserWebviewDialog(props: Props) {
 
 	return (
 		<StyledRoot>
-			<Dialog fitToContent={props.fitToContent}>
+			{/* fitToContent not exist */}
+			{/* <Dialog fitToContent={props.fitToContent}> */}
+			<Dialog>
 				<UserWebViewWrapper>
 					<UserWebview
 						ref={webviewRef}

@@ -6,14 +6,15 @@ import { LogMessageCallback } from '../../types';
 import editorCommands from '../editorCommands/editorCommands';
 import { StateEffect } from '@codemirror/state';
 import { StreamParser } from '@codemirror/language';
-import Decorator, { LineWidgetOptions } from './Decorator';
-const { pregQuote } = require('@xilinota/lib/string-utils-common');
+import Decorator, { LineWidgetControl, LineWidgetOptions } from './Decorator';
+import { pregQuote } from '@xilinota/lib/string-utils';
+import { SearchQuery } from '@codemirror/search';
 
 
-type CodeMirror5Command = (codeMirror: CodeMirror5Emulation)=> void;
+type CodeMirror5Command = (codeMirror: CodeMirror5Emulation) => void;
 
-type EditorEventCallback = (editor: CodeMirror5Emulation, ...args: any[])=> void;
-type OptionUpdateCallback = (editor: CodeMirror5Emulation, newVal: any, oldVal: any)=> void;
+type EditorEventCallback = (editor: CodeMirror5Emulation, ...args: any[]) => void;
+type OptionUpdateCallback = (editor: CodeMirror5Emulation, newVal: any, oldVal: any) => void;
 
 interface CodeMirror5OptionRecord {
 	onUpdate: OptionUpdateCallback;
@@ -33,6 +34,12 @@ const documentPositionFromPos = (doc: Text, pos: number): DocumentPosition => {
 		ch: pos - line.from,
 	};
 };
+
+// copied from packages/editor/node_modules/@replit/codemirror-vim/dist/index.d.ts
+interface Pos {
+	line: number;
+	ch: number;
+}
 
 export default class CodeMirror5Emulation extends BaseCodeMirror5Emulation {
 	private _events: Record<string, EditorEventCallback[]> = {};
@@ -63,7 +70,7 @@ export default class CodeMirror5Emulation extends BaseCodeMirror5Emulation {
 		});
 	}
 
-	private makeCM6Extensions() {
+	private makeCM6Extensions(): Extension[] {
 		const cm5 = this;
 		const editor = this.editor;
 
@@ -98,7 +105,7 @@ export default class CodeMirror5Emulation extends BaseCodeMirror5Emulation {
 						}
 
 						CodeMirror5Emulation.signal(cm5, 'update');
-					// Catch the error -- otherwise, CodeMirror will de-register the update listener.
+						// Catch the error -- otherwise, CodeMirror will de-register the update listener.
 					} catch (error) {
 						cm5.logMessage(`Error dispatching update: ${error}`);
 					}
@@ -123,11 +130,11 @@ export default class CodeMirror5Emulation extends BaseCodeMirror5Emulation {
 		];
 	}
 
-	private isEventHandledBySuperclass(eventName: string) {
+	private isEventHandledBySuperclass(eventName: string): boolean {
 		return ['beforeSelectionChange'].includes(eventName);
 	}
 
-	public on(eventName: string, callback: EditorEventCallback) {
+	public on(eventName: string, callback: EditorEventCallback): void {
 		if (this.isEventHandledBySuperclass(eventName)) {
 			return super.on(eventName, callback);
 		}
@@ -135,7 +142,7 @@ export default class CodeMirror5Emulation extends BaseCodeMirror5Emulation {
 		this._events[eventName].push(callback);
 	}
 
-	public off(eventName: string, callback: EditorEventCallback) {
+	public off(eventName: string, callback: EditorEventCallback): void {
 		if (!(eventName in this._events)) {
 			return;
 		}
@@ -145,7 +152,7 @@ export default class CodeMirror5Emulation extends BaseCodeMirror5Emulation {
 		);
 	}
 
-	public static signal(target: CodeMirror5Emulation, eventName: string, ...args: any[]) {
+	public static signal(target: CodeMirror5Emulation, eventName: string, ...args: any[]): void {
 		const listeners = target._events[eventName] ?? [];
 
 		for (const listener of listeners) {
@@ -155,7 +162,7 @@ export default class CodeMirror5Emulation extends BaseCodeMirror5Emulation {
 		super.signal(target, eventName, ...args);
 	}
 
-	private fireChangeEvents(update: ViewUpdate) {
+	private fireChangeEvents(update: ViewUpdate): void {
 		type ChangeRecord = {
 			from: DocumentPosition;
 			to: DocumentPosition;
@@ -196,7 +203,7 @@ export default class CodeMirror5Emulation extends BaseCodeMirror5Emulation {
 	}
 
 	// codemirror-vim's adapter doesn't match the CM5 docs -- wrap it.
-	public getCursor(mode?: 'head' | 'anchor' | 'from' | 'to'| 'start' | 'end') {
+	public getCursor(mode?: 'head' | 'anchor' | 'from' | 'to' | 'start' | 'end'): Pos {
 		if (mode === 'from') {
 			mode = 'start';
 		}
@@ -207,7 +214,14 @@ export default class CodeMirror5Emulation extends BaseCodeMirror5Emulation {
 		return super.getCursor(mode);
 	}
 
-	public override getSearchCursor(query: RegExp|string, pos?: DocumentPosition|null|0) {
+	public override getSearchCursor(query: RegExp | string, pos?: DocumentPosition | null | 0): {
+		findNext: () => string[] | null | undefined;
+		findPrevious: () => string[] | null | undefined;
+		find: (back?: boolean | undefined) => string[] | null | undefined;
+		from: () => Pos | undefined;
+		to: () => Pos | undefined;
+		replace: (text: string) => void;
+	} {
 		// The superclass CodeMirror adapter only supports regular expression
 		// arguments.
 		if (typeof query === 'string') {
@@ -216,7 +230,7 @@ export default class CodeMirror5Emulation extends BaseCodeMirror5Emulation {
 		return super.getSearchCursor(query, pos || { line: 0, ch: 0 });
 	}
 
-	public lineAtHeight(height: number, _mode?: 'local') {
+	public lineAtHeight(height: number, _mode?: 'local'): number {
 		const lineInfo = this.editor.lineBlockAtHeight(height);
 
 		// - 1: Convert to zero-based.
@@ -224,7 +238,7 @@ export default class CodeMirror5Emulation extends BaseCodeMirror5Emulation {
 		return lineNumber;
 	}
 
-	public heightAtLine(lineNumber: number, mode?: 'local') {
+	public heightAtLine(lineNumber: number, mode?: 'local'): number {
 		// CodeMirror 5 uses 0-based line numbers. CM6 uses 1-based
 		// line numbers.
 		const doc = this.editor.state.doc;
@@ -240,7 +254,16 @@ export default class CodeMirror5Emulation extends BaseCodeMirror5Emulation {
 		}
 	}
 
-	public lineInfo(lineNumber: number) {
+	public lineInfo(lineNumber: number): {
+		line: number;
+		handle: number;
+		text: string;
+		gutterMarkers: any[];
+		textClass: string[];
+		bgClass: string;
+		wrapClass: string;
+		widgets: LineWidgetControl[];
+	} {
 		const line = this.editor.state.doc.line(lineNumber + 1);
 
 		const result = {
@@ -266,15 +289,15 @@ export default class CodeMirror5Emulation extends BaseCodeMirror5Emulation {
 		return {};
 	}
 
-	public getScrollPercent() {
+	public getScrollPercent(): number {
 		return getScrollFraction(this.editor);
 	}
 
-	public defineExtension(name: string, value: any) {
+	public defineExtension(name: string, value: any): void {
 		(CodeMirror5Emulation.prototype as any)[name] ??= value;
 	}
 
-	public defineOption(name: string, defaultValue: any, onUpdate: OptionUpdateCallback) {
+	public defineOption(name: string, defaultValue: any, onUpdate: OptionUpdateCallback): void {
 		this._options[name] = {
 			value: defaultValue,
 			onUpdate,
@@ -283,7 +306,7 @@ export default class CodeMirror5Emulation extends BaseCodeMirror5Emulation {
 	}
 
 	// Override codemirror-vim's setOption to allow user-defined options
-	public override setOption(name: string, value: any) {
+	public override setOption(name: string, value: any): void {
 		if (name in this._options) {
 			const oldValue = this._options[name].value;
 			this._options[name].value = value;
@@ -301,31 +324,33 @@ export default class CodeMirror5Emulation extends BaseCodeMirror5Emulation {
 		}
 	}
 
+	// seeme not used
 	// codemirror-vim's API doesn't match the API docs here -- it expects addOverlay
 	// to return a SearchQuery. As such, this override returns "any".
-	public override addOverlay<State>(modeObject: StreamParser<State>|{ query: RegExp }): any {
+	public override addOverlay<State>(modeObject: StreamParser<State> | { query: RegExp }): SearchQuery | undefined {
 		if ('query' in modeObject) {
 			return super.addOverlay(modeObject);
 		}
 
 		this._decorator.addOverlay(modeObject);
+		return;
 	}
 
-	public addLineClass(lineNumber: number, where: string, className: string) {
+	public addLineClass(lineNumber: number, where: string, className: string): void {
 		this._decorator.addLineClass(lineNumber, where, className);
 	}
 
-	public removeLineClass(lineNumber: number, where: string, className: string) {
+	public removeLineClass(lineNumber: number, where: string, className: string): void {
 		this._decorator.removeLineClass(lineNumber, where, className);
 	}
 
-	public addLineWidget(lineNumber: number, node: HTMLElement, options: LineWidgetOptions) {
+	public addLineWidget(lineNumber: number, node: HTMLElement, options: LineWidgetOptions): void {
 		this._decorator.addLineWidget(lineNumber, node, options);
 	}
 
 	// TODO: Currently copied from useCursorUtils.ts.
 	// TODO: Remove the duplicate code when CodeMirror 5 is eventually removed.
-	public wrapSelections(string1: string, string2: string) {
+	public wrapSelections(string1: string, string2: string): void {
 		const selectedStrings = this.getSelections();
 
 		// Batches the insert operations, if this wasn't done the inserts
@@ -370,7 +395,7 @@ export default class CodeMirror5Emulation extends BaseCodeMirror5Emulation {
 
 	public commands = CodeMirror5Emulation.commands;
 
-	private xilinotaCommandToCodeMirrorCommand(commandName: string): string|null {
+	private xilinotaCommandToCodeMirrorCommand(commandName: string): string | null {
 		const match = /^editor\.(.*)$/g.exec(commandName);
 
 		if (!match || !(match[1] in CodeMirror5Emulation.commands)) {
@@ -381,10 +406,11 @@ export default class CodeMirror5Emulation extends BaseCodeMirror5Emulation {
 	}
 
 	public supportsXilinotaCommand(commandName: string): boolean {
-		return this.xilinotaCommandToCodeMirrorCommand(commandName) in CodeMirror5Emulation.commands;
+		const cmCommand = this.xilinotaCommandToCodeMirrorCommand(commandName);
+		return !!cmCommand && cmCommand in CodeMirror5Emulation.commands;
 	}
 
-	public execXilinotaCommand(xilinotaCommandName: string) {
+	public execXilinotaCommand(xilinotaCommandName: string): void {
 		const commandName = this.xilinotaCommandToCodeMirrorCommand(xilinotaCommandName);
 
 		if (commandName === null) {
@@ -395,11 +421,11 @@ export default class CodeMirror5Emulation extends BaseCodeMirror5Emulation {
 		this.execCommand(commandName);
 	}
 
-	public commandExists(commandName: string) {
+	public commandExists(commandName: string): boolean {
 		return commandName in CodeMirror5Emulation.commands;
 	}
 
-	public execCommand(name: string) {
+	public execCommand(name: string): void {
 		if (!this.commandExists(name)) {
 			this.logMessage(`Unsupported CodeMirror command, ${name}`);
 			return;

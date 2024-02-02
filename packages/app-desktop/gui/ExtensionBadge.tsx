@@ -1,8 +1,9 @@
-import * as React from 'react';
+import React from 'react';
 import bridge from '../services/bridge';
 import { _ } from '@xilinota/lib/locale';
 import { themeStyle } from '@xilinota/lib/theme';
-const { createSelector } = require('reselect');
+import { createSelector } from 'reselect';
+import type * as CSS from 'csstype';
 
 interface Props {
 	themeId: number;
@@ -11,7 +12,7 @@ interface Props {
 	style?: any;
 }
 
-const themeSelector = (_state: any, props: any) => themeStyle(props.themeId);
+const themeSelector = (_state: any, props: Props) => themeStyle(props.themeId);
 
 const styleSelector = createSelector(
 	themeSelector,
@@ -39,7 +40,7 @@ const styleSelector = createSelector(
 			},
 			labelGroup: {
 				display: 'flex',
-				flexDirection: 'column',
+				flexDirection: 'column' as CSS.Property.FlexDirection,
 				justifyContent: 'center',
 				marginLeft: 14,
 				fontFamily: theme.fontFamily,
@@ -86,7 +87,7 @@ function ExtensionBadge(props: Props) {
 
 	return (
 		<a style={rootStyle} onClick={onClick} href="#">
-			<img style={style.logo} src={assets.logoImage}/>
+			<img style={style.logo} src={assets.logoImage} />
 			<div style={style.labelGroup} >
 				<div>{_('Get it now:')}</div>
 				<div style={style.locationLabel}>{assets.locationLabel}</div>

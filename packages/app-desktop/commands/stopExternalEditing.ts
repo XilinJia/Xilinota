@@ -11,9 +11,9 @@ export const declaration: CommandDeclaration = {
 
 export const runtime = (): CommandRuntime => {
 	return {
-		execute: async (context: CommandContext, noteId: string = null) => {
-			noteId = noteId || stateUtils.selectedNoteId(context.state);
-			void ExternalEditWatcher.instance().stopWatching(noteId);
+		execute: async (context: CommandContext, noteId: string = '') => {
+			noteId = noteId || (stateUtils.selectedNoteId(context.state) ?? '');
+			if (noteId) void ExternalEditWatcher.instance().stopWatching(noteId);
 		},
 		enabledCondition: 'oneNoteSelected && !noteIsReadOnly',
 	};

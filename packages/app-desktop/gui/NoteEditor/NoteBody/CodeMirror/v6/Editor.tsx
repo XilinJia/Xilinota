@@ -18,8 +18,8 @@ interface Props extends EditorProps {
 }
 
 const Editor = (props: Props, ref: ForwardedRef<CodeMirrorControl>) => {
-	const editorContainerRef = useRef<HTMLDivElement>();
-	const [editor, setEditor] = useState<CodeMirrorControl|null>(null);
+	const editorContainerRef: React.MutableRefObject<HTMLDivElement> = useRef<HTMLDivElement>(document.createElement('div'));
+	const [editor, setEditor] = useState<CodeMirrorControl>();
 
 	// The editor will only be created once, so callbacks that could
 	// change need to be stored as references.
@@ -48,7 +48,9 @@ const Editor = (props: Props, ref: ForwardedRef<CodeMirrorControl>) => {
 	}, [editor, props.onEditorPaste]);
 
 	useImperativeHandle(ref, () => {
-		return editor;
+		return editor!;
+		// if (editor) return editor;
+		// throw new Error('CodeMirrorControl is not available.');
 	}, [editor]);
 
 	useEffect(() => {
@@ -95,7 +97,6 @@ const Editor = (props: Props, ref: ForwardedRef<CodeMirrorControl>) => {
 		return () => {
 			editor.remove();
 		};
-	// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Should run just once
 	}, []);
 
 	useEffect(() => {

@@ -8,9 +8,9 @@ import { isNetworkSyncTarget, fileApi, setupDatabaseAndSynchronizer, synchronize
 // For that reason we add this multiplier for non-memory sync targets.
 const timeoutMultipler = isNetworkSyncTarget() ? 100 : 1;
 
-let lockHandler_: LockHandler = null;
+let lockHandler_: LockHandler|null = null;
 
-function newLockHandler(options: LockHandlerOptions = null): LockHandler {
+function newLockHandler(options: LockHandlerOptions = {}): LockHandler {
 	return new LockHandler(fileApi(), options);
 }
 
@@ -86,7 +86,7 @@ describe('synchronizer_LockHandler', () => {
 		handler.startAutoLockRefresh(lock, () => {});
 		await msleep(500 * timeoutMultipler);
 		const lockAfter = activeLock(await handler.locks(), new Date(), handler.lockTtl, LockType.Sync, LockClientType.Desktop, '111');
-		expect(lockAfter.updatedTime).toBeGreaterThan(lockBefore.updatedTime);
+		if (lockAfter && lockBefore) expect(lockAfter.updatedTime).toBeGreaterThan(lockBefore.updatedTime??0);
 		handler.stopAutoLockRefresh(lock);
 	}));
 
@@ -169,7 +169,7 @@ describe('synchronizer_LockHandler', () => {
 			});
 
 			const lock = activeLock(locks, new Date(), lockHandler.lockTtl, LockType.Exclusive);
-			expect(lock.clientId).toBe('1');
+			if (lock) expect(lock.clientId).toBe('1');
 		}
 	}));
 

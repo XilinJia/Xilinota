@@ -78,13 +78,13 @@ describe('services_SearchFilter', () => {
 				let rows;
 				const notebook1 = await Folder.save({ title: 'folderA' });
 				const notebook2 = await Folder.save({ title: 'folderB' });
-				const note1 = await Note.save({ title: 'Note1', body: 'obelix', parent_id: notebook1.id });
-				const note2 = await Note.save({ title: 'Note2', body: 'asterix', parent_id: notebook2.id });
-				const note3 = await Note.save({ title: 'Note3', body: 'rom', parent_id: notebook1.id });
+				const note1 = await Note.save({ title: 'Note1', body: 'obelix', parent_id: notebook1.id??'' });
+				const note2 = await Note.save({ title: 'Note2', body: 'asterix', parent_id: notebook2.id??'' });
+				const note3 = await Note.save({ title: 'Note3', body: 'rom', parent_id: notebook1.id??'' });
 
-				await Tag.setNoteTagsByTitles(note1.id, ['tag1', 'tag2']);
-				await Tag.setNoteTagsByTitles(note2.id, ['tag2', 'tag3']);
-				await Tag.setNoteTagsByTitles(note3.id, ['tag3', 'tag4', 'space travel']);
+				await Tag.setNoteTagsByTitles(note1.id??'', ['tag1', 'tag2']);
+				await Tag.setNoteTagsByTitles(note2.id??'', ['tag2', 'tag3']);
+				await Tag.setNoteTagsByTitles(note3.id??'', ['tag3', 'tag4', 'space travel']);
 
 				await engine.syncTables();
 
@@ -301,8 +301,8 @@ describe('services_SearchFilter', () => {
 				const n4 = await Note.save({ title: 'walked a thousand', body: 'miles to fall' });
 				const n5 = await Note.save({ title: 'down at your', body: 'door' });
 
-				await Tag.setNoteTagsByTitles(n1.id, ['Da', 'da', 'lat', 'da']);
-				await Tag.setNoteTagsByTitles(n2.id, ['Da', 'da', 'lat', 'da']);
+				await Tag.setNoteTagsByTitles(n1.id??'', ['Da', 'da', 'lat', 'da']);
+				await Tag.setNoteTagsByTitles(n2.id??'', ['Da', 'da', 'lat', 'da']);
 
 				await engine.syncTables();
 
@@ -325,9 +325,9 @@ describe('services_SearchFilter', () => {
 				const n2 = await Note.save({ title: 'mouse', body: 'mister' });
 				const n3 = await Note.save({ title: 'dresden files', body: 'harry dresden' });
 
-				await Tag.setNoteTagsByTitles(n1.id, ['tag1', 'tag2']);
-				await Tag.setNoteTagsByTitles(n2.id, ['tag2', 'tag3']);
-				await Tag.setNoteTagsByTitles(n3.id, ['tag3', 'tag4', 'space travel']);
+				await Tag.setNoteTagsByTitles(n1.id??'', ['tag1', 'tag2']);
+				await Tag.setNoteTagsByTitles(n2.id??'', ['tag2', 'tag3']);
+				await Tag.setNoteTagsByTitles(n3.id??'', ['tag3', 'tag4', 'space travel']);
 
 				await engine.syncTables();
 
@@ -385,7 +385,7 @@ describe('services_SearchFilter', () => {
 
 			it('should support filtering by nested notebook', (async () => {
 				const folder0 = await Folder.save({ title: 'notebook0' });
-				const folder00 = await Folder.save({ title: 'notebook00', parent_id: folder0.id });
+				const folder00 = await Folder.save({ title: 'notebook00', parent_id: folder0.id??'' });
 				const folder1 = await Folder.save({ title: 'notebook1' });
 				const notes0 = await createNTestNotes(5, folder0);
 				const notes00 = await createNTestNotes(5, folder00);
@@ -400,7 +400,7 @@ describe('services_SearchFilter', () => {
 
 			it('should support filtering by multiple notebooks', (async () => {
 				const folder0 = await Folder.save({ title: 'notebook0' });
-				const folder00 = await Folder.save({ title: 'notebook00', parent_id: folder0.id });
+				const folder00 = await Folder.save({ title: 'notebook00', parent_id: folder0.id??'' });
 				const folder1 = await Folder.save({ title: 'notebook1' });
 				const folder2 = await Folder.save({ title: 'notebook2' });
 				const notes0 = await createNTestNotes(5, folder0);
@@ -418,10 +418,10 @@ describe('services_SearchFilter', () => {
 			it('should support filtering and search term', (async () => {
 				const notebook1 = await Folder.save({ title: 'notebook1' });
 				const notebook2 = await Folder.save({ title: 'notebook2' });
-				const note1 = await Note.save({ title: 'note1', body: 'abcdefg', parent_id: notebook1.id });
-				await Note.save({ title: 'note2', body: 'body', parent_id: notebook1.id });
-				await Note.save({ title: 'note3', body: 'abcdefg', parent_id: notebook2.id });
-				await Note.save({ title: 'note4', body: 'body', parent_id: notebook2.id });
+				const note1 = await Note.save({ title: 'note1', body: 'abcdefg', parent_id: notebook1.id??'' });
+				await Note.save({ title: 'note2', body: 'body', parent_id: notebook1.id??'' });
+				await Note.save({ title: 'note3', body: 'abcdefg', parent_id: notebook2.id??'' });
+				await Note.save({ title: 'note4', body: 'body', parent_id: notebook2.id??'' });
 
 				await engine.syncTables();
 
@@ -784,10 +784,10 @@ describe('services_SearchFilter', () => {
 				const service = new ResourceService();
 				// console.log(testImagePath)
 				const folder1 = await Folder.save({ title: 'folder1' });
-				let n1 = await Note.save({ title: 'I have a picture', body: 'Im awesome', parent_id: folder1.id });
-				const n2 = await Note.save({ title: 'Boring note 1', body: 'I just have text', parent_id: folder1.id });
-				const n3 = await Note.save({ title: 'Boring note 2', body: 'me too', parent_id: folder1.id });
-				let n4 = await Note.save({ title: 'A picture?', body: 'pfff, I have a pdf', parent_id: folder1.id });
+				let n1 = await Note.save({ title: 'I have a picture', body: 'Im awesome', parent_id: folder1.id! });
+				const n2 = await Note.save({ title: 'Boring note 1', body: 'I just have text', parent_id: folder1.id! });
+				const n3 = await Note.save({ title: 'Boring note 2', body: 'me too', parent_id: folder1.id! });
+				let n4 = await Note.save({ title: 'A picture?', body: 'pfff, I have a pdf', parent_id: folder1.id! });
 				await engine.syncTables();
 
 				// let note1 = await Note.save({ title: 'ma note', parent_id: folder1.id });
@@ -860,13 +860,13 @@ describe('services_SearchFilter', () => {
 			it('should support negating notebooks', (async () => {
 
 				const folder1 = await Folder.save({ title: 'folder1' });
-				const n1 = await Note.save({ title: 'task1', body: 'foo', parent_id: folder1.id });
-				const n2 = await Note.save({ title: 'task2', body: 'bar', parent_id: folder1.id });
+				const n1 = await Note.save({ title: 'task1', body: 'foo', parent_id: folder1.id! });
+				const n2 = await Note.save({ title: 'task2', body: 'bar', parent_id: folder1.id! });
 
 
 				const folder2 = await Folder.save({ title: 'folder2' });
-				const n3 = await Note.save({ title: 'task3', body: 'baz', parent_id: folder2.id });
-				const n4 = await Note.save({ title: 'task4', body: 'blah', parent_id: folder2.id });
+				const n3 = await Note.save({ title: 'task3', body: 'baz', parent_id: folder2.id! });
+				const n4 = await Note.save({ title: 'task4', body: 'blah', parent_id: folder2.id! });
 
 
 				await engine.syncTables();
@@ -887,13 +887,13 @@ describe('services_SearchFilter', () => {
 			it('should support both inclusion and exclusion of notebooks together', (async () => {
 
 				const parentFolder = await Folder.save({ title: 'parent' });
-				const n1 = await Note.save({ title: 'task1', body: 'foo', parent_id: parentFolder.id });
-				const n2 = await Note.save({ title: 'task2', body: 'bar', parent_id: parentFolder.id });
+				const n1 = await Note.save({ title: 'task1', body: 'foo', parent_id: parentFolder.id! });
+				const n2 = await Note.save({ title: 'task2', body: 'bar', parent_id: parentFolder.id! });
 
 
-				const subFolder = await Folder.save({ title: 'child', parent_id: parentFolder.id });
-				await Note.save({ title: 'task3', body: 'baz', parent_id: subFolder.id });
-				await Note.save({ title: 'task4', body: 'blah', parent_id: subFolder.id });
+				const subFolder = await Folder.save({ title: 'child', parent_id: parentFolder.id! });
+				await Note.save({ title: 'task3', body: 'baz', parent_id: subFolder.id! });
+				await Note.save({ title: 'task4', body: 'blah', parent_id: subFolder.id! });
 
 
 				await engine.syncTables();

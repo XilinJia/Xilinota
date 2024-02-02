@@ -251,8 +251,10 @@ You need to convert special characters to HTML entities, which we usually do usi
 // We generally use this rather verbose pattern, but there
 // are also helper functions that you may be able to use
 // depending on the package.
-const Entities = require('html-entities').AllHtmlEntities;
-const htmlentities = new Entities().encode;
+// const Entities = require('html-entities').AllHtmlEntities;
+// const htmlentities = new Entities().encode;
+const htmlentities = require('html-entities').encode;
+
 const html = `<a href="${htmlentities(attributes)}">${htmlentities(content)}</a>`;
 ```
 
@@ -439,9 +441,9 @@ We aren't using these guides, but they may still be helpful!
 
 - [TypeScript Deep Dive — Style Guide](https://basarat.gitbook.io/typescript/styleguide)
 - [Google TypeScript style guide](https://google.github.io/styleguide/tsguide.html)
- 	- See also [`ts.dev`'s style guide](https://ts.dev/style/#function-expressions), which is based on the Google style guide.
+  - See also [`ts.dev`'s style guide](https://ts.dev/style/#function-expressions), which is based on the Google style guide.
 - [Javascript standardstyle](https://standardjs.com/rules.html)
- 	- Possibly useful for adding to `.eslintrc.js`: lists `eslint` configuration flags for each of their suggestions
+  - Possibly useful for adding to `.eslintrc.js`: lists `eslint` configuration flags for each of their suggestions
 
 ## Posts/resources related to Xilinota's style
 

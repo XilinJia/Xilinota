@@ -64,7 +64,7 @@ export default class SyncTargetJoplinCloud extends BaseSyncTarget {
 	}
 
 	protected async initFileApi() {
-		return initFileApi(SyncTargetJoplinCloud.id(), this.logger(), {
+		return initFileApi(SyncTargetJoplinCloud.id(), this.logger()!, {
 			path: () => Setting.value('sync.10.path'),
 			userContentPath: () => Setting.value('sync.10.userContentPath'),
 			username: () => Setting.value('sync.10.username'),

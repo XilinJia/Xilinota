@@ -46,22 +46,22 @@ function calculateChildrenSizes(item: LayoutItem, parent: LayoutItem | null, siz
 	let noHeightChildrenMinHeight = 0;
 
 	for (const child of item.children) {
-		let w = 'width' in child ? child.width : null;
-		let h = 'height' in child ? child.height : null;
+		let w = 'width' in child ? child.width : 0;
+		let h = 'height' in child ? child.height : 0;
 		if (!makeAllVisible && child.visible === false) {
 			w = 0;
 			h = 0;
 		}
 
-		sizes[child.key] = { width: w, height: h };
+		sizes[child.key] = { width: w??0, height: h??0 };
 
-		if (w !== null) remainingSize.width -= w;
-		if (h !== null) remainingSize.height -= h;
-		if (w === null) {
+		if (w !== 0) remainingSize.width -= w??0;
+		if (h !== 0) remainingSize.height -= h??0;
+		if (w === 0) {
 			noWidthChildren.push({ item: child, parent: item });
 			noWidthChildrenMinWidth += child.minWidth || itemMinWidth;
 		}
-		if (h === null) {
+		if (h === 0) {
 			noHeightChildren.push({ item: child, parent: item });
 			noHeightChildrenMinHeight += child.minHeight || itemMinHeight;
 		}
@@ -122,28 +122,31 @@ function calculateChildrenSizes(item: LayoutItem, parent: LayoutItem | null, siz
 export function calculateMaxSizeAvailableForItem(item: LayoutItem, parent: LayoutItem, sizes: LayoutItemSizes): Size {
 	const availableSize: Size = { ...sizes[parent.key] };
 
-	for (const sibling of parent.children) {
-		if (!sibling.visible) continue;
+	if (parent.children) {
+		for (const sibling of parent.children) {
+			if (!sibling.visible) continue;
 
-		availableSize.width -= 'width' in sibling ? sizes[sibling.key].width : (sibling.minWidth || itemMinWidth);
-		availableSize.height -= 'height' in sibling ? sizes[sibling.key].height : (sibling.minHeight || itemMinHeight);
+			availableSize.width -= 'width' in sibling ? sizes[sibling.key].width : (sibling.minWidth || itemMinWidth);
+			availableSize.height -= 'height' in sibling ? sizes[sibling.key].height : (sibling.minHeight || itemMinHeight);
+		}
 	}
-
 	availableSize.width += sizes[item.key].width;
 	availableSize.height += sizes[item.key].height;
 
 	return availableSize;
 }
 
-export default function useLayoutItemSizes(layout: LayoutItem, makeAllVisible = false) {
+export default function useLayoutItemSizes(layout: LayoutItem|null, makeAllVisible = false) {
 	return useMemo(() => {
 		let sizes: LayoutItemSizes = {};
+		// XJ: some JS caller may pass through null to layout
+		if (!layout) return sizes;
 
 		if (!('width' in layout) || !('height' in layout)) throw new Error('width and height are required on layout root');
 
 		sizes[layout.key] = {
-			width: layout.width,
-			height: layout.height,
+			width: layout.width??0,
+			height: layout.height??0,
 		};
 
 		sizes = calculateChildrenSizes(layout, null, sizes, makeAllVisible);

@@ -19,14 +19,14 @@ const hashContent = (content: any) => {
 	return createHash('sha1').update(JSON.stringify(content)).digest('hex');
 };
 
-export default (note: NoteEntity, isSelected: boolean, isWatched: boolean, listRenderer: ListRenderer, highlightedWords: string[]) => {
-	const [renderedNote, setRenderedNote] = useState<RenderedNote>(null);
+export default (note: NoteEntity, isSelected: boolean, isWatched: boolean, listRenderer: ListRenderer, highlightedWords: string[]): RenderedNote => {
+	const [renderedNote, setRenderedNote] = useState<RenderedNote>({id:'', hash:'', html:''});
 
 	useAsyncEffect(async (event) => {
 		const renderNote = async (): Promise<void> => {
 			let noteTags: TagEntity[] = [];
 
-			if (listRenderer.dependencies.includes('note.tags')) {
+			if (note.id && listRenderer.dependencies.includes('note.tags')) {
 				noteTags = await Tag.tagsByNoteId(note.id, { fields: ['id', 'title'] });
 			}
 
@@ -43,7 +43,7 @@ export default (note: NoteEntity, isSelected: boolean, isWatched: boolean, listR
 				noteTags.map(t => t.title).sort().join(','),
 			]);
 
-			if (renderedNote && renderedNote.hash === viewHash) return null;
+			if (renderedNote && renderedNote.hash === viewHash) return;
 
 			// console.info('RENDER', note.id, renderedNote ? renderedNote.hash : 'NULL', viewHash);
 
@@ -58,14 +58,14 @@ export default (note: NoteEntity, isSelected: boolean, isWatched: boolean, listR
 				noteTags,
 			);
 
-			if (event.cancelled) return null;
+			if (event.cancelled) return;
 
 			const view = await listRenderer.onRenderNote(viewProps);
 
-			if (event.cancelled) return null;
+			if (event.cancelled) return;
 
 			setRenderedNote({
-				id: note.id,
+				id: note.id??'',
 				hash: viewHash,
 				html: Mustache.render(listRenderer.itemTemplate, view),
 			});

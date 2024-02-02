@@ -104,7 +104,7 @@ describe('createEditor', () => {
 
 		// Only one script should be present.
 		const scriptContainer = document.querySelector('#joplin-plugin-scripts-container');
-		expect(scriptContainer.querySelectorAll('script')).toHaveLength(1);
+		expect(scriptContainer?.querySelectorAll('script')).toHaveLength(1);
 
 		// Adding another plugin should add another script element
 		await editor.setPlugins([
@@ -113,7 +113,7 @@ describe('createEditor', () => {
 		await jest.runAllTimersAsync();
 
 		// There should now be script elements for each plugin
-		expect(scriptContainer.querySelectorAll('script')).toHaveLength(2);
+		expect(scriptContainer?.querySelectorAll('script')).toHaveLength(2);
 
 		// Removing the editor should remove the script container
 		editor.remove();

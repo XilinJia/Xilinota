@@ -2,8 +2,8 @@
 
 import { RuleOptions } from '../../MdToHtml';
 
-const stringUtils = require('../../stringUtils.js');
-const md5 = require('md5');
+import { surroundKeywords } from '../../stringUtils';
+import md5 from 'md5';
 
 function createHighlightedTokens(Token: any, splitted: string[]) {
 	let token;
@@ -54,7 +54,7 @@ function plugin(markdownIt: any, ruleOptions: RuleOptions) {
 				const child = token.children[j];
 				if (child.type !== 'text') continue;
 
-				const splitted = stringUtils.surroundKeywords(keywords, child.content, divider, divider).split(divider);
+				const splitted = surroundKeywords(keywords, child.content, divider, divider).split(divider);
 				const splittedTokens = createHighlightedTokens(Token, splitted);
 				if (splittedTokens.length <= 1) continue;
 

@@ -10,16 +10,17 @@ export default async () => {
 		await FingerprintScanner.authenticate({ description: _('Verify your identity') });
 		logger.info('Authenticate done');
 	} catch (error) {
-		const errorName = (error as Errors).name;
+		const err = error as Errors;
+		const errorName = err.name;
 
-		let errorMessage = error.message;
+		let errorMessage = err.message as string;
 		if (errorName === 'FingerprintScannerNotEnrolled' || errorName === 'FingerprintScannerNotAvailable') {
-			errorMessage = _('Biometric unlock is not setup on the device. Please set it up in order to unlock Xilinota. If the device is on lockout, consider switching it off and on to reset biometrics scanning.');
+			errorMessage = 'Biometric unlock is not setup on the device. Please set it up in order to unlock Xilinota. If the device is on lockout, consider switching it off and on to reset biometrics scanning.';
 		}
 
-		error.message = _('Could not verify your identify: %s', errorMessage);
+		// err.message = _('Could not verify your identify: %s', errorMessage);
 
-		logger.warn(error);
+		logger.warn('Could not verify your identify: %s', errorMessage);
 
 		throw error;
 	} finally {

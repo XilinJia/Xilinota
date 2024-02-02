@@ -47,7 +47,7 @@ import { Path } from './types';
 export default class JoplinData {
 
 	private api_: any = new Api();
-	private pathSegmentRegex_: RegExp;
+	private pathSegmentRegex_: RegExp = /^([a-z0-9]+)$/;
 	private plugin: Plugin;
 
 	public constructor(plugin: Plugin) {
@@ -79,11 +79,11 @@ export default class JoplinData {
 		return this.api_.route('GET', this.pathToString(path), query);
 	}
 
-	public async post(path: Path, query: any = null, body: any = null, files: any[] = null) {
+	public async post(path: Path, query: any = null, body: any = null, files: any[] = []) {
 		return this.api_.route('POST', this.pathToString(path), query, this.serializeApiBody(body), files);
 	}
 
-	public async put(path: Path, query: any = null, body: any = null, files: any[] = null) {
+	public async put(path: Path, query: any = null, body: any = null, files: any[] = []) {
 		return this.api_.route('PUT', this.pathToString(path), query, this.serializeApiBody(body), files);
 	}
 
@@ -91,7 +91,7 @@ export default class JoplinData {
 		return this.api_.route('DELETE', this.pathToString(path), query);
 	}
 
-	public async itemType(itemId: string): Promise<ModelType> {
+	public async itemType(itemId: string): Promise<ModelType|null> {
 		const item = await BaseItem.loadItemById(itemId);
 		if (!item) return null;
 		return item.type_;

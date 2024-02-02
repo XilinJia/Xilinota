@@ -21,11 +21,11 @@ interface SortOrderPool {
 
 export default class PerFolderSortOrderService {
 
-	private static previousFolderId: string = null;
+	private static previousFolderId: string = '';
 	private static folderState: FolderState = { notesParentType: '', selectedFolderId: '' };
 	// Since perFolderSortOrders and sharedSortOrder is persisted using Setting,
 	// their structures are not nested.
-	private static perFolderSortOrders: SortOrderPool = null;
+	private static perFolderSortOrders: SortOrderPool;
 	private static sharedSortOrder: SortOrder & SortOrderPool = {
 		field: 'user_updated_time',
 		reverse: true,
@@ -44,10 +44,10 @@ export default class PerFolderSortOrderService {
 	}
 
 	public static isSet(folderId: string): boolean {
-		return folderId && this.perFolderSortOrders && this.perFolderSortOrders.hasOwnProperty(folderId + SUFFIX_FIELD);
+		return !!folderId && this.perFolderSortOrders && this.perFolderSortOrders.hasOwnProperty(folderId + SUFFIX_FIELD);
 	}
 
-	public static get(folderId: string): SortOrder {
+	public static get(folderId: string): SortOrder|undefined {
 		if (folderId && this.perFolderSortOrders) {
 			const field = this.perFolderSortOrders[folderId + SUFFIX_FIELD] as string;
 			const reverse = this.perFolderSortOrders[folderId + SUFFIX_REVERSE] as boolean;
@@ -99,7 +99,7 @@ export default class PerFolderSortOrderService {
 		const field: string = Setting.value('notes.sortOrder.field');
 		const reverse: boolean = Setting.value('notes.sortOrder.reverse');
 		let previousFolderHasPerFolderSortOrder = false;
-		if (this.previousFolderId !== null) {
+		if (this.previousFolderId) {
 			previousFolderHasPerFolderSortOrder = this.isSet(this.previousFolderId);
 			if (previousFolderHasPerFolderSortOrder) {
 				this.setPerFolderSortOrder(this.previousFolderId, field, reverse);
@@ -110,7 +110,9 @@ export default class PerFolderSortOrderService {
 		this.previousFolderId = selectedId;
 		let next: SortOrder;
 		if (this.isSet(selectedId)) {
-			next = this.get(selectedId);
+			const _next = this.get(selectedId);
+			if (_next) next = _next;
+			else return;
 		} else if (previousFolderHasPerFolderSortOrder) {
 			next = this.sharedSortOrder;
 		} else {

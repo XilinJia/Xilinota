@@ -36,12 +36,12 @@ export default function manifestFromObject(o: any): PluginManifest {
 		return o.screenshots;
 	};
 
-	const getIcons = (): Icons => {
-		if (!o.icons) return null;
+	const getIcons = (): Icons|undefined => {
+		if (!o.icons) return undefined;
 		for (const size of [16, 32, 48, 128]) {
 			if (o.icons[size as keyof Icons]) return o.icons;
 		}
-		return null;
+		return undefined;
 	};
 
 	const permissions: PluginPermission[] = [];
@@ -69,7 +69,7 @@ export default function manifestFromObject(o: any): PluginManifest {
 
 	validatePluginId(manifest.id);
 
-	if (o.permissions) {
+	if (manifest.permissions && o.permissions) {
 		for (const p of o.permissions) {
 			manifest.permissions.push(p);
 		}

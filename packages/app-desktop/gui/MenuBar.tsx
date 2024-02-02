@@ -18,14 +18,17 @@ import menuCommandNames from './menuCommandNames';
 import stateToWhenClauseContext from '../services/commands/stateToWhenClauseContext';
 import bridge from '../services/bridge';
 import checkForUpdates from '../checkForUpdates';
-const { connect } = require('react-redux');
+import { connect } from 'react-redux';
 import { reg } from '@xilinota/lib/registry';
 import { ProfileConfig } from '@xilinota/lib/services/profileConfig/types';
 import PluginService, { PluginSettings } from '@xilinota/lib/services/plugins/PluginService';
 import { getListRendererById, getListRendererIds } from '@xilinota/lib/services/noteList/renderers';
 import useAsyncEffect from '@xilinota/lib/hooks/useAsyncEffect';
+import { ImportOptions } from '@xilinota/lib/services/interop/types';
+import { clipboard } from 'electron';
+
 const packageInfo = require('../packageInfo.js');
-const { clipboard } = require('electron');
+
 const Menu = bridge().Menu;
 
 const menuUtils = new MenuUtils(CommandService.instance());
@@ -56,25 +59,25 @@ function getPluginCommandNames(plugins: PluginStates): string[] {
 	return output;
 }
 
-// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-function createPluginMenuTree(label: string, menuItems: MenuItem[], onMenuItemClick: Function) {
-	const output: any = {
+
+function createPluginMenuTree(label: string, menuItems: MenuItem[], onMenuItemClick: Function): Record<string, any> {
+	const output: Record<string, any> = {
 		label: label,
 		submenu: [],
 	};
 
 	for (const menuItem of menuItems) {
 		if (menuItem.submenu) {
-			output.submenu.push(createPluginMenuTree(menuItem.label, menuItem.submenu, onMenuItemClick));
+			output.submenu.push(createPluginMenuTree(menuItem.label ?? '', menuItem.submenu, onMenuItemClick));
 		} else {
-			output.submenu.push(menuUtils.commandToMenuItem(menuItem.commandName, onMenuItemClick));
+			output.submenu.push(menuUtils.commandToMenuItem(menuItem.commandName ?? '', onMenuItemClick));
 		}
 	}
 
 	return output;
 }
 
-const useSwitchProfileMenuItems = (profileConfig: ProfileConfig, menuItemDic: any) => {
+const useSwitchProfileMenuItems = (profileConfig: ProfileConfig, menuItemDic: any): any[] => {
 	return useMemo(() => {
 		const switchProfileMenuItems: any[] = [];
 
@@ -110,7 +113,7 @@ const useSwitchProfileMenuItems = (profileConfig: ProfileConfig, menuItemDic: an
 	}, [profileConfig, menuItemDic]);
 };
 
-const useNoteListMenuItems = (noteListRendererIds: string[]) => {
+const useNoteListMenuItems = (noteListRendererIds: string[]): any[] => {
 	const [menuItems, setMenuItems] = useState<any[]>([]);
 
 	useAsyncEffect(async (event) => {
@@ -120,7 +123,7 @@ const useNoteListMenuItems = (noteListRendererIds: string[]) => {
 
 			output.push({
 				id: `noteListRenderer_${id}`,
-				label: await renderer.label(),
+				label: await renderer?.label(),
 				type: 'checkbox',
 				click: () => {
 					Setting.setValue('notes.listRendererId', id);
@@ -137,7 +140,6 @@ const useNoteListMenuItems = (noteListRendererIds: string[]) => {
 };
 
 interface Props {
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	dispatch: Function;
 	menuItemProps: any;
 	routeName: string;
@@ -157,7 +159,7 @@ interface Props {
 	plugins: PluginStates;
 	customCss: string;
 	locale: string;
-	profileConfig: ProfileConfig;
+	profileConfig: ProfileConfig | null;
 	pluginSettings: PluginSettings;
 	noteListRendererIds: string[];
 	noteListRendererId: string;
@@ -165,21 +167,21 @@ interface Props {
 
 const commandNames: string[] = menuCommandNames();
 
-function menuItemSetChecked(id: string, checked: boolean) {
+function menuItemSetChecked(id: string, checked: boolean): void {
 	const menu = Menu.getApplicationMenu();
-	const menuItem = menu.getMenuItemById(id);
+	const menuItem = menu?.getMenuItemById(id);
 	if (!menuItem) return;
 	menuItem.checked = checked;
 }
 
-function menuItemSetEnabled(id: string, enabled: boolean) {
+function menuItemSetEnabled(id: string, enabled: boolean): void {
 	const menu = Menu.getApplicationMenu();
-	const menuItem = menu.getMenuItemById(id);
+	const menuItem = menu?.getMenuItemById(id);
 	if (!menuItem) return;
 	menuItem.enabled = enabled;
 }
 
-function useMenuStates(menu: any, props: Props) {
+function useMenuStates(menu: any, props: Props): void {
 	useEffect(() => {
 		let timeoutId: any = null;
 
@@ -231,17 +233,12 @@ function useMenuStates(menu: any, props: Props) {
 			clearTimeout(timeoutId);
 			timeoutId = null;
 		};
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
 	}, [
 		props.menuItemProps,
 		props.layoutButtonSequence,
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
 		props['notes.sortOrder.field'],
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
 		props['folders.sortOrder.field'],
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
 		props['notes.sortOrder.reverse'],
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
 		props['folders.sortOrder.reverse'],
 		props.noteListRendererId,
 		props.showNoteCounts,
@@ -251,8 +248,8 @@ function useMenuStates(menu: any, props: Props) {
 	]);
 }
 
-function useMenu(props: Props) {
-	const [menu, setMenu] = useState(null);
+function useMenu(props: Props): Electron.Menu {
+	const [menu, setMenu] = useState<Electron.Menu>(new Menu());
 	const [keymapLastChangeTime, setKeymapLastChangeTime] = useState(Date.now());
 	const [modulesLastChangeTime, setModulesLastChangeTime] = useState(Date.now());
 
@@ -289,31 +286,32 @@ function useMenu(props: Props) {
 
 		const errors: any[] = [];
 
-		const importOptions = {
+		const importOptions: ImportOptions = {
 			path,
 			format: module.format,
 			outputFormat: module.outputFormat,
-			onProgress: (status: any) => {
-				const statusStrings: string[] = Object.keys(status).map((key: string) => {
-					return `${key}: ${status[key]}`;
-				});
+			// TODO: the following two don't exist in ImportOptions
+			// onProgress: (status: any) => {
+			// 	const statusStrings: string[] = Object.keys(status).map((key: string) => {
+			// 		return `${key}: ${status[key]}`;
+			// 	});
 
-				void CommandService.instance().execute('showModalMessage', `${modalMessage}\n\n${statusStrings.join('\n')}`);
-			},
-			onError: (error: any) => {
-				errors.push(error);
-				console.warn(error);
-			},
-			destinationFolderId: !module.isNoteArchive && moduleSource === 'file' ? props.selectedFolderId : null,
+			// 	void CommandService.instance().execute('showModalMessage', `${modalMessage}\n\n${statusStrings.join('\n')}`);
+			// },
+			// onError: (error: any) => {
+			// 	errors.push(error);
+			// 	console.warn(error);
+			// },
+			destinationFolderId: !module.isNoteArchive && moduleSource === 'file' ? props.selectedFolderId : '',
 		};
 
 		const service = InteropService.instance();
 		try {
 			const result = await service.import(importOptions);
-			// eslint-disable-next-line no-console
+
 			console.info('Import result: ', result);
 		} catch (error) {
-			bridge().showErrorMessageBox(error.message);
+			bridge().showErrorMessageBox((error as Error).message);
 		}
 
 		if (errors.length) {
@@ -322,34 +320,34 @@ function useMenu(props: Props) {
 		}
 
 		void CommandService.instance().execute('hideModalMessage');
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [props.selectedFolderId]);
 
-	const onMenuItemClickRef = useRef(null);
+	const onMenuItemClickRef = useRef<Function | null>(null);
 	onMenuItemClickRef.current = onMenuItemClick;
 
-	const onImportModuleClickRef = useRef(null);
+	const onImportModuleClickRef = useRef<Function | null>(null);
 	onImportModuleClickRef.current = onImportModuleClick;
 
-	const pluginCommandNames = useMemo(() => props.pluginMenuItems.map((view: any) => view.commandName), [props.pluginMenuItems]);
+	const pluginCommandNames = useMemo(() => props.pluginMenuItems?.map((view: any) => view.commandName), [props.pluginMenuItems]);
 
 	const menuItemDic = useMemo(() => {
 		return menuUtils.commandsToMenuItems(
 			commandNames.concat(pluginCommandNames),
-			(commandName: string) => onMenuItemClickRef.current(commandName),
+			(commandName: string) => onMenuItemClickRef.current?.(commandName),
 			props.locale,
 		);
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [commandNames, pluginCommandNames, props.locale]);
 
-	const switchProfileMenuItems: any[] = useSwitchProfileMenuItems(props.profileConfig, menuItemDic);
+	const switchProfileMenuItems: any[] = props.profileConfig ? useSwitchProfileMenuItems(props.profileConfig, menuItemDic) : [];
 
 	const noteListMenuItems = useNoteListMenuItems(props.noteListRendererIds);
 
 	useEffect(() => {
 		let timeoutId: any = null;
 
-		function updateMenu() {
+		function updateMenu(): void {
 			if (!timeoutId) return; // Has been cancelled
 
 			const keymapService = KeymapService.instance();
@@ -390,7 +388,7 @@ function useMenu(props: Props) {
 				} else {
 					sortItems.push({
 						id: `sort:${type}:reverse`,
-						label: Setting.settingMetadata(`${type}.sortOrder.reverse`).label(),
+						label: Setting.settingMetadata(`${type}.sortOrder.reverse`).label?.(),
 						type: 'checkbox',
 						// checked: Setting.value(`${type}.sortOrder.reverse`),
 						click: () => {
@@ -439,7 +437,7 @@ function useMenu(props: Props) {
 						const moduleSource = module.sources[j];
 						importItems.push({
 							label: module.fullLabel(moduleSource),
-							click: () => onImportModuleClickRef.current(module, moduleSource),
+							click: () => onImportModuleClickRef.current?.(module, moduleSource),
 						});
 						if (module.separatorAfter) importItems.push({ type: 'separator' });
 					}
@@ -507,7 +505,7 @@ function useMenu(props: Props) {
 			];
 
 			// the following menu items will be available for all OS under Tools
-			const toolsItemsAll = [{
+			const toolsItemsAll: { label: string; click: () => void; }[] = [{
 				label: _('Note attachments...'),
 				click: () => {
 					props.dispatch({
@@ -524,11 +522,11 @@ function useMenu(props: Props) {
 
 			toolsItems.push(SpellCheckerService.instance().spellCheckerConfigMenuItem(props['spellChecker.languages'], props['spellChecker.enabled']));
 
-			function _checkForUpdates() {
+			function _checkForUpdates(): void {
 				void checkForUpdates(false, bridge().window(), { includePreReleases: Setting.value('autoUpdate.includePreReleases') });
 			}
 
-			function _showAbout() {
+			function _showAbout(): void {
 				const v = versionInfo(packageInfo, PluginService.instance().enabledPlugins(props.pluginSettings));
 
 				const copyToClipboard = bridge().showMessageBox(v.message, {
@@ -622,7 +620,7 @@ function useMenu(props: Props) {
 				{
 					type: 'separator',
 				},
-				quitMenuItem],
+					quitMenuItem],
 			};
 
 			const rootMenuFileMacOs = {
@@ -732,28 +730,28 @@ function useMenu(props: Props) {
 						},
 						separator(),
 						{
-							label: Setting.settingMetadata('notes.sortOrder.field').label(),
+							label: Setting.settingMetadata('notes.sortOrder.field').label?.(),
 							submenu: sortNoteItems,
 						}, {
-							label: Setting.settingMetadata('folders.sortOrder.field').label(),
+							label: Setting.settingMetadata('folders.sortOrder.field').label?.(),
 							submenu: sortFolderItems,
 						}, {
 							id: 'showNoteCounts',
-							label: Setting.settingMetadata('showNoteCounts').label(),
+							label: Setting.settingMetadata('showNoteCounts').label?.(),
 							type: 'checkbox',
 							click: () => {
 								Setting.setValue('showNoteCounts', !Setting.value('showNoteCounts'));
 							},
 						}, {
 							id: 'uncompletedTodosOnTop',
-							label: Setting.settingMetadata('uncompletedTodosOnTop').label(),
+							label: Setting.settingMetadata('uncompletedTodosOnTop').label?.(),
 							type: 'checkbox',
 							click: () => {
 								Setting.setValue('uncompletedTodosOnTop', !Setting.value('uncompletedTodosOnTop'));
 							},
 						}, {
 							id: 'showCompletedTodos',
-							label: Setting.settingMetadata('showCompletedTodos').label(),
+							label: Setting.settingMetadata('showCompletedTodos').label?.(),
 							type: 'checkbox',
 							click: () => {
 								Setting.setValue('showCompletedTodos', !Setting.value('showCompletedTodos'));
@@ -767,11 +765,11 @@ function useMenu(props: Props) {
 							},
 							accelerator: 'CommandOrControl+0',
 						}, {
-						// There are 2 shortcuts for the action 'zoom in', mainly to increase the user experience.
-						// Most applications handle this the same way. These applications indicate Ctrl +, but actually mean Ctrl =.
-						// In fact they allow both: + and =. On the English keyboard layout - and = are used without the shift key.
-						// So to use Ctrl + would mean to use the shift key, but this is not the case in any of the apps that show Ctrl +.
-						// Additionally it allows the use of the plus key on the numpad.
+							// There are 2 shortcuts for the action 'zoom in', mainly to increase the user experience.
+							// Most applications handle this the same way. These applications indicate Ctrl +, but actually mean Ctrl =.
+							// In fact they allow both: + and =. On the English keyboard layout - and = are used without the shift key.
+							// So to use Ctrl + would mean to use the shift key, but this is not the case in any of the apps that show Ctrl +.
+							// Additionally it allows the use of the plus key on the numpad.
 							label: _('Zoom In'),
 							click: () => {
 								Setting.incValue('windowContentZoomFactor', 10);
@@ -827,49 +825,59 @@ function useMenu(props: Props) {
 				help: {
 					label: _('&Help'),
 					role: 'help', // Makes it add the "Search" field on macOS
-					submenu: [{
-						label: _('Website and documentation'),
-						accelerator: keymapService.getAccelerator('help'),
-						click() { void bridge().openExternal('https://xilinotaapp.org'); },
-					}, {
-						label: _('Xilinota Forum'),
-						click() { void bridge().openExternal('https://discourse.xilinotaapp.org'); },
-					}, {
-						label: _('Join us on Twitter'),
-						click() { void bridge().openExternal('https://twitter.com/xilinotaapp'); },
-					}, {
-						label: _('Make a donation'),
-						click() { void bridge().openExternal('https://xilinotaapp.org/donate/'); },
-					}, {
-						label: _('Check for updates...'),
-						visible: !shim.isMac(),
-						click: () => _checkForUpdates(),
-					},
-					separator(),
-					syncStatusItem,
-					separator(),
-					{
-						id: 'help:toggleDevTools',
-						label: _('Toggle development tools'),
-						click: () => {
-							props.dispatch({
-								type: 'NOTE_DEVTOOLS_TOGGLE',
-							});
+					submenu: [
+						{
+							label: _('Website and documentation'),
+							accelerator: keymapService.getAccelerator('help'),
+							click() { void bridge().openExternal('https://github.com/XilinJia/Xilinota'); },
 						},
-					},
+						// TODO
+						// {
+						// 	label: _('Xilinota Forum'),
+						// 	click() { void bridge().openExternal('https://discourse.xilinotaapp.org'); },
+						// },
+						// {
+						// 	label: _('Join us on Twitter'),
+						// 	click() { void bridge().openExternal('https://twitter.com/xilinotaapp'); },
+						// },
+						{
+							label: _('Make a donation'),
+							click() { void bridge().openExternal('https://www.patreon.com/Xilinota'); },
+						},
+						{
+							label: _('Check for updates'),
+							click() { void bridge().openExternal('https://github.com/XilinJia/Xilinota/releases'); },
+						},
+						// {
+						// 	label: _('Check for updates...'),
+						// 	visible: !shim.isMac(),
+						// 	click: () => _checkForUpdates(),
+						// },
+						separator(),
+						// syncStatusItem,
+						// separator(),
+						{
+							id: 'help:toggleDevTools',
+							label: _('Toggle development tools'),
+							click: () => {
+								props.dispatch({
+									type: 'NOTE_DEVTOOLS_TOGGLE',
+								});
+							},
+						},
 
-					menuItemDic.toggleSafeMode,
-					menuItemDic.openProfileDirectory,
-					menuItemDic.copyDevCommand,
+						menuItemDic.toggleSafeMode,
+						menuItemDic.openProfileDirectory,
+						menuItemDic.copyDevCommand,
 
-					{
-						type: 'separator',
-						visible: !shim.isMac(),
-					}, {
-						label: _('About Xilinota'),
-						visible: !shim.isMac(),
-						click: () => _showAbout(),
-					}],
+						{
+							type: 'separator',
+							visible: !shim.isMac(),
+						}, {
+							label: _('About Xilinota'),
+							visible: !shim.isMac(),
+							click: () => _showAbout(),
+						}],
 				},
 			};
 
@@ -922,7 +930,7 @@ function useMenu(props: Props) {
 				if (!itemParent) {
 					reg.logger().error('Menu location does not exist: ', location, view);
 				} else {
-					itemParent.submenu.push(createPluginMenuTree(view.label, view.menuItems, (commandName: string) => onMenuItemClickRef.current(commandName)));
+					itemParent.submenu.push(createPluginMenuTree(view.label, view.menuItems, (commandName: string) => onMenuItemClickRef.current?.(commandName)));
 				}
 			}
 
@@ -966,16 +974,16 @@ function useMenu(props: Props) {
 			clearTimeout(timeoutId);
 			timeoutId = null;
 		};
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, [
 		props.routeName,
 		props.pluginMenuItems,
 		props.pluginMenus,
 		keymapLastChangeTime,
 		modulesLastChangeTime,
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 		props['spellChecker.languages'],
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 		props['spellChecker.enabled'],
 		noteListMenuItems,
 		props.pluginSettings,

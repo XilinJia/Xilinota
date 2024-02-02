@@ -1,4 +1,4 @@
-const BaseCommand = require('./base-command').default;
+import BaseCommand from './base-command';
 import { reg } from '@xilinota/lib/registry';
 import Note from '@xilinota/lib/models/Note';
 import uuid from '@xilinota/lib/uuid_';
@@ -118,7 +118,7 @@ class Command extends BaseCommand {
 			}
 			await Promise.all(promises);
 
-			// eslint-disable-next-line no-console
+
 			console.info(await api.exec('GET', 'api/items/root:/testing:'));
 		}
 

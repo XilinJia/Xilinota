@@ -6,7 +6,7 @@ import Logger from '@xilinota/utils/Logger';
 import Setting from '../../models/Setting';
 import Resource from '../../models/Resource';
 import { ResourceEntity } from '../database/types';
-const EventEmitter = require('events');
+import EventEmitter from 'events';
 const chokidar = require('chokidar');
 
 interface WatchedItem {
@@ -22,31 +22,29 @@ interface WatchedItems {
 	[key: string]: WatchedItem;
 }
 
-type OpenItemFn = (path: string)=> void;
+type OpenItemFn = (path: string) => void;
 
 export default class ResourceEditWatcher {
 
 	private static instance_: ResourceEditWatcher;
 
 	private logger_: any;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	private dispatch: Function;
 	private watcher_: any;
 	private chokidar_: any;
 	private watchedItems_: WatchedItems = {};
 	private eventEmitter_: any;
 	private tempDir_ = '';
-	private openItem_: OpenItemFn;
+	private openItem_: OpenItemFn | undefined;
 
 	public constructor() {
 		this.logger_ = new Logger();
-		this.dispatch = () => {};
+		this.dispatch = () => { };
 		this.watcher_ = null;
 		this.chokidar_ = chokidar;
 		this.eventEmitter_ = new EventEmitter();
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public initialize(logger: any, dispatch: Function, openItem: OpenItemFn) {
 		this.logger_ = logger;
 		this.dispatch = dispatch;
@@ -72,12 +70,10 @@ export default class ResourceEditWatcher {
 		return this.logger_;
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public on(eventName: string, callback: Function) {
 		return this.eventEmitter_.on(eventName, callback);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public off(eventName: string, callback: Function) {
 		return this.eventEmitter_.removeListener(eventName, callback);
 	}
@@ -108,7 +104,7 @@ export default class ResourceEditWatcher {
 				const resource = await Resource.load(resourceId);
 				const watchedItem = this.watchedItemByResourceId(resourceId);
 
-				if (resource.updated_time !== watchedItem.lastResourceUpdatedTime) {
+				if (resource && resource.updated_time !== watchedItem.lastResourceUpdatedTime) {
 					this.logger().info(`ResourceEditWatcher: Conflict was detected (resource was modified from somewhere else, possibly via sync). Conflict note will be created: ${resourceId}`);
 					// The resource has been modified from elsewhere, for example via sync
 					// so copy the current version to the Conflict notebook, and overwrite
@@ -117,7 +113,7 @@ export default class ResourceEditWatcher {
 				}
 
 				const savedResource = await Resource.updateResourceBlobContent(resourceId, path);
-				watchedItem.lastResourceUpdatedTime = savedResource.updated_time;
+				watchedItem.lastResourceUpdatedTime = savedResource?.updated_time ?? 0;
 				this.eventEmitter_.emit('resourceChange', { id: resourceId });
 			};
 		};
@@ -136,31 +132,33 @@ export default class ResourceEditWatcher {
 
 			const resourceId = watchedItem.resourceId;
 			const stat = await shim.fsDriver().stat(path);
-			const editedFileUpdatedTime = stat.mtime.getTime();
+			if (stat) {
+				const editedFileUpdatedTime = stat.mtime.getTime();
 
-			// To check if the item has really changed we look at the updated time and size, which
-			// in most cases is sufficient. It could be a problem if the editing tool is making a change
-			// that neither changes the timestamp nor the file size. The alternative would be to compare
-			// the files byte for byte but that could be slow and the file might have changed again by
-			// the time we finished comparing.
-			if (watchedItem.lastFileUpdatedTime === editedFileUpdatedTime && watchedItem.size === stat.size) {
-				// chokidar is buggy and emits "change" events even when nothing has changed
-				// so double-check the modified time and skip processing if there's no change.
-				// In particular it emits two such events just after the file has been copied
-				// in openAndWatch().
-				//
-				// We also need this because some events are handled twice - once in the "all" event
-				// handle and once in the "raw" event handler, due to a bug in chokidar. So having
-				// this check means we don't unecessarily save the resource twice when the file is
-				// modified by the user.
-				this.logger().debug(`ResourceEditWatcher: No timestamp and file size change - skip: ${resourceId}`);
-				return;
+				// To check if the item has really changed we look at the updated time and size, which
+				// in most cases is sufficient. It could be a problem if the editing tool is making a change
+				// that neither changes the timestamp nor the file size. The alternative would be to compare
+				// the files byte for byte but that could be slow and the file might have changed again by
+				// the time we finished comparing.
+				if (watchedItem.lastFileUpdatedTime === editedFileUpdatedTime && watchedItem.size === stat.size) {
+					// chokidar is buggy and emits "change" events even when nothing has changed
+					// so double-check the modified time and skip processing if there's no change.
+					// In particular it emits two such events just after the file has been copied
+					// in openAndWatch().
+					//
+					// We also need this because some events are handled twice - once in the "all" event
+					// handle and once in the "raw" event handler, due to a bug in chokidar. So having
+					// this check means we don't unecessarily save the resource twice when the file is
+					// modified by the user.
+					this.logger().debug(`ResourceEditWatcher: No timestamp and file size change - skip: ${resourceId}`);
+					return;
+				}
+
+				this.logger().debug(`ResourceEditWatcher: Queuing save action: ${resourceId}`);
+				watchedItem.asyncSaveQueue.push(makeSaveAction(resourceId, path));
+				watchedItem.lastFileUpdatedTime = editedFileUpdatedTime;
+				watchedItem.size = stat.size;
 			}
-
-			this.logger().debug(`ResourceEditWatcher: Queuing save action: ${resourceId}`);
-			watchedItem.asyncSaveQueue.push(makeSaveAction(resourceId, path));
-			watchedItem.lastFileUpdatedTime = editedFileUpdatedTime;
-			watchedItem.size = stat.size;
 		};
 
 		if (!this.watcher_) {
@@ -221,7 +219,7 @@ export default class ResourceEditWatcher {
 
 	private async copyResourceToEditablePath(resourceId: string) {
 		const resource = await Resource.load(resourceId);
-		if (!(await Resource.isReady(resource))) throw new Error(_('This attachment is not downloaded or not decrypted yet'));
+		if (!resource || !(await Resource.isReady(resource))) throw new Error(_('This attachment is not downloaded or not decrypted yet'));
 		const sourceFilePath = Resource.fullPath(resource);
 		const editFilePath = await this.makeEditPath(resource);
 		await shim.fsDriver().copy(sourceFilePath, editFilePath);
@@ -248,9 +246,9 @@ export default class ResourceEditWatcher {
 			const stat = await shim.fsDriver().stat(editFilePath);
 
 			watchedItem.path = editFilePath;
-			watchedItem.lastFileUpdatedTime = stat.mtime.getTime();
+			watchedItem.lastFileUpdatedTime = stat ? stat.mtime.getTime() : 0;
 			watchedItem.lastResourceUpdatedTime = resource.updated_time;
-			watchedItem.size = stat.size;
+			watchedItem.size = stat ? stat.size : 0;
 
 			this.watchFile(editFilePath);
 
@@ -268,7 +266,7 @@ export default class ResourceEditWatcher {
 
 	public async openAndWatch(resourceId: string) {
 		const watchedItem = await this.watch(resourceId);
-		this.openItem_(watchedItem.path);
+		this.openItem_?.(watchedItem.path);
 	}
 
 	// This call simply copies the resource file to a separate path and opens it.
@@ -277,7 +275,7 @@ export default class ResourceEditWatcher {
 	public async openAsReadOnly(resourceId: string) {
 		const { editFilePath } = await this.copyResourceToEditablePath(resourceId);
 		await shim.fsDriver().chmod(editFilePath, 0o0666);
-		this.openItem_(editFilePath);
+		this.openItem_?.(editFilePath);
 	}
 
 	public async stopWatching(resourceId: string) {
@@ -325,7 +323,7 @@ export default class ResourceEditWatcher {
 		return this.watchedItems_[resourceId];
 	}
 
-	private watchedItemByPath(path: string): WatchedItem {
+	private watchedItemByPath(path: string): WatchedItem | null {
 		for (const resourceId in this.watchedItems_) {
 			const item = this.watchedItems_[resourceId];
 			if (item.path === path) return item;

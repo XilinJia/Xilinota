@@ -1,5 +1,5 @@
 import type CodeMirror5Emulation from '@xilinota/editor/CodeMirror/CodeMirror5Emulation/CodeMirror5Emulation';
-import shared from '@xilinota/lib/components/shared/note-screen-shared';
+import Shared from '@xilinota/lib/components/shared/note-screen-shared';
 import { useCallback, RefObject } from 'react';
 
 interface Props {
@@ -19,7 +19,7 @@ const useWebviewIpcMessage = (props: Props) => {
 		const arg0 = args && args.length >= 1 ? args[0] : null;
 
 		if (msg.indexOf('checkboxclick:') === 0) {
-			const { line, from, to } = shared.toggleCheckboxRange(msg, props.content);
+			const { line, from, to } = Shared.toggleCheckboxRange(msg, props.content);
 			if (editorRef.current) {
 				// To cancel CodeMirror's layout drift, the scroll position
 				// is recorded before updated, and then it is restored.
@@ -28,6 +28,7 @@ const useWebviewIpcMessage = (props: Props) => {
 				editorRef.current.replaceRange(line, from, to);
 				props.setEditorPercentScroll(percent);
 			}
+
 		} else if (msg === 'percentScroll') {
 			const percent = arg0;
 			props.setEditorPercentScroll(percent);

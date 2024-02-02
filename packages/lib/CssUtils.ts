@@ -6,9 +6,11 @@ export const loadCustomCss = async (filePath: string) => {
 		try {
 			cssString = await fs.readFile(filePath, 'utf-8');
 		} catch (error) {
-			let msg = error.message ? error.message : '';
-			msg = `Could not load custom css from ${filePath}\n${msg}`;
-			error.message = msg;
+			if (error instanceof Error) {
+				let msg = error.message ? error.message : '';
+				msg = `Could not load custom css from ${filePath}\n${msg}`;
+				error.message = msg;
+			}
 			throw error;
 		}
 	}

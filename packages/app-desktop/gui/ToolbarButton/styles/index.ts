@@ -1,5 +1,4 @@
-const styled = require('styled-components').default;
-const { css } = require('styled-components');
+import styled, { css } from 'styled-components';
 
 interface RootProps {
 	readonly theme: any;
@@ -30,8 +29,8 @@ export const StyledRoot = styled.a<RootProps>`
 `;
 
 interface IconProps {
-	readonly theme: any;
-	readonly title: string;
+	readonly theme?: any;
+	readonly title?: string;
 }
 
 const iconStyle = css<IconProps>`
@@ -39,6 +38,7 @@ const iconStyle = css<IconProps>`
 	color: ${(props: IconProps) => props.theme.color3};
 	margin-right: ${(props: IconProps) => props.title ? 5 : 0}px;
 	pointer-events: none; /* Need this to get button tooltip to work */
+	// theme: ${(props: IconProps) => props.theme};
 `;
 
 export const StyledIconI = styled.i`${iconStyle}`;

@@ -1,5 +1,4 @@
 import shim from '../shim';
-const { useCallback, useEffect, useState } = shim.react();
 import useEventListener from './useEventListener';
 
 interface Size {
@@ -8,6 +7,8 @@ interface Size {
 }
 
 function useElementSize(elementRef: any): Size {
+	const { useCallback, useEffect, useState } = shim.react();
+
 	const [size, setSize] = useState({
 		width: 0,
 		height: 0,
@@ -27,7 +28,7 @@ function useElementSize(elementRef: any): Size {
 	// Initial size on mount
 	useEffect(() => {
 		updateSize();
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+		
 	}, []);
 
 	useEventListener('resize', updateSize);

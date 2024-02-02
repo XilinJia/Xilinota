@@ -109,7 +109,7 @@ async function main(argv: any) {
 }
 
 if (require.main === module) {
-	// eslint-disable-next-line promise/prefer-await-to-then
+
 	main(process.argv).catch((error) => {
 		console.error('Fatal error');
 		console.error(error);

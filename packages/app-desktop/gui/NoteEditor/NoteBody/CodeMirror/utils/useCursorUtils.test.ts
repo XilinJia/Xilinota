@@ -1,3 +1,5 @@
+// seeme not used?
+
 import { modifyListLines } from './useCursorUtils';
 
 describe('useCursorUtils', () => {
@@ -67,9 +69,9 @@ describe('useCursorUtils', () => {
 	});
 
 	test('should remove "n. " from each line that has it, and ignore' +
-        ' lines which do not', () => {
-		expect(modifyListLines([...listWithSomeNumbers], 2, '2. ')).toStrictEqual(listWithNoPrefixes);
-	});
+		' lines which do not', () => {
+			expect(modifyListLines([...listWithSomeNumbers], 2, '2. ')).toStrictEqual(listWithNoPrefixes);
+		});
 
 	test('should add numbers to each line including empty one', () => {
 		expect(modifyListLines(noPrefixListWithEmptyLines, 1, '1. ')).toStrictEqual(numberedListWithEmptyLines);

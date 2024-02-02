@@ -1,10 +1,10 @@
-export const unique = function(array: any[]) {
+export const unique = function(array: any[]): any[] {
 	return array.filter((elem, index, self) => {
 		return index === self.indexOf(elem);
 	});
 };
 
-export const removeElement = function(array: any[], element: any) {
+export const removeElement = function(array: any[], element: any): any[] {
 	const index = array.indexOf(element);
 	if (index < 0) return array;
 	const newArray = array.slice();
@@ -13,7 +13,7 @@ export const removeElement = function(array: any[], element: any) {
 };
 
 // https://stackoverflow.com/a/10264318/561309
-export const binarySearch = function(items: any[], value: any) {
+export const binarySearch = function(items: any[], value: any): number {
 	let startIndex = 0,
 		stopIndex = items.length - 1,
 		middle = Math.floor((stopIndex + startIndex) / 2);
@@ -34,7 +34,7 @@ export const binarySearch = function(items: any[], value: any) {
 	return items[middle] !== value ? -1 : middle;
 };
 
-export const findByKey = function(array: any[], key: any, value: any) {
+export const findByKey = function(array: any[], key: any, value: any): any {
 	for (let i = 0; i < array.length; i++) {
 		const o = array[i];
 		if (typeof o !== 'object') continue;
@@ -43,7 +43,7 @@ export const findByKey = function(array: any[], key: any, value: any) {
 	return null;
 };
 
-export const contentEquals = function(array1: any[], array2: any[]) {
+export const contentEquals = function(array1: any[], array2: any[]): boolean {
 	if (array1 === array2) return true;
 	if (!array1.length && !array2.length) return true;
 	if (array1.length !== array2.length) return false;
@@ -58,7 +58,7 @@ export const contentEquals = function(array1: any[], array2: any[]) {
 
 // Merges multiple overlapping intervals into a single interval
 // e.g. [0, 25], [20, 50], [75, 100] --> [0, 50], [75, 100]
-export const mergeOverlappingIntervals = function(intervals: any[], limit: number) {
+export const mergeOverlappingIntervals = function(intervals: any[], limit: number): any[] {
 	intervals.sort((a, b) => a[0] - b[0]);
 
 	const stack: any[] = [];
@@ -78,7 +78,7 @@ export const mergeOverlappingIntervals = function(intervals: any[], limit: numbe
 	return stack;
 };
 
-export const shuffle = function(array: any[]) {
+export const shuffle = function(array: any[]): any[] {
 	array = array.slice();
 	for (let i = array.length - 1; i > 0; i--) {
 		const j = Math.floor(Math.random() * (i + 1));
@@ -91,7 +91,7 @@ export const shuffle = function(array: any[]) {
 
 // Used to replace lodash.pull, so that we don't need to import the whole
 // package. Not optimised.
-export const pull = (array: any[], ...elements: any[]) => {
+export const pull = (array: any[], ...elements: any[]): any[] => {
 	const output: any[] = [];
 	for (const e of array) {
 		if (elements.includes(e)) continue;

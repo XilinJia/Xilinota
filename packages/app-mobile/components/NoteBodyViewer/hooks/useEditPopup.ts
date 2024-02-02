@@ -5,7 +5,7 @@ import { Theme } from '@xilinota/lib/themes/type';
 import { useMemo } from 'react';
 import { extname } from 'path';
 import shim from '@xilinota/lib/shim';
-const Icon = require('react-native-vector-icons/Ionicons').default;
+import Icon from 'react-native-vector-icons/Ionicons';
 
 export const editPopupClass = 'xilinota-editPopup';
 

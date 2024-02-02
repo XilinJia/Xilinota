@@ -3,8 +3,8 @@ import CodeMirrorControl from './CodeMirrorControl';
 
 let pluginScriptIdCounter = 0;
 
-type OnScriptLoadCallback = (exports: any)=> void;
-type OnPluginRemovedCallback = ()=> void;
+type OnScriptLoadCallback = (exports: any) => void;
+type OnPluginRemovedCallback = () => void;
 
 export default class PluginLoader {
 	private pluginScriptsContainer: HTMLElement;
@@ -23,7 +23,7 @@ export default class PluginLoader {
 		(window as any).scriptLoadCallbacks ??= Object.create(null);
 	}
 
-	public async setPlugins(plugins: PluginData[]) {
+	public async setPlugins(plugins: PluginData[]): Promise<void> {
 		for (const plugin of plugins) {
 			if (!this.loadedPluginIds.includes(plugin.pluginId)) {
 				this.addPlugin(plugin);
@@ -42,12 +42,12 @@ export default class PluginLoader {
 		}
 	}
 
-	private addPlugin(plugin: PluginData) {
+	private addPlugin(plugin: PluginData): void {
 		const onRemoveCallbacks: OnPluginRemovedCallback[] = [];
 
 		this.logMessage(`Loading plugin ${plugin.pluginId}`);
 
-		const addScript = (onLoad: OnScriptLoadCallback) => {
+		const addScript = (onLoad: OnScriptLoadCallback): void => {
 			const scriptElement = document.createElement('script');
 
 			onRemoveCallbacks.push(() => {
@@ -79,7 +79,7 @@ export default class PluginLoader {
 			})();
 		};
 
-		const addStyles = (cssStrings: string[]) => {
+		const addStyles = (cssStrings: string[]): void => {
 			// A container for style elements
 			const styleContainer = document.createElement('div');
 
@@ -149,7 +149,7 @@ export default class PluginLoader {
 		this.loadedPluginIds.push(plugin.pluginId);
 	}
 
-	public remove() {
+	public remove(): void {
 		this.pluginScriptsContainer.remove();
 	}
 }

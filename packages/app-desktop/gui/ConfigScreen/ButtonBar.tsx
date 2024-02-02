@@ -1,16 +1,13 @@
 import * as React from 'react';
 import Button, { ButtonLevel } from '../Button/Button';
 import { _ } from '@xilinota/lib/locale';
-const styled = require('styled-components').default;
+import styled from 'styled-components';
 
 interface Props {
 	backButtonTitle?: string;
 	hasChanges?: boolean;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	onCancelClick: Function;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	onSaveClick?: Function;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	onApplyClick?: Function;
 }
 
@@ -28,12 +25,12 @@ export const StyledRoot = styled.div`
 export default function ButtonBar(props: Props) {
 	function renderOkButton() {
 		if (!props.onSaveClick) return null;
-		return <Button style={{ marginRight: 10 }} level={ButtonLevel.Primary} disabled={!props.hasChanges} onClick={props.onSaveClick} title={_('OK')}/>;
+		return <Button style={{ marginRight: 10 }} level={ButtonLevel.Primary} disabled={!props.hasChanges} onClick={props.onSaveClick} title={_('OK')} />;
 	}
 
 	function renderApplyButton() {
 		if (!props.onApplyClick) return null;
-		return <Button level={ButtonLevel.Primary} disabled={!props.hasChanges} onClick={props.onApplyClick} title={_('Apply')}/>;
+		return <Button level={ButtonLevel.Primary} disabled={!props.hasChanges} onClick={props.onApplyClick} title={_('Apply')} />;
 	}
 
 	return (
@@ -44,7 +41,7 @@ export default function ButtonBar(props: Props) {
 				iconName="fa fa-chevron-left"
 				title={props.backButtonTitle ? props.backButtonTitle : _('Back')}
 			/>
-			{ (props.onApplyClick || props.onSaveClick) && (
+			{(props.onApplyClick || props.onSaveClick) && (
 				<div style={{ display: 'flex', flexDirection: 'row', marginLeft: 30 }}>
 					{renderOkButton()}
 					{renderApplyButton()}

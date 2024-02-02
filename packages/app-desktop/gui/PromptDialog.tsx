@@ -1,8 +1,8 @@
-import * as React from 'react';
+import React from 'react';
 import { _ } from '@xilinota/lib/locale';
 import { themeStyle } from '@xilinota/lib/theme';
 import time from '@xilinota/lib/time';
-const Datetime = require('react-datetime').default;
+import Datetime from 'react-datetime';
 import CreatableSelect from 'react-select/creatable';
 import Select from 'react-select';
 import makeAnimated from 'react-select/animated';
@@ -12,7 +12,6 @@ interface Props {
 	visible: boolean;
 	style: any;
 	buttons: any[];
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	onClose: Function;
 	inputType: string;
 	description: string;
@@ -24,9 +23,9 @@ interface Props {
 export default class PromptDialog extends React.Component<Props, any> {
 
 	private answerInput_: any;
-	private focusInput_: boolean;
+	private focusInput_: boolean = false;
 	private styles_: any;
-	private styleKey_: string;
+	private styleKey_: string = '';
 	private menuIsOpened_ = false;
 
 	public constructor(props: Props) {
@@ -134,48 +133,56 @@ export default class PromptDialog extends React.Component<Props, any> {
 
 		this.styles_.select = {
 			control: (provided: any) => {
-				return { ...provided,
+				return {
+					...provided,
 					minWidth: width * 0.2,
 					maxWidth: width * 0.5,
 					fontFamily: theme.fontFamily,
 				};
 			},
 			input: (provided: any) => {
-				return { ...provided,
+				return {
+					...provided,
 					minWidth: '20px',
 					color: theme.color,
 				};
 			},
 			menu: (provided: any) => {
-				return { ...provided,
+				return {
+					...provided,
 					color: theme.color,
 					fontFamily: theme.fontFamily,
 					backgroundColor: theme.backgroundColor,
 				};
 			},
 			option: (provided: any, state: any) => {
-				return { ...provided,
+				return {
+					...provided,
 					color: theme.color,
 					fontFamily: theme.fontFamily,
 					paddingLeft: `${10 + (state.data.indentDepth || 0) * 20}px`,
 				};
 			},
 			multiValueLabel: (provided: any) => {
-				return { ...provided,
+				return {
+					...provided,
 					fontFamily: theme.fontFamily,
 				};
 			},
 			multiValueRemove: (provided: any) => {
-				return { ...provided,
+				return {
+					...provided,
 					color: theme.color,
 				};
 			},
 		};
 
 		this.styles_.selectTheme = (tagTheme: any) => {
-			return { ...tagTheme,
+			return {
+				...tagTheme,
 				borderRadius: 2,
-				colors: { ...tagTheme.colors,
+				colors: {
+					...tagTheme.colors,
 					primary: theme.raisedBackgroundColor,
 					primary25: theme.raisedBackgroundColor,
 					neutral0: theme.backgroundColor,
@@ -207,7 +214,7 @@ export default class PromptDialog extends React.Component<Props, any> {
 
 		const styles = this.styles(this.props.themeId, style.width, style.height, this.state.visible);
 
-		const onClose = (accept: boolean, buttonType: string = null) => {
+		const onClose = (accept: boolean, buttonType: string = '') => {
 			if (this.props.onClose) {
 				let outputAnswer = this.state.answer;
 				if (this.props.inputType === 'datetime') {

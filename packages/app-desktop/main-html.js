@@ -2,7 +2,7 @@
 
 // Disable React message in console "Download the React DevTools for a better development experience"
 // https://stackoverflow.com/questions/42196819/disable-hide-download-the-react-devtools#42196820
-// eslint-disable-next-line no-undef
+
 __REACT_DEVTOOLS_GLOBAL_HOOK__ = {
 	supportsFiber: true,
 	inject: function() {},
@@ -26,9 +26,9 @@ const shim = require('@xilinota/lib/shim').default;
 const { shimInit } = require('@xilinota/lib/shim-init-node.js');
 const bridge = require('@electron/remote').require('./bridge').default;
 const EncryptionService = require('@xilinota/lib/services/e2ee/EncryptionService').default;
-const { FileApiDriverLocal } = require('@xilinota/lib/file-api-driver-local');
+const FileApiDriverLocal = require('@xilinota/lib/file-api-driver-local').default;
 const React = require('react');
-const nodeSqlite = require('sqlite3');
+const nodeSqlite = require('sqlite3').verbose();
 const initLib = require('@xilinota/lib/initLib').default;
 
 // Security: If we attempt to navigate away from the root HTML page, it's likely because
@@ -64,7 +64,6 @@ if (bridge().env() === 'dev') {
 	window.console = newConsole;
 }
 
-// eslint-disable-next-line no-console
 console.info(`Environment: ${bridge().env()}`);
 
 const fsDriver = new FsDriverNode();
@@ -82,13 +81,14 @@ BaseItem.loadClass('Tag', Tag);
 BaseItem.loadClass('NoteTag', NoteTag);
 BaseItem.loadClass('MasterKey', MasterKey);
 BaseItem.loadClass('Revision', Revision);
+BaseItem.loadClass('Setting', Setting);
 
 Setting.setConstant('appId', `ac.mdiq.xilinota${bridge().env() === 'dev' ? 'dev' : ''}-desktop`);
 Setting.setConstant('appType', 'desktop');
 
-// eslint-disable-next-line no-console
+
 console.info(`appId: ${Setting.value('appId')}`);
-// eslint-disable-next-line no-console
+
 console.info(`appType: ${Setting.value('appType')}`);
 
 let keytar;

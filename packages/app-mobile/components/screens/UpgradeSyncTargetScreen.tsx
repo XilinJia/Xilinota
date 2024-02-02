@@ -1,13 +1,14 @@
 import * as React from 'react';
 import useSyncTargetUpgrade from '@xilinota/lib/services/synchronizer/gui/useSyncTargetUpgrade';
 import { _ } from '@xilinota/lib/locale';
-const { View, Text, ScrollView } = require('react-native');
+import { View, Text, ScrollView } from 'react-native';
 
-const { connect } = require('react-redux');
-const { themeStyle } = require('../global-style.js');
+import { connect } from 'react-redux';
+import { themeStyle } from '../global-style';
+
 import ScreenHeader from '../ScreenHeader';
 
-function UpgradeSyncTargetScreen(props: any) {
+function UpgradeSyncTargetScreen(this: { screen: any; }, props: any) {
 	const upgradeResult = useSyncTargetUpgrade();
 
 	const theme = themeStyle(props.themeId);

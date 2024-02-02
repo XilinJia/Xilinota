@@ -1,23 +1,22 @@
-import FsDriverBase, { ReadDirStatsOptions } from '@xilinota/lib/fs-driver-base';
-const RNFetchBlob = require('rn-fetch-blob').default;
-import * as RNFS from 'react-native-fs';
-import { readdir, stat } from 'react-native-fs';
-const path = require('path');
-const DocumentPicker = require('react-native-document-picker').default;
-import { openDocument, openDocumentTreeTag } from '@xilinota/react-native-saf-x';
-import RNSAF, { DocumentFileDetail, openDocumentTree } from '@xilinota/react-native-saf-x';
+
 import { Platform } from 'react-native';
-import * as tar from 'tar-stream';
-import { resolve } from 'path';
+import RNFetchBlob from 'rn-fetch-blob';
+import RNFS from 'react-native-fs';
+import DocumentPicker, { DocumentPickerResponse } from 'react-native-document-picker';
+import tar from 'tar-stream';
+import path, { resolve } from 'path';
 import { Buffer } from 'buffer';
+
+import FsDriverBase, { ReadDirStatsOptions, Stat } from '@xilinota/lib/fs-driver-base';
+import RNSAF, { DocumentFileDetail, openDocumentTree, openDocument, openDocumentTreeTag } from '@xilinota/react-native-saf-x';
 import Logger from '@xilinota/utils/Logger';
 
 const logger = Logger.create('fs-driver-rn');
 
 const ANDROID_URI_PREFIX = 'content://';
 
-function isScopedUri(path: string) {
-	return path.includes(ANDROID_URI_PREFIX);
+function isScopedUri(path_: string): boolean {
+	return path_.includes(ANDROID_URI_PREFIX);
 }
 
 // Encodings supported by rn-fetch-blob, RNSAF, and
@@ -54,53 +53,61 @@ const normalizeEncoding = (encoding: string): SupportedEncoding => {
 
 export default class FsDriverRN extends FsDriverBase {
 
-	public homeDir = '';
+	prototype: FsDriverBase;
 
-	public async getHomeDir() {
-		if (this.homeDir === '') this.homeDir = await this.getExternalDirectoryPathTag('homeDir');
+	constructor() {
+		super();
+		this.prototype = FsDriverBase.prototype;
+	}
+
+	public async getHomeDir(): Promise<string> {
+		if (this.homeDir === '') this.homeDir = await this.getExternalDirectoryPathTag('homeDir') ?? '';
 		return this.homeDir;
 	}
 
-	public appendFileSync() {
-		throw new Error('Not implemented');
-	}
+	// public appendFileSync(): void {
+	// 	throw new Error('Not implemented');
+	// }
 
 	// Requires that the file already exists.
 	// TODO: Update for compatibility with fs-driver-node's appendFile (which does not
 	//       require that the file exists).
-	public appendFile(path: string, content: any, rawEncoding = 'base64') {
+	public appendFile(path_: string, content: any, rawEncoding = 'base64'): Promise<void> {
 		const encoding = normalizeEncoding(rawEncoding);
 
-		if (isScopedUri(path)) {
-			return RNSAF.writeFile(path, content, { encoding, append: true });
+		if (isScopedUri(path_)) {
+			return RNSAF.writeFile(path_, content, { encoding, append: true });
 		}
-		return RNFS.appendFile(path, content, encoding);
+		return RNFS.appendFile(path_, content, encoding);
 	}
 
 	// Encoding can be either "utf8", "utf-8", or "base64"
-	public writeFile(path: string, content: any, rawEncoding = 'base64') {
+	public writeFile(path_: string, content: any, rawEncoding = 'base64'): Promise<void> {
 		const encoding = normalizeEncoding(rawEncoding);
 
-		if (isScopedUri(path)) {
-			return RNSAF.writeFile(path, content, { encoding: encoding });
+		if (isScopedUri(path_)) {
+			return RNSAF.writeFile(path_, content, { encoding: encoding });
 		}
 
 		// We need to use rn-fetch-blob here due to this bug:
 		// https://github.com/itinance/react-native-fs/issues/700
-		return RNFetchBlob.fs.writeFile(path, content, encoding);
+		return RNFetchBlob.fs.writeFile(path_, content, encoding);
 	}
 
 	// same as rm -rf
-	public async remove(path: string) {
-		return await this.unlink(path);
+	public async remove(path_: string): Promise<void> {
+		return await this.unlink(path_);
 	}
 
 	// Returns a format compatible with Node.js format
-	private rnfsStatToStd_(stat: any, path: string) {
-		let birthtime;
-		const mtime = stat.lastModified ? new Date(stat.lastModified) : stat.mtime;
+	private rnfsStatToStd_(stat_: DocumentFileDetail | RNFS.ReadDirItem | RNFS.StatResult, path_: string): Stat {
+		const stat = stat_ as any;
+
+		let birthtime: number;
+		const mtime: Date = stat.lastModified ? new Date(stat.lastModified) : stat.mtime;
 		if (stat.lastModified) {
-			birthtime = new Date(stat.lastModified);
+			// birthtime = new Date(stat.lastModified);
+			birthtime = stat.lastModified;
 		} else if (stat.ctime) {
 			// Confusingly, "ctime" normally means "change time" but here it's used as "creation time". Also sometimes it is null
 			birthtime = stat.ctime;
@@ -111,57 +118,67 @@ export default class FsDriverRN extends FsDriverBase {
 			birthtime,
 			mtime,
 			isDirectory: () => stat.type ? stat.type === 'directory' : stat.isDirectory(),
-			path: path,
+			path: path_,
 			size: stat.size,
+
+			uri: stat.uri ? stat.uri : '',
+			name: stat.name ? stat.name : '',
+			type: stat.type ? stat.type : '',
+			lastModified: stat.lastModified ? stat.lastModified : birthtime,
+			mime: stat.mime ? stat.mime : ''
 		};
 	}
 
-	public async readDirStats(path: string, options: any = null) {
+	public async readDirStats(path_: string, options: any = null): Promise<Stat[]> {
 		if (!options) options = {};
 		if (!('recursive' in options)) options.recursive = false;
 
-		const isScoped = isScopedUri(path);
+		const isScoped = isScopedUri(path_);
 
-		let stats: any[] = [];
+		let stats: DocumentFileDetail[] | RNFS.ReadDirItem[] = [];
+		// let stats: any[] = [];
 		try {
 			if (isScoped) {
-				stats = await RNSAF.listFiles(path);
+				stats = await RNSAF.listFiles(path_);
 			} else {
-				stats = await RNFS.readDir(path);
+				stats = await RNFS.readDir(path_);
 			}
 		} catch (error) {
-			throw new Error(`Could not read directory: ${path}: ${error.message}`);
+			throw new Error(`Could not read directory: ${path_}: ${(error as Error).message}`);
 		}
 
-		let output: any[] = [];
+		let output: Stat[] = [];
 		for (let i = 0; i < stats.length; i++) {
 			const stat = stats[i];
-			const relativePath = (isScoped ? stat.uri : stat.path).substr(path.length + 1);
+			const relativePath = (isScoped ? (stat as DocumentFileDetail).uri : (stat as RNFS.ReadDirItem).path).substring(path_.length + 1);
 			const standardStat = this.rnfsStatToStd_(stat, relativePath);
 			output.push(standardStat);
 
 			if (isScoped) {
 				// readUriDirStatsHandleRecursion_ expects stat to have a URI property.
 				// Use the original stat.
-				output = await this.readUriDirStatsHandleRecursion_(stat, output, options);
+				const output_ = await this.readUriDirStatsHandleRecursion_((stat as DocumentFileDetail), (output as DocumentFileDetail[]), options);
+				for (const o of output_) output.push(this.rnfsStatToStd_(o, relativePath));
 			} else {
-				output = await this.readDirStatsHandleRecursion_(path, standardStat, output, options);
+				output = await this.readDirStatsHandleRecursion_(path_, standardStat, (output as Stat[]), options);
 			}
 		}
 		return output;
 	}
 
-	// XJ added
-	public async ls_R(directoryPath: string) {
+	public async ls_R(directoryPath: string): Promise<string[]> {
 		// list absolute path
 		const files: string[] = [];
+		const isScoped = isScopedUri(directoryPath);
 
 		const scanDirectory = async (currentPath: string) => {
-			const items = await readdir(currentPath);
+			const items = isScopedUri(currentPath) ? await RNSAF.listFiles(currentPath) : await RNFS.readDir(currentPath);
 
 			for (const item of items) {
-				const itemPath = path.join(currentPath, item);
-				const stats = await stat(itemPath);
+				const actFile = isScoped ? (item as DocumentFileDetail).uri : (item as RNFS.ReadDirItem).name;
+				const itemPath = path.join(currentPath, actFile);
+				const stats = await this.stat(itemPath);
+				if (!stats) continue;
 
 				files.push(itemPath);
 				if (stats.isDirectory()) {
@@ -174,112 +191,124 @@ export default class FsDriverRN extends FsDriverBase {
 		return files;
 	}
 
-	public async ls_RR(directory: string) {
+	public async ls_RR(directory: string): Promise<string[]> {
 
 		const filepaths: string[] = [];
-		// logger.info('RN ls_RR ', directory);
+		const isScoped = isScopedUri(directory);
 
-		const traverseDirectory = async (directoryPath: string) => {
+		const traverseDirectory = async (directoryPath: string): Promise<void> => {
 			try {
-				const files = await readdir(directoryPath);
+				const files = isScoped ? await RNSAF.listFiles(directoryPath) : await RNFS.readDir(directoryPath);
 				for (const file of files) {
-					const filePath = `${directoryPath}/${file}`;
-					const stats = await stat(filePath);
-					const relativePath = path.relative(directory, filePath);
+					let filePath: string;
+					if (isScoped) {
+						filePath = (file as DocumentFileDetail).uri;
+					} else {
+						filePath = `${directoryPath}/${(file as RNFS.ReadDirItem).name}`
+					}
+					const stats = await this.stat(filePath);
+					const relativePath = isScoped ? filePath.replace(`${directory}/`, '') : path.relative(directory, filePath);
+					if (!stats) continue;
 
 					filepaths.push(relativePath);
 					if (stats.isDirectory()) {
-						// logger.info('ls_RR traverseDirectory: Directory', filePath);
 						await traverseDirectory(filePath); // Recursively list subdirectories
 					}
 				}
 			} catch (error) {
-				console.error('Error:', error);
+				console.error('ls_RR Error:', error, directoryPath);
 			}
 		};
+
 		await traverseDirectory(directory);
 		return filepaths;
 	}
 
-	protected async readUriDirStatsHandleRecursion_(stat: DocumentFileDetail, output: DocumentFileDetail[], options: ReadDirStatsOptions) {
+	protected async readUriDirStatsHandleRecursion_(stat: DocumentFileDetail, output: DocumentFileDetail[], options: ReadDirStatsOptions): Promise<DocumentFileDetail[]> {
 		if (options.recursive && stat.type === 'directory') {
 			const subStats = await this.readDirStats(stat.uri, options);
 			for (let j = 0; j < subStats.length; j++) {
 				const subStat = subStats[j];
-				output.push(subStat);
+				output.push(subStat as DocumentFileDetail);
 			}
 		}
 		return output;
 	}
 
-	public async move(source: string, dest: string) {
+	public async move(source: string, dest: string): Promise<void> {
 		if (isScopedUri(source) || isScopedUri(dest)) {
 			await RNSAF.moveFile(source, dest, { replaceIfDestinationExists: true });
 		}
 		return RNFS.moveFile(source, dest);
 	}
 
-	public async rename(source: string, dest: string) {
+	public async rename(source: string, dest: string): Promise<void> {
 		if (isScopedUri(source) || isScopedUri(dest)) {
 			await RNSAF.rename(source, dest);
 		}
 		return RNFS.moveFile(source, dest);
 	}
 
-	public async moveAllFiles(sourcePath: string, destinationPath: string, mediaExtensions: string[] = []) {
+	public isFile(path_: DocumentFileDetail | RNFS.ReadDirItem): boolean {
+		return ('uri' in path_ && (path_ as DocumentFileDetail).type === 'file') ||
+			(!('uri' in path_) && (path_ as RNFS.ReadDirItem).isFile())
+	}
+
+	public async moveAllFiles(sourcePath: string, destinationPath: string, mediaExtensions: string[] = []): Promise<void> {
 		try {
-			const files = await RNFS.readDir(sourcePath);
-			for (const file of files) {
-				if (file.isFile()) {
+			const paths = isScopedUri(sourcePath) ? await RNSAF.listFiles(sourcePath) : await RNFS.readDir(sourcePath);;
+			for (const file of paths) {
+				if (this.isFile(file)) {
 					if (mediaExtensions) {
 						const fileName = file.name.toLowerCase();
 						const fileExtension = fileName.split('.').pop();
-						if (!mediaExtensions.includes(fileExtension)) continue;
+						if (!fileExtension || !mediaExtensions.includes(fileExtension)) continue;
 					}
 					const sourceFile = `${sourcePath}/${file.name}`;
 					const destinationFile = `${destinationPath}/${file.name}`;
 
-					// eslint-disable-next-line no-console
 					console.log('File moving:', file.name);
-					await RNFS.moveFile(sourceFile, destinationFile);
+					await this.move(sourceFile, destinationFile);
 				}
 			}
 		} catch (error) {
-			console.error('Error moving files:', error);
+			console.error('Error moving files:', error, sourcePath, destinationPath);
 		}
 	}
 
-	public async exists(path: string) {
-		if (isScopedUri(path)) {
-			return RNSAF.exists(path);
+	public async exists(path_: string): Promise<boolean> {
+		if (isScopedUri(path_)) {
+			return RNSAF.exists(path_);
 		}
-		return RNFS.exists(path);
+		return RNFS.exists(path_);
 	}
 
-	public async mkdir(path: string) {
-		if (isScopedUri(path)) {
-			await RNSAF.mkdir(path);
+	public async mkdir(path_: string): Promise<void> {
+		if (isScopedUri(path_)) {
+			await RNSAF.mkdir(path_);
 			return;
 		}
 
 		// Also creates parent directories: Works like mkdir -p
-		return RNFS.mkdir(path);
+		return RNFS.mkdir(path_);
 	}
 
-	public async stat(path: string) {
+	public async stat(path_: string): Promise<Stat | null> {
 		try {
 			let r;
-			if (isScopedUri(path)) {
-				r = await RNSAF.stat(path);
+			if (isScopedUri(path_)) {
+				r = await RNSAF.stat(path_);
 			} else {
-				r = await RNFS.stat(path);
+				r = await RNFS.stat(path_);
 			}
-			return this.rnfsStatToStd_(r, path);
+			return this.rnfsStatToStd_(r, path_);
 		} catch (error) {
-			if (error && (error.code === 'ENOENT' || !(await this.exists(path)))) {
+			// throw error;
+			if (((error as any).code === 'ENOENT' || !(await this.exists(path_)))) {
 				// Probably { [Error: File does not exist] framesToPop: 1, code: 'EUNSPECIFIED' }
 				//     or   { [Error: The file {file} couldn’t be opened because there is no such file.], code: 'ENSCOCOAERRORDOMAIN260' }
 				// which unfortunately does not have a proper error code. Can be ignored.
+				logger.warn('RN stat', error, path_);
 				return null;
 			} else {
 				throw error;
@@ -295,38 +324,43 @@ export default class FsDriverRN extends FsDriverBase {
 		// return RNFS.touch(path, timestampDate, timestampDate);
 	}
 
-	public async open(path: string, mode: number) {
-		if (isScopedUri(path)) {
+	public async open(path_: string, mode: number): Promise<{
+		path: string;
+		offset: number;
+		mode: number;
+		stat: Stat | null;
+	}> {
+		if (isScopedUri(path_)) {
 			throw new Error('open() not implemented in FsDriverAndroid');
 		}
 		// Note: RNFS.read() doesn't provide any way to know if the end of file has been reached.
 		// So instead we stat the file here and use stat.size to manually check for end of file.
 		// Bug: https://github.com/itinance/react-native-fs/issues/342
-		const stat = await this.stat(path);
+		const stat = await this.stat(path_);
 		return {
-			path: path,
+			path: path_,
 			offset: 0,
 			mode: mode,
 			stat: stat,
 		};
 	}
 
-	public close(): Promise<void> {
+	public async close(): Promise<void> {
 		// Nothing
-		return null;
+		return;
 	}
 
-	public readFile(path: string, rawEncoding = 'utf8') {
+	public readFile(path_: string, rawEncoding = 'utf8'): Promise<string> {
 		const encoding = normalizeEncoding(rawEncoding);
 
-		if (isScopedUri(path)) {
-			return RNSAF.readFile(path, { encoding: encoding });
+		if (isScopedUri(path_)) {
+			return RNSAF.readFile(path_, { encoding: encoding });
 		}
-		return RNFS.readFile(path, encoding);
+		return RNFS.readFile(path_, encoding);
 	}
 
 	// Always overwrite destination
-	public async copy(source: string, dest: string) {
+	public async copy(source: string, dest: string): Promise<void> {
 		let retry = false;
 		try {
 			if (isScopedUri(source) || isScopedUri(dest)) {
@@ -349,19 +383,20 @@ export default class FsDriverRN extends FsDriverBase {
 		}
 	}
 
-	public async link(source: string, dest: string) {
+	public async link(source: string, dest: string): Promise<void> {
 		await this.copy(source, dest);
 	}
 
-	public async unlink(path: string) {
+	public async unlink(path_: string): Promise<void> {
 		try {
-			if (isScopedUri(path)) {
-				await RNSAF.unlink(path);
+			if (isScopedUri(path_)) {
+				await RNSAF.unlink(path_);
 				return;
 			}
-			await RNFS.unlink(path);
+			await RNFS.unlink(path_);
 		} catch (error) {
-			if (error && ((error.message && error.message.indexOf('exist') >= 0) || error.code === 'ENOENT')) {
+			const err = error as any;
+			if (error && ((err.message && err.message.indexOf('exist') >= 0) || err.code === 'ENOENT')) {
 				// Probably { [Error: File does not exist] framesToPop: 1, code: 'EUNSPECIFIED' }
 				// which unfortunately does not have a proper error code. Can be ignored.
 			} else {
@@ -370,37 +405,37 @@ export default class FsDriverRN extends FsDriverBase {
 		}
 	}
 
-	public async readFileChunk(handle: any, length: number, rawEncoding = 'base64') {
+	public async readFileChunk(handle: any, length: number, rawEncoding = 'base64'): Promise<string> {
 		const encoding = normalizeEncoding(rawEncoding);
 
 		if (handle.offset + length > handle.stat.size) {
 			length = handle.stat.size - handle.offset;
 		}
 
-		if (!length) return null;
+		if (!length) return '';
 		const output = await RNFS.read(handle.path, length, handle.offset, encoding);
-		// eslint-disable-next-line require-atomic-updates
+
 		handle.offset += length;
-		return output ? output : null;
+		return output ? output : '';
 	}
 
-	public resolve(path: string) {
-		throw new Error(`Not implemented: resolve(): ${path}`);
-	}
+	// public resolve(path: string): string {
+	// 	throw new Error(`Not implemented: resolve(): ${path}`);
+	// }
 
-	public resolveRelativePathWithinDir(_baseDir: string, relativePath: string) {
-		throw new Error(`Not implemented: resolveRelativePathWithinDir(): ${relativePath}`);
-	}
+	// public resolveRelativePathWithinDir(_baseDir: string, relativePath: string): string {
+	// 	throw new Error(`Not implemented: resolveRelativePathWithinDir(): ${relativePath}`);
+	// }
 
-	public async md5File(path: string): Promise<string> {
-		throw new Error(`Not implemented: md5File(): ${path}`);
-	}
+	// public async md5File(path: string): Promise<string> {
+	// 	throw new Error(`Not implemented: md5File(): ${path}`);
+	// }
 
-	public async tarExtract(_options: any) {
-		throw new Error('Not implemented: tarExtract');
-	}
+	// public async tarExtract(_options: any): Promise<void> {
+	// 	throw new Error('Not implemented: tarExtract');
+	// }
 
-	public async tarCreate(options: any, filePaths: string[]) {
+	public async tarCreate(options: any, filePaths: string[]): Promise<void> {
 		// Choose a default cwd if not given
 		const cwd = options.cwd ?? RNFS.DocumentDirectoryPath;
 		const file = resolve(cwd, options.file);
@@ -411,12 +446,12 @@ export default class FsDriverRN extends FsDriverBase {
 
 		const pack = tar.pack();
 
-		for (const path of filePaths) {
-			const absPath = resolve(cwd, path);
+		for (const path_ of filePaths) {
+			const absPath = resolve(cwd, path_);
 			const stat = await this.stat(absPath);
-			const sizeBytes: number = stat.size;
+			const sizeBytes: number = stat ? stat.size : 0;
 
-			const entry = pack.entry({ name: path, size: sizeBytes }, (error) => {
+			const entry = pack.entry({ name: path_, size: sizeBytes }, (error) => {
 				if (error) {
 					logger.error(`Tar error: ${error}`);
 				}
@@ -435,7 +470,7 @@ export default class FsDriverRN extends FsDriverBase {
 
 		// The streams used by tar-stream seem not to support a chunk size
 		// (it seems despite the typings provided).
-		let data: number[]|null = null;
+		let data: number[] | null = null;
 		while ((data = pack.read()) !== null) {
 			const buff = Buffer.from(data);
 			const base64Data = buff.toString('base64');
@@ -457,7 +492,7 @@ export default class FsDriverRN extends FsDriverBase {
 	}
 
 	public async getExternalDirectoryPathTag(tag: string): Promise<string | undefined> {
-		let directory;
+		let directory: string | undefined;
 		if (this.isUsingAndroidSAF()) {
 			const doc = await openDocumentTreeTag(tag);
 			if (doc?.uri) {
@@ -469,12 +504,12 @@ export default class FsDriverRN extends FsDriverBase {
 		return directory;
 	}
 
-	public isUsingAndroidSAF() {
+	public isUsingAndroidSAF(): boolean {
 		return Platform.OS === 'android' && Platform.Version > 28;
 	}
 
 	/** always returns an array */
-	public async pickDocument(options: { multiple: false }) {
+	public async pickDocument(options: { multiple: false }): Promise<DocumentFileDetail[] | DocumentPickerResponse[] | null> {
 		const { multiple = false } = options || {};
 		let result;
 		try {
@@ -494,12 +529,13 @@ export default class FsDriverRN extends FsDriverBase {
 				if (multiple) {
 					result = await DocumentPicker.pick({ allowMultiSelection: true });
 				} else {
-					result = [await DocumentPicker.pick()];
+					result = await DocumentPicker.pick();
 				}
 			}
 		} catch (error) {
-			if (DocumentPicker.isCancel(error) || error?.message?.includes('cancel')) {
-				// eslint-disable-next-line no-console
+			const err = error as Error;
+			if (DocumentPicker.isCancel(err) || err.message.includes('cancel')) {
+
 				console.info('pickDocuments: user has cancelled');
 				return null;
 			} else {

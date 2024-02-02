@@ -1,4 +1,4 @@
-import produce, { Draft } from 'immer';
+import { produce, Draft } from 'immer';
 
 export const defaultState = {
 	watchedResources: {},
@@ -30,7 +30,7 @@ const reducer = produce((draft: Draft<any>, action: any) => {
 
 		}
 	} catch (error) {
-		error.message = `In plugin reducer: ${error.message} Action: ${JSON.stringify(action)}`;
+		if (error instanceof Error) error.message = `In plugin reducer: ${error.message} Action: ${JSON.stringify(action)}`;
 		throw error;
 	}
 });

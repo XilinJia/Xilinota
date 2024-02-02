@@ -86,7 +86,7 @@ function imageSrc(image) {
 // Given a document, return a <style> tag that contains all the styles
 // required to render the page. Not currently used but could be as an
 // option to clip pages as HTML.
-// eslint-disable-next-line
+
 function getStyleSheets(doc) {
 	const output = [];
 	for (let i = 0; i < doc.styleSheets.length; i++) {
@@ -99,11 +99,11 @@ function getStyleSheets(doc) {
 			// Calling sheet.cssRules will throw a CORS error on Chrome if the stylesheet is on a different domain.
 			// In that case, we skip it and add it to the list of stylesheet URLs. These URls will be downloaded
 			// by the desktop application, since it doesn't have CORS restrictions.
-			// eslint-disable-next-line
+			
             console.info('Could not retrieve stylesheet now:', sheet.href);
-			// eslint-disable-next-line
+			
             console.info('It will downloaded by the main application.');
-			// eslint-disable-next-line
+			
             console.info(error);
 			output.push({ type: 'url', value: sheet.href });
 		}

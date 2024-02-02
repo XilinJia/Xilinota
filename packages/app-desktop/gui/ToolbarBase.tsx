@@ -2,8 +2,8 @@ import * as React from 'react';
 import ToolbarButton from './ToolbarButton/ToolbarButton';
 import ToggleEditorsButton, { Value } from './ToggleEditorsButton/ToggleEditorsButton';
 import ToolbarSpace from './ToolbarSpace';
-const { connect } = require('react-redux');
-const { themeStyle } = require('@xilinota/lib/theme');
+import { connect } from 'react-redux';
+import { themeStyle } from '@xilinota/lib/theme';
 
 interface Props {
 	themeId: number;

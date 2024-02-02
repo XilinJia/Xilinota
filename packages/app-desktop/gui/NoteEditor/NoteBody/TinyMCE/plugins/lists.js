@@ -485,8 +485,8 @@
       detectOs: detectOs
     };
 
-    var contains = function (str, substr) {
-      return str.indexOf(substr) !== -1;
+    var contains = function (str, substring) {
+      return str.indexOf(substring) !== -1;
     };
 
     var normalVersionRegex = /.*?version\/\ ?([0-9]+)\.([0-9]+).*/;
@@ -1505,7 +1505,7 @@
     };
 
     function isCheckboxListItem(element) {
-      return element.classList && element.classList.contains('xilinota-checklist');
+      return !!element && !!element.classList && element.classList.contains('xilinota-checklist');
     }
     function findContainerListTypeFromEvent(event) {
       if (isCheckboxListItem(event.element))
@@ -1535,7 +1535,7 @@
     function addXilinotaChecklistCommands(editor, ToggleList) {
       editor.addCommand('ToggleXilinotaChecklistItem', function (ui, detail) {
         var element = detail.element;
-        if (!isXilinotaChecklistItem(element))
+        if (!element || !isXilinotaChecklistItem(element))
           return;
         if (!element.classList || !element.classList.contains('checked')) {
           element.classList.add('checked');
@@ -1567,6 +1567,7 @@
     var updateListWithDetails = function (dom, el, detail) {
       updateListStyle(dom, el, detail);
       updateListAttrs(dom, el, detail);
+      if (!el) return;
       if (detail.listType === 'xilinotaChecklist') {
         el.classList.add('xilinota-checklist');
       } else {

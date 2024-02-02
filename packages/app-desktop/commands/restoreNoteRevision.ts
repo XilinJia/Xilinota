@@ -13,7 +13,7 @@ export const runtime = (): CommandRuntime => {
 				const note = await RevisionService.instance().restoreNoteById(noteId, reverseRevIndex);
 				alert(RevisionService.instance().restoreSuccessMessage(note));
 			} catch (error) {
-				alert(error.message);
+				alert((error as Error).message);
 			}
 		},
 	};

@@ -9,7 +9,7 @@ interface Props {
 const fontSizeCache_: Record<string, number> = {};
 
 export default (props: Props) => {
-	const containerRef = useRef(null);
+	const containerRef = useRef<HTMLDivElement>(document.createElement('div'));
 	const [containerReady, setContainerReady] = useState(false);
 
 	const fontSize = useMemo(() => {
@@ -28,7 +28,7 @@ export default (props: Props) => {
 		const span = document.createElement('span');
 		span.innerText = props.emoji;
 		span.style.fontSize = `${spanFontSize}px`;
-		containerRef.current.appendChild(span);
+		containerRef.current?.appendChild(span);
 
 		let rect = span.getBoundingClientRect();
 
@@ -44,5 +44,5 @@ export default (props: Props) => {
 		return spanFontSize;
 	}, [props.width, props.height, props.emoji, containerReady, containerRef]);
 
-	return <div className="emoji-box" ref={el => { containerRef.current = el; setContainerReady(true); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: props.width, height: props.height, fontSize }}>{props.emoji}</div>;
+	return <div className="emoji-box" ref={el => { if (el) containerRef.current = el; setContainerReady(true); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: props.width, height: props.height, fontSize }}>{props.emoji}</div>;
 };

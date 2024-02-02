@@ -1,7 +1,7 @@
 import markdownUtils from './markdownUtils';
 import Setting from './models/Setting';
 import shim from './shim';
-import MarkupToHtml, { MarkupLanguage, Options } from '@xilinota/renderer/MarkupToHtml';
+import MarkupToHtml, { MarkupLanguage, Options, OptionsResourceModel } from '@xilinota/renderer/MarkupToHtml';
 
 import htmlUtils from './htmlUtils';
 import Resource from './models/Resource';
@@ -41,14 +41,14 @@ export class MarkupLanguageUtils {
 
 	// Create a new MarkupToHtml instance while injecting options specific to Xilinota
 	// desktop and mobile applications.
-	public newMarkupToHtml(_plugins: PluginStates = null, options: Options = null) {
+	public newMarkupToHtml(_plugins: PluginStates|null = null, options: Options = {}) {
 		const subValues = Setting.subValues('markdown.plugin', Setting.toPlainObject());
 		const pluginOptions: any = {};
 		for (const n in subValues) {
 			pluginOptions[n] = { enabled: subValues[n] };
 		}
 
-		options = { ResourceModel: Resource,
+		options = { ResourceModel: Resource as OptionsResourceModel,
 			pluginOptions: pluginOptions,
 			tempDir: Setting.value('tempDir'),
 			fsDriver: shim.fsDriver(),

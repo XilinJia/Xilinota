@@ -198,7 +198,7 @@ function buildIndex(locales: string[], stats: TranslationStatus[]) {
 
 function availableLocales(defaultLocale: string) {
 	const output = [defaultLocale];
-	// eslint-disable-next-line github/array-foreach -- Old code before rule was applied
+
 	readdirSync(localesDir).forEach((path) => {
 		if (fileExtension(path) !== 'po') return;
 		const locale = filename(path);
@@ -302,8 +302,10 @@ function translationStatusToMdTable(status: TranslationStatus[]) {
 	output.push(['---', '---', '---', '---', '---'].join('|'));
 	for (let i = 0; i < status.length; i++) {
 		const stat = status[i];
-		const flagUrl = flagImageUrl(stat.locale);
-		output.push([`<img src="${flagUrl}" width="16px"/>`, stat.languageName, `[${stat.locale}](${poFileUrl(stat.locale)})`, stat.translatorName, `${stat.percentDone}%`].join('  |  '));
+		if (stat.locale) {
+			const flagUrl = flagImageUrl(stat.locale);
+			output.push([`<img src="${flagUrl}" width="16px"/>`, stat.languageName, `[${stat.locale}](${poFileUrl(stat.locale)})`, stat.translatorName, `${stat.percentDone}%`].join('  |  '));
+		}
 	}
 	return output.join('\n');
 }
@@ -361,7 +363,7 @@ async function main() {
 
 	if (tempPotFilePath) await remove(tempPotFilePath);
 
-	const deletedCount = oldPotStatus.untranslatedCount - newPotStatus.untranslatedCount;
+	const deletedCount = oldPotStatus.untranslatedCount ?? 0 - (newPotStatus.untranslatedCount ?? 0);
 	if (deletedCount >= 5) {
 		if (argv['skip-missing-strings-check']) {
 			console.info(`${deletedCount} strings have been deleted, but proceeding anyway due to --skip-missing-strings-check flag`);
@@ -401,7 +403,7 @@ async function main() {
 		stats.push(stat);
 	}
 
-	stats.sort((a, b) => a.languageName < b.languageName ? -1 : +1);
+	stats.sort((a, b) => a.languageName ?? '' < (b.languageName ?? '') ? -1 : +1);
 
 	saveToFile(`${jsonLocalesDir}/index.js`, buildIndex(locales, stats));
 

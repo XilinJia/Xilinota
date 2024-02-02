@@ -212,7 +212,7 @@ function filterLogs(logs: LogEntry[], platform: Platform) {
 	const output: LogEntry[] = [];
 	const revertedLogs = [];
 
-	// eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
+
 	// let updatedTranslations = false;
 
 	const renovateMessages: RenovateMessage[] = [];
@@ -295,8 +295,8 @@ function filterLogs(logs: LogEntry[], platform: Platform) {
 }
 
 function formatCommitMessage(commit: string, msg: string, author: Author, options: Options): string {
-	options = { publishFormat: 'full', ...options };
-
+	options = { ...options };
+	if (!options.publishFormat) options.publishFormat = PublishFormat.Full;
 	let output = '';
 
 	const splitted = msg.split(':');
@@ -422,7 +422,7 @@ function formatCommitMessage(commit: string, msg: string, author: Author, option
 				output = output.replace(issueRegex, `($1 by ${authorMd})`);
 			}
 		} else {
-			const commitStrings = [commit.substr(0, 7)];
+			const commitStrings = [commit.substring(0, 7)];
 			if (authorMd) commitStrings.push(`by ${authorMd}`);
 			if (commitStrings.join('').length) {
 				output += ` (${commitStrings.join(' ')})`;
@@ -469,7 +469,7 @@ async function findFirstRelevantTag(baseTag: string, platform: Platform, allTags
 			const filteredLogs = filterLogs(logs, platform);
 			if (filteredLogs.length) return tag;
 		} catch (error) {
-			if (error.message.indexOf('unknown revision') >= 0) {
+			if ((error as Error).message.indexOf('unknown revision') >= 0) {
 				// We skip the error - it means this particular tag has never been created
 			} else {
 				throw error;
@@ -521,14 +521,14 @@ async function main() {
 	changelogImproves.sort();
 	changelogNews.sort();
 
-	changelog = [].concat(changelogNews).concat(changelogImproves).concat(changelogFixes);
+	changelog = [''].concat(changelogNews).concat(changelogImproves).concat(changelogFixes);
 
 	const changelogString = changelog.map(l => `- ${l}`);
 	console.info(changelogString.join('\n'));
 }
 
 if (require.main === module) {
-	// eslint-disable-next-line promise/prefer-await-to-then
+
 	main().catch((error) => {
 		console.error('Fatal error');
 		console.error(error);

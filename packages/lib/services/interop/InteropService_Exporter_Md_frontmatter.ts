@@ -17,7 +17,7 @@ interface TagContext {
 	tagTitles: Record<string, string>;
 }
 
-interface FrontMatterContext extends NoteTagContext, TagContext {}
+interface FrontMatterContext extends NoteTagContext, TagContext { }
 
 // There is a special case (negative numbers) where the yaml library will force quotations
 // These need to be stripped
@@ -105,7 +105,6 @@ export default class InteropService_Exporter_Md_frontmatter extends InteropServi
 		// This is necessary because these fields are officially numbers, but often
 		// contain strings.
 
-		// eslint-disable-next-line eqeqeq
 		if (note.latitude != 0 || note.longitude != 0 || note.altitude != 0) {
 			md['latitude'] = note.latitude;
 			md['longitude'] = note.longitude;
@@ -125,7 +124,7 @@ export default class InteropService_Exporter_Md_frontmatter extends InteropServi
 
 		// tags
 		const context: FrontMatterContext = this.context();
-		if (context.noteTags[note.id]) {
+		if (note.id && context.noteTags[note.id]) {
 			const tagIds = context.noteTags[note.id];
 			// In some cases a NoteTag can still exist, while the Tag does not. In this case, tagTitles
 			// for that tagId will return undefined, which can't be handled by the yaml library (issue #7782)

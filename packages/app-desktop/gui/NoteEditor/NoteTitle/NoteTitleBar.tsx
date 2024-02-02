@@ -37,12 +37,12 @@ interface Props {
 	noteTitle: string;
 	noteIsTodo: number;
 	isProvisional: boolean;
-	titleInputRef: any;
+	titleInputRef: React.LegacyRef<HTMLInputElement>;
 	onTitleChange(event: ChangeEvent<HTMLInputElement>): void;
 	disabled: boolean;
 }
 
-function styles_(props: Props) {
+function styles_(props: Props): Record<string, any> {
 	return buildStyle(['NoteEditorTitleBar'], props.themeId, (theme: any) => {
 		return {
 			titleInput: {
@@ -78,10 +78,10 @@ function styles_(props: Props) {
 	});
 }
 
-export default function NoteTitleBar(props: Props) {
+export default function NoteTitleBar(props: Props): React.JSX.Element {
 	const styles = styles_(props);
 
-	const onTitleKeydown = useCallback((event: any) => {
+	const onTitleKeydown = useCallback((event: { keyCode: any; preventDefault: () => void; shiftKey: any; }): void => {
 		const keyCode = event.keyCode;
 
 		if (keyCode === 9) { // TAB
@@ -95,7 +95,7 @@ export default function NoteTitleBar(props: Props) {
 		}
 	}, []);
 
-	function renderDate() {
+	function renderDate(): React.JSX.Element {
 		return <span className="created-time-label" style={styles.titleDate}>{`${time.formatMsToLocal(props.noteUserCreatedTime)} ${time.formatMsToLocal(props.noteUserUpdatedTime)}`}</span>;
 	}
 
@@ -103,7 +103,7 @@ export default function NoteTitleBar(props: Props) {
 	// 	return <span className="updated-time-label" style={styles.titleDate}>{time.formatMsToLocal(props.noteUserUpdatedTime)}</span>;
 	// }
 
-	function renderNoteToolbar() {
+	function renderNoteToolbar(): React.JSX.Element {
 		return <NoteToolbar
 			themeId={props.themeId}
 			style={styles.toolbarStyle}

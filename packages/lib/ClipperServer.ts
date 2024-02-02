@@ -2,6 +2,7 @@ import Setting from './models/Setting';
 import Logger from '@xilinota/utils/Logger';
 import Api, { RequestFile } from './services/rest/Api';
 import ApiResponse from './services/rest/ApiResponse';
+import { ApiError } from './utils/errors';
 const urlParser = require('url');
 const { randomClipperPort, startPort } = require('./randomClipperPort');
 const enableServerDestroy = require('server-destroy');
@@ -18,12 +19,11 @@ export default class ClipperServer {
 	private logger_: Logger;
 	private startState_: StartState = StartState.Idle;
 	private server_: any = null;
-	private port_: number = null;
-	private api_: Api = null;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	private dispatch_: Function;
+	private port_: number = 0;
+	private api_: Api | undefined;
+	private dispatch_: Function | undefined;
 
-	private static instance_: ClipperServer = null;
+	private static instance_: ClipperServer;
 
 	public constructor() {
 		this.logger_ = new Logger();
@@ -36,7 +36,7 @@ export default class ClipperServer {
 	}
 
 	public get api(): Api {
-		return this.api_;
+		return this.api_!;	// set in initialize
 	}
 
 	public initialize(actionApi: any = null) {
@@ -53,7 +53,6 @@ export default class ClipperServer {
 		return this.logger_;
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public setDispatch(d: Function) {
 		this.dispatch_ = d;
 	}
@@ -102,7 +101,7 @@ export default class ClipperServer {
 	}
 
 	public async start() {
-		this.setPort(null);
+		this.setPort(0);
 
 		this.setStartState(StartState.Starting);
 
@@ -175,15 +174,17 @@ export default class ClipperServer {
 
 			const execRequest = async (request: any, body = '', files: RequestFile[] = []) => {
 				try {
-					const response = await this.api_.route(request.method, url.pathname, url.query, body, files);
+					const response = await this.api_!.route(request.method, url.pathname, url.query, body, files);
 					writeResponse(200, response);
 				} catch (error) {
 					this.logger().error(error);
-					const httpCode = error.httpCode ? error.httpCode : 500;
+					const httpCode = error instanceof ApiError && error.httpCode ? error.httpCode : 500;
 					const msg = [];
 					if (httpCode >= 500) msg.push('Internal Server Error');
-					if (error.message) msg.push(error.message);
-					if (error.stack) msg.push(`\n\n${error.stack}`);
+					if (error instanceof Error) {
+						if (error.message) msg.push(error.message);
+						if (error.stack) msg.push(`\n\n${error.stack}`);
+					}
 
 					writeResponse(httpCode, { error: msg.join(': ') });
 				}
@@ -234,13 +235,13 @@ export default class ClipperServer {
 
 		// We return an empty promise that never resolves so that it's possible to `await` the server indefinitely.
 		// This is used only in command-server.js
-		return new Promise(() => {});
+		return new Promise(() => { });
 	}
 
 	public async stop() {
 		this.server_.destroy();
 		this.server_ = null;
 		this.setStartState(StartState.Idle);
-		this.setPort(null);
+		this.setPort(0);
 	}
 }

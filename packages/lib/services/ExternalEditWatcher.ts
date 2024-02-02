@@ -6,20 +6,18 @@ import time from '../time';
 import { NoteEntity } from './database/types';
 import Note from '../models/Note';
 import { openFileWithExternalEditor } from './ExternalEditWatcher/utils';
-const EventEmitter = require('events');
+import EventEmitter from 'events';
 const chokidar = require('chokidar');
 const { ErrorNotFound } = require('./rest/utils/errors');
 
 export default class ExternalEditWatcher {
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	private dispatch: Function;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	private bridge_: Function;
+	private dispatch: Function | undefined;
+	private bridge_: Function | undefined;
 	private logger_: Logger = new Logger();
 	private watcher_: any = null;
 	private eventEmitter_: any = new EventEmitter();
-	private skipNextChangeEvent_: any = {};
+	private skipNextChangeEvent_: Record<string, boolean> = {};
 	private chokidar_: any = chokidar;
 
 	private static instance_: ExternalEditWatcher;
@@ -30,7 +28,6 @@ export default class ExternalEditWatcher {
 		return this.instance_;
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public initialize(bridge: Function, dispatch: Function) {
 		this.bridge_ = bridge;
 		this.dispatch = dispatch;
@@ -62,12 +59,10 @@ export default class ExternalEditWatcher {
 		return Setting.value('profileDir');
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public on(eventName: string, callback: Function) {
 		return this.eventEmitter_.on(eventName, callback);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public off(eventName: string, callback: Function) {
 		return this.eventEmitter_.removeListener(eventName, callback);
 	}
@@ -204,7 +199,7 @@ export default class ExternalEditWatcher {
 	public noteIsWatched(note: NoteEntity) {
 		if (!this.watcher_) return false;
 
-		const noteFilename = basename(this.noteIdToFilePath_(note.id));
+		const noteFilename = basename(this.noteIdToFilePath_(note.id ?? ''));
 
 		const watchedPaths = this.watcher_.getWatched();
 
@@ -230,9 +225,9 @@ export default class ExternalEditWatcher {
 		if (!filePath) return;
 		this.watch(filePath);
 
-		await openFileWithExternalEditor(filePath, this.bridge_());
+		await openFileWithExternalEditor(filePath, this.bridge_!());
 
-		this.dispatch({
+		this.dispatch!({
 			type: 'NOTE_FILE_WATCHER_ADD',
 			id: note.id,
 		});
@@ -246,7 +241,7 @@ export default class ExternalEditWatcher {
 		const filePath = this.noteIdToFilePath_(noteId);
 		if (this.watcher_) this.watcher_.unwatch(filePath);
 		await shim.fsDriver().remove(filePath);
-		this.dispatch({
+		this.dispatch!({
 			type: 'NOTE_FILE_WATCHER_REMOVE',
 			id: noteId,
 		});
@@ -262,7 +257,7 @@ export default class ExternalEditWatcher {
 		if (this.watcher_) this.watcher_.close();
 		this.watcher_ = null;
 		this.logger().info('ExternalEditWatcher: Stopped watching all files');
-		this.dispatch({
+		this.dispatch!({
 			type: 'NOTE_FILE_WATCHER_CLEAR',
 		});
 	}

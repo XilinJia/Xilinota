@@ -1,4 +1,4 @@
-const { sprintf } = require('sprintf-js');
+import { sprintf } from 'sprintf-js';
 
 interface StringToStringMap {
 	[key: string]: string;
@@ -466,8 +466,7 @@ interface SupportedLocalesToLanguagesOptions {
 	includeStats?: boolean;
 }
 
-function supportedLocalesToLanguages(options: SupportedLocalesToLanguagesOptions = null) {
-	if (!options) options = {};
+function supportedLocalesToLanguages(options: SupportedLocalesToLanguagesOptions = {}) {
 	const stats = localeStats();
 	const locales = supportedLocales();
 	const output: StringToStringMap = {};
@@ -483,8 +482,8 @@ function supportedLocalesToLanguages(options: SupportedLocalesToLanguagesOptions
 	return output;
 }
 
-function closestSupportedLocale(canonicalName: string, defaultToEnglish = true, locales: string[] = null) {
-	locales = locales === null ? supportedLocales() : locales;
+function closestSupportedLocale(canonicalName: string, defaultToEnglish = true, locales: string[] = []): string {
+	locales = !locales.length ? supportedLocales() : locales;
 	if (locales.indexOf(canonicalName) >= 0) return canonicalName;
 
 	const requiredLanguage = languageCodeOnly(canonicalName).toLowerCase();
@@ -495,7 +494,7 @@ function closestSupportedLocale(canonicalName: string, defaultToEnglish = true, 
 		if (requiredLanguage === language) return locale;
 	}
 
-	return defaultToEnglish ? 'en_GB' : null;
+	return defaultToEnglish ? 'en_GB' : '';
 }
 
 function countryName(countryCode: string) {
@@ -517,12 +516,12 @@ function languageName(canonicalName: string, defaultToEnglish = true) {
 
 function languageCodeOnly(canonicalName: string) {
 	if (canonicalName.length < 2) return canonicalName;
-	return canonicalName.substr(0, 2);
+	return canonicalName.substring(0, 2);
 }
 
 function countryCodeOnly(canonicalName: string) {
 	if (canonicalName.length <= 2) return '';
-	return canonicalName.substr(3);
+	return canonicalName.substring(3);
 }
 
 function countryDisplayName(canonicalName: string) {
@@ -560,7 +559,7 @@ function localeStrings(canonicalName: string) {
 
 	if (loadedLocales_[locale]) return loadedLocales_[locale];
 
-	loadedLocales_[locale] = { ...supportedLocales_[locale] };
+	if (supportedLocales_) loadedLocales_[locale] = { ...supportedLocales_[locale] };
 
 	return loadedLocales_[locale];
 }
@@ -600,7 +599,7 @@ const stringByLocale = (locale: string, s: string, ...args: any[]): string => {
 	try {
 		return sprintf(result, ...args);
 	} catch (error) {
-		return `${result} ${args.join(', ')} (Translation error: ${error.message})`;
+		return `${result} ${args.join(', ')} (Translation error: ${(error as Error).message})`;
 	}
 };
 

@@ -7,11 +7,11 @@ const { patreonOauthToken } = require('./tool-utils');
 const HtmlToMd = require('@xilinota/lib/HtmlToMd').default;
 const { dirname, filename, basename } = require('@xilinota/lib/path-utils');
 const markdownUtils = require('@xilinota/lib/markdownUtils').default;
-const mimeUtils = require('@xilinota/lib/mime-utils.js').mime;
+const mimeUtils = require('@xilinota/lib/mime-utils').default;
 const { mimeTypeFromHeaders } = require('@xilinota/lib/net-utils');
 const shim = require('@xilinota/lib/shim').default;
 const moment = require('moment');
-const { pregQuote } = require('@xilinota/lib/string-utils');
+import { pregQuote } from '@xilinota/lib/string-utils';
 const { shimInit } = require('@xilinota/lib/shim-init-node.js');
 
 shimInit();

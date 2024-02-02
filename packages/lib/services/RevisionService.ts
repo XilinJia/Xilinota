@@ -11,15 +11,16 @@ import { _ } from '../locale';
 import { ItemChangeEntity, NoteEntity, RevisionEntity } from './database/types';
 import Logger from '@xilinota/utils/Logger';
 import { MarkupLanguage } from '../../renderer';
-const { substrWithEllipsis } = require('../string-utils');
-const { sprintf } = require('sprintf-js');
+import XilinotaError from '../XilinotaError';
+import { substrWithEllipsis } from '../string-utils';
+import { sprintf } from 'sprintf-js';
 const { wrapError } = require('../errorUtils');
 
 const logger = Logger.create('RevisionService');
 
 export default class RevisionService extends BaseService {
 
-	public static instance_: RevisionService;
+	public static instance_: RevisionService | null = null;
 
 	// An "old note" is one that has been created before the revision service existed. These
 	// notes never benefited from revisions so the first time they are modified, a copy of
@@ -42,7 +43,7 @@ export default class RevisionService extends BaseService {
 		return Date.now() - Setting.value('revisionService.oldNoteInterval');
 	}
 
-	public async isOldNote(noteId: string) {
+	public async isOldNote(noteId: string): Promise<boolean> {
 		if (noteId in this.isOldNotesCache_) return this.isOldNotesCache_[noteId];
 
 		const isOld = await Note.noteIsOlderThan(noteId, this.oldNoteCutOffDate_());
@@ -64,14 +65,14 @@ export default class RevisionService extends BaseService {
 		return md;
 	}
 
-	public async createNoteRevision_(note: NoteEntity, parentRevId: string = null): Promise<RevisionEntity> {
+	public async createNoteRevision_(note: NoteEntity, parentRevId: string = ''): Promise<RevisionEntity | null> {
 		try {
-			const parentRev = parentRevId ? await Revision.load(parentRevId) : await Revision.latestRevision(BaseModel.TYPE_NOTE, note.id);
+			const parentRev = parentRevId ? await Revision.load(parentRevId) : await Revision.latestRevision(BaseModel.TYPE_NOTE, note.id ?? '');
 
 			const output: RevisionEntity = {
 				parent_id: '',
 				item_type: BaseModel.TYPE_NOTE,
-				item_id: note.id,
+				item_id: note.id ?? '',
 				item_updated_time: note.updated_time,
 			};
 
@@ -137,6 +138,7 @@ export default class RevisionService extends BaseService {
 				for (let i = 0; i < changes.length; i++) {
 					const change = changes[i];
 					const noteId = change.item_id;
+					if (!noteId) continue;
 
 					try {
 						if (change.type === ItemChange.TYPE_UPDATE && doneNoteIds.indexOf(noteId) < 0) {
@@ -167,7 +169,7 @@ export default class RevisionService extends BaseService {
 							doneNoteIds.push(noteId);
 						}
 					} catch (error) {
-						if (error.code === 'revision_encrypted') {
+						if (error instanceof XilinotaError && error.code === 'revision_encrypted') {
 							throw error;
 						} else {
 							// If any revision creation fails, we continue
@@ -194,7 +196,7 @@ export default class RevisionService extends BaseService {
 				}
 			}
 		} catch (error) {
-			if (error.code === 'revision_encrypted') {
+			if (error instanceof XilinotaError && error.code === 'revision_encrypted') {
 				// One or more revisions are encrypted - stop processing for now
 				// and these revisions will be processed next time the revision
 				// collector runs.
@@ -262,7 +264,7 @@ export default class RevisionService extends BaseService {
 	}
 
 	public restoreSuccessMessage(note: NoteEntity): string {
-		return _('The note "%s" has been successfully restored to the notebook "%s".', substrWithEllipsis(note.title, 0, 32), this.restoreFolderTitle());
+		return _('The note "%s" has been successfully restored to the notebook "%s".', substrWithEllipsis(note.title ?? '', 0, 32), this.restoreFolderTitle());
 	}
 
 	public async importRevisionNote(note: NoteEntity): Promise<NoteEntity> {
@@ -306,11 +308,11 @@ export default class RevisionService extends BaseService {
 		}
 	}
 
-	public runInBackground(collectRevisionInterval: number = null) {
+	public runInBackground(collectRevisionInterval: number = 0) {
 		if (this.isRunningInBackground_) return;
 		this.isRunningInBackground_ = true;
 
-		if (collectRevisionInterval === null) collectRevisionInterval = 1000 * 60 * 10;
+		if (!collectRevisionInterval) collectRevisionInterval = 1000 * 60 * 10;
 
 		logger.info(`runInBackground: Starting background service with revision collection interval ${collectRevisionInterval}`);
 

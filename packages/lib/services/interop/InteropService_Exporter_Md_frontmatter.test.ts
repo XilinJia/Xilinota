@@ -33,7 +33,7 @@ describe('interop/InteropService_Exporter_Md_frontmatter', () => {
 
 	test('should export MD file with YAML header', (async () => {
 		const folder1 = await Folder.save({ title: 'folder1' });
-		await Note.save({ title: 'ma', latitude: 58.2222, user_updated_time: 1, user_created_time: 1, body: '**ma note**', parent_id: folder1.id });
+		await Note.save({ title: 'ma', latitude: 58.2222, user_updated_time: 1, user_created_time: 1, body: '**ma note**', parent_id: folder1.id! });
 
 		const content = await exportAndLoad(`${exportDir()}/folder1/ma.md`);
 		expect(content.startsWith('---')).toBe(true);
@@ -52,7 +52,7 @@ describe('interop/InteropService_Exporter_Md_frontmatter', () => {
 
 	test('should export without additional quotes', (async () => {
 		const folder1 = await Folder.save({ title: 'folder1' });
-		await Note.save({ title: '-60', body: '**ma note**', parent_id: folder1.id });
+		await Note.save({ title: '-60', body: '**ma note**', parent_id: folder1.id! });
 
 		const content = await exportAndLoad(`${exportDir()}/folder1/-60.md`);
 		expect(content).toContain('title: -60');
@@ -60,10 +60,10 @@ describe('interop/InteropService_Exporter_Md_frontmatter', () => {
 
 	test('should export tags', (async () => {
 		const folder1 = await Folder.save({ title: 'folder1' });
-		const note = await Note.save({ title: 'Title', body: '**ma note**', parent_id: folder1.id });
-		await Tag.addNoteTagByTitle(note.id, 'lamp');
-		await Tag.addNoteTagByTitle(note.id, 'moth');
-		await Tag.addNoteTagByTitle(note.id, 'godzilla');
+		const note = await Note.save({ title: 'Title', body: '**ma note**', parent_id: folder1.id! });
+		await Tag.addNoteTagByTitle(note.id!, 'lamp');
+		await Tag.addNoteTagByTitle(note.id!, 'moth');
+		await Tag.addNoteTagByTitle(note.id!, 'godzilla');
 
 		const content = await exportAndLoad(`${exportDir()}/folder1/Title.md`);
 		expect(content).toContain('tags:\n  - godzilla\n  - lamp\n  - moth');
@@ -71,7 +71,7 @@ describe('interop/InteropService_Exporter_Md_frontmatter', () => {
 
 	test('should export todo', (async () => {
 		const folder1 = await Folder.save({ title: 'folder1' });
-		await Note.save({ title: 'Todo', is_todo: 1, todo_due: 1, body: '**ma note**', parent_id: folder1.id });
+		await Note.save({ title: 'Todo', is_todo: 1, todo_due: 1, body: '**ma note**', parent_id: folder1.id! });
 
 		const content = await exportAndLoad(`${exportDir()}/folder1/Todo.md`);
 		expect(content).toContain(`due: ${time.unixMsToRfc3339Sec(1)}`);
@@ -80,7 +80,7 @@ describe('interop/InteropService_Exporter_Md_frontmatter', () => {
 
 	test('should export author', (async () => {
 		const folder1 = await Folder.save({ title: 'folder1' });
-		await Note.save({ title: 'Author', author: 'Scott Xilinota', body: '**ma note**', parent_id: folder1.id });
+		await Note.save({ title: 'Author', author: 'Scott Xilinota', body: '**ma note**', parent_id: folder1.id! });
 
 		const content = await exportAndLoad(`${exportDir()}/folder1/Author.md`);
 		expect(content).toContain('author: Scott Xilinota');
@@ -88,7 +88,7 @@ describe('interop/InteropService_Exporter_Md_frontmatter', () => {
 
 	test('should export source', (async () => {
 		const folder1 = await Folder.save({ title: 'folder1' });
-		await Note.save({ title: 'Source', source_url: 'https://xilinotaapp.org', body: '**ma note**', parent_id: folder1.id });
+		await Note.save({ title: 'Source', source_url: 'https://xilinotaapp.org', body: '**ma note**', parent_id: folder1.id! });
 
 		const content = await exportAndLoad(`${exportDir()}/folder1/Source.md`);
 		expect(content).toContain('source: https://xilinotaapp.org');
@@ -104,10 +104,10 @@ describe('interop/InteropService_Exporter_Md_frontmatter', () => {
 			author: 'Scott Xilinota',
 			source_url: 'https://xilinotaapp.org',
 			body: '**ma note**',
-			parent_id: folder1.id,
+			parent_id: folder1.id!,
 		});
-		await Tag.addNoteTagByTitle(note.id, 'piano');
-		await Tag.addNoteTagByTitle(note.id, 'greatness');
+		await Tag.addNoteTagByTitle(note.id!, 'piano');
+		await Tag.addNoteTagByTitle(note.id!, 'greatness');
 
 		const content = await exportAndLoad(`${exportDir()}/folder1/Fields.md`);
 		const fieldIndices = fieldOrder.map(field => content.indexOf(field));
@@ -116,7 +116,7 @@ describe('interop/InteropService_Exporter_Md_frontmatter', () => {
 
 	test('should export title with a newline encoded', (async () => {
 		const folder1 = await Folder.save({ title: 'folder1' });
-		await Note.save({ title: 'Source\ntitle', body: '**ma note**', parent_id: folder1.id });
+		await Note.save({ title: 'Source\ntitle', body: '**ma note**', parent_id: folder1.id! });
 
 		const content = await exportAndLoad(`${exportDir()}/folder1/Source_title.md`);
 		expect(content).toContain('title: |-\n  Source\n  title');
@@ -124,7 +124,7 @@ describe('interop/InteropService_Exporter_Md_frontmatter', () => {
 
 	test('should not export coordinates if they\'re not available', (async () => {
 		const folder1 = await Folder.save({ title: 'folder1' });
-		await Note.save({ title: 'Coordinates', body: '**ma note**', parent_id: folder1.id });
+		await Note.save({ title: 'Coordinates', body: '**ma note**', parent_id: folder1.id! });
 
 		const content = await exportAndLoad(`${exportDir()}/folder1/Coordinates.md`);
 		expect(content).not.toContain('latitude');
@@ -134,11 +134,11 @@ describe('interop/InteropService_Exporter_Md_frontmatter', () => {
 
 	test('should export note without tag keyword if the tag has been deleted', (async () => {
 		const folder1 = await Folder.save({ title: 'folder1' });
-		const note = await Note.save({ title: 'NoTag', body: '**ma note**', parent_id: folder1.id });
+		const note = await Note.save({ title: 'NoTag', body: '**ma note**', parent_id: folder1.id! });
 		const tag = await Tag.save({ title: 'tag' });
-		await Tag.setNoteTagsByIds(note.id, [tag.id]);
+		await Tag.setNoteTagsByIds(note.id!, [tag.id!]);
 
-		await Tag.delete(tag.id);
+		await Tag.delete(tag.id!);
 		const content = await exportAndLoad(`${exportDir()}/folder1/NoTag.md`);
 		expect(content).not.toContain('tag');
 	}));

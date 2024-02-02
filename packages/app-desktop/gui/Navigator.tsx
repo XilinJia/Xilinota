@@ -1,11 +1,14 @@
-const React = require('react');
-const { connect } = require('react-redux');
+import React from 'react';
+import { connect } from 'react-redux';
 import Setting from '@xilinota/lib/models/Setting';
 import { AppState } from '../app.reducer';
 const bridge = require('@electron/remote').require('./bridge').default;
 
 interface Props {
 	route: any;
+	screens: any;
+	style: any;
+	className: string;
 }
 
 class NavigatorComponent extends React.Component<Props> {

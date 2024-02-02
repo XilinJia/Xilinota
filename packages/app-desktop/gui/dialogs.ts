@@ -21,8 +21,7 @@ class Dialogs {
 		}
 	}
 
-	public async prompt(message: string, title = '', defaultValue = '', options: any = null) {
-		if (options === null) options = {};
+	public async prompt(message: string, title = '', defaultValue = '', options = {}) {
 
 		try {
 			const answer = await smalltalk.prompt(title, message, defaultValue, options);

@@ -15,6 +15,6 @@
   "readmeFilename": "README.md",
   "devDependencies": {
     "react": "18.2.0",
-    "react-native": "0.71.10"
+    "react-native": "0.73.2"
   }
 }

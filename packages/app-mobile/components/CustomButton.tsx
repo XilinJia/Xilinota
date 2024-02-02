@@ -2,7 +2,7 @@
 // A button with a long-press action. Long-pressing the button displays a tooltip
 //
 
-const React = require('react');
+import React from 'react';
 import { ReactNode } from 'react';
 import { themeStyle } from '@xilinota/lib/theme';
 import { Theme } from '@xilinota/lib/themes/type';
@@ -37,7 +37,7 @@ interface ButtonProps {
 
 const CustomButton = (props: ButtonProps) => {
 	const [tooltipVisible, setTooltipVisible] = useState(false);
-	const [buttonLayout, setButtonLayout] = useState<LayoutRectangle|null>(null);
+	const [buttonLayout, setButtonLayout] = useState<LayoutRectangle>();
 	const tooltipStyles = useTooltipStyles(props.themeId);
 
 	// See https://blog.logrocket.com/react-native-touchable-vs-pressable-components/

@@ -12,7 +12,7 @@ export interface Options {
 	contentMaxWidthTarget?: string;
 }
 
-export default function(theme: any, options: Options = null) {
+export default function(theme: any, options: Options | null = null) {
 	options = {
 		contentMaxWidth: 0,
 		...options,

@@ -8,7 +8,7 @@ import { EventHandlers } from '@xilinota/lib/services/plugins/utils/mapEventHand
 import shim from '@xilinota/lib/shim';
 import Logger from '@xilinota/utils/Logger';
 // import BackOffHandler from './BackOffHandler';
-const ipcRenderer = require('electron').ipcRenderer;
+import { ipcRenderer } from 'electron';
 
 const logger = Logger.create('PluginRunner');
 

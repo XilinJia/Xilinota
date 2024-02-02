@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { ItemFlow } from '@xilinota/lib/services/plugins/api/noteListType';
 
 const useItemElement = (rootElement: HTMLDivElement, noteId: string, noteHtml: string, style: any, itemSize: Size, onClick: React.MouseEventHandler<HTMLDivElement>, flow: ItemFlow) => {
-	const [itemElement, setItemElement] = useState<HTMLDivElement>(null);
+	const [itemElement, setItemElement] = useState<HTMLDivElement>(document.createElement('div'));
 
 	useEffect(() => {
 		if (!rootElement) return () => {};

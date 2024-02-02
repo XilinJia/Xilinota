@@ -14,7 +14,7 @@ export const declaration: CommandDeclaration = {
 
 export const runtime = (): CommandRuntime => {
 	return {
-		execute: async (context: CommandContext, options: Options = null) => {
+		execute: async (context: CommandContext, options: Options = {}) => {
 			options = {
 				isNew: false,
 				...options,

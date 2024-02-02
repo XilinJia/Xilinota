@@ -1,15 +1,16 @@
-const BaseCommand = require('./base-command').default;
+import BaseCommand from './base-command';
 import { _ } from '@xilinota/lib/locale';
 import EncryptionService from '@xilinota/lib/services/e2ee/EncryptionService';
 import DecryptionWorker from '@xilinota/lib/services/DecryptionWorker';
 import BaseItem from '@xilinota/lib/models/BaseItem';
 import Setting from '@xilinota/lib/models/Setting';
 import shim from '@xilinota/lib/shim';
-import * as pathUtils from '@xilinota/lib/path-utils';
 import { getEncryptionEnabled, localSyncInfo } from '@xilinota/lib/services/synchronizer/syncInfoUtils';
 import { generateMasterKeyAndEnableEncryption, loadMasterKeysFromSettings, masterPasswordIsValid, setupAndDisableEncryption } from '@xilinota/lib/services/e2ee/utils';
-const imageType = require('image-type');
-const readChunk = require('read-chunk');
+import XilinotaError from '@xilinota/lib/XilinotaError';
+import { filename } from '@xilinota/lib/path-utils';
+import imageType from 'image-type';
+import readChunk from 'read-chunk';
 
 class Command extends BaseCommand {
 	public usage() {
@@ -66,7 +67,7 @@ class Command extends BaseCommand {
 					this.stdout(line.join('\n'));
 					break;
 				} catch (error) {
-					if (error.code === 'masterKeyNotLoaded') {
+					if (error instanceof XilinotaError && error.code === 'masterKeyNotLoaded') {
 						const ok = await askForMasterKey(error);
 						if (!ok) return;
 						continue;
@@ -132,7 +133,7 @@ class Command extends BaseCommand {
 			while (true) {
 				try {
 					const outputDir = options.output ? options.output : require('os').tmpdir();
-					let outFile = `${outputDir}/${pathUtils.filename(args.path)}.${Date.now()}.bin`;
+					let outFile = `${outputDir}/${filename(args.path)}.${Date.now()}.bin`;
 					await EncryptionService.instance().decryptFile(args.path, outFile);
 					const buffer = await readChunk(outFile, 0, 64);
 					const detectedType = imageType(buffer);
@@ -146,7 +147,7 @@ class Command extends BaseCommand {
 					this.stdout(outFile);
 					break;
 				} catch (error) {
-					if (error.code === 'masterKeyNotLoaded') {
+					if (error instanceof XilinotaError && error.code === 'masterKeyNotLoaded') {
 						const ok = await askForMasterKey(error);
 						if (!ok) return;
 						continue;
@@ -172,14 +173,14 @@ class Command extends BaseCommand {
 		// }
 
 		if (args.command === 'target-status') {
-			const fs = require('fs-extra');
+			const fs = await import('fs-extra');
 
 			const targetPath = args.path;
 			if (!targetPath) throw new Error('Please specify the sync target path.');
 
 			const dirPaths = function(targetPath: string) {
 				const paths: string[] = [];
-				// eslint-disable-next-line github/array-foreach -- Old code before rule was applied
+
 				fs.readdirSync(targetPath).forEach((path: string) => {
 					paths.push(path);
 				});

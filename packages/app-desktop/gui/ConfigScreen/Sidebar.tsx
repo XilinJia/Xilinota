@@ -3,11 +3,10 @@ import * as React from 'react';
 import { useMemo } from 'react';
 import Setting from '@xilinota/lib/models/Setting';
 import { _ } from '@xilinota/lib/locale';
-const styled = require('styled-components').default;
+import styled from 'styled-components';
 
 interface Props {
 	selection: string;
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	onSelectionChange: Function;
 	sections: any[];
 }
@@ -90,9 +89,11 @@ export default function Sidebar(props: Props) {
 	}, [props.sections]);
 
 	function renderButton(section: any) {
-		const selected = props.selection === section.name;
+		// const selected = props.selection === section.name;
 		return (
-			<StyledListItem key={section.name} isSubSection={Setting.isSubSection(section.name)} selected={selected} onClick={() => { props.onSelectionChange({ section: section }); }}>
+			// isSubSection and selected not exist
+			// <StyledListItem key={section.name} isSubSection={Setting.isSubSection(section.name)} selected={selected} onClick={() => { props.onSelectionChange({ section: section }); }}>
+			<StyledListItem key={section.name} onClick={() => { props.onSelectionChange({ section: section }); }}>
 				<StyledListItemIcon className={Setting.sectionNameToIcon(section.name)} />
 				<StyledListItemLabel>
 					{Setting.sectionNameToLabel(section.name)}

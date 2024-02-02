@@ -22,7 +22,7 @@ describe('Synchronizer.basics', () => {
 
 	it('should create remote items', (async () => {
 		const folder = await Folder.save({ title: 'folder1' });
-		await Note.save({ title: 'un', parent_id: folder.id });
+		await Note.save({ title: 'un', parent_id: folder.id! });
 
 		const all = await allNotesFolders();
 
@@ -33,7 +33,7 @@ describe('Synchronizer.basics', () => {
 
 	it('should update remote items', (async () => {
 		const folder = await Folder.save({ title: 'folder1' });
-		const note = await Note.save({ title: 'un', parent_id: folder.id });
+		const note = await Note.save({ title: 'un', parent_id: folder.id! });
 		await synchronizerStart();
 
 		await Note.save({ title: 'un UPDATE', id: note.id });
@@ -46,7 +46,7 @@ describe('Synchronizer.basics', () => {
 
 	it('should create local items', (async () => {
 		const folder = await Folder.save({ title: 'folder1' });
-		await Note.save({ title: 'un', parent_id: folder.id });
+		await Note.save({ title: 'un', parent_id: folder.id! });
 		await synchronizerStart();
 
 		await switchClient(2);
@@ -60,7 +60,7 @@ describe('Synchronizer.basics', () => {
 
 	it('should update local items', (async () => {
 		const folder1 = await Folder.save({ title: 'folder1' });
-		const note1 = await Note.save({ title: 'un', parent_id: folder1.id });
+		const note1 = await Note.save({ title: 'un', parent_id: folder1.id! });
 		await synchronizerStart();
 
 		await switchClient(2);
@@ -69,10 +69,10 @@ describe('Synchronizer.basics', () => {
 
 		await sleep(0.1);
 
-		let note2 = await Note.load(note1.id);
+		let note2 = (await Note.load(note1.id!))!;
 		note2.title = 'Updated on client 2';
 		await Note.save(note2);
-		note2 = await Note.load(note2.id);
+		note2 = (await Note.load(note2.id!))!;
 
 		await synchronizerStart();
 
@@ -87,7 +87,7 @@ describe('Synchronizer.basics', () => {
 
 	it('should delete remote notes', (async () => {
 		const folder1 = await Folder.save({ title: 'folder1' });
-		const note1 = await Note.save({ title: 'un', parent_id: folder1.id });
+		const note1 = await Note.save({ title: 'un', parent_id: folder1.id! });
 		await synchronizerStart();
 
 		await switchClient(2);
@@ -96,7 +96,7 @@ describe('Synchronizer.basics', () => {
 
 		await sleep(0.1);
 
-		await Note.delete(note1.id);
+		await Note.delete(note1.id!);
 
 		await synchronizerStart();
 
@@ -110,13 +110,13 @@ describe('Synchronizer.basics', () => {
 
 	it('should not created deleted_items entries for items deleted via sync', (async () => {
 		const folder1 = await Folder.save({ title: 'folder1' });
-		await Note.save({ title: 'un', parent_id: folder1.id });
+		await Note.save({ title: 'un', parent_id: folder1.id! });
 		await synchronizerStart();
 
 		await switchClient(2);
 
 		await synchronizerStart();
-		await Folder.delete(folder1.id);
+		await Folder.delete(folder1.id!);
 		await synchronizerStart();
 
 		await switchClient(1);
@@ -128,14 +128,14 @@ describe('Synchronizer.basics', () => {
 
 	it('should delete local notes', (async () => {
 		const folder1 = await Folder.save({ title: 'folder1' });
-		const note1 = await Note.save({ title: 'un', parent_id: folder1.id });
-		const note2 = await Note.save({ title: 'deux', parent_id: folder1.id });
+		const note1 = await Note.save({ title: 'un', parent_id: folder1.id! });
+		const note2 = await Note.save({ title: 'deux', parent_id: folder1.id! });
 		await synchronizerStart();
 
 		await switchClient(2);
 
 		await synchronizerStart();
-		await Note.delete(note1.id);
+		await Note.delete(note1.id!);
 		await synchronizerStart();
 
 		await switchClient(1);
@@ -145,7 +145,7 @@ describe('Synchronizer.basics', () => {
 		expect(items.length).toBe(2);
 		const deletedItems = await BaseItem.deletedItems(syncTargetId());
 		expect(deletedItems.length).toBe(0);
-		await Note.delete(note2.id);
+		await Note.delete(note2.id!);
 		await synchronizerStart();
 	}));
 
@@ -160,7 +160,7 @@ describe('Synchronizer.basics', () => {
 
 		await sleep(0.1);
 
-		await Folder.delete(folder2.id);
+		await Folder.delete(folder2.id!);
 
 		await synchronizerStart();
 
@@ -176,7 +176,7 @@ describe('Synchronizer.basics', () => {
 		await switchClient(2);
 
 		await synchronizerStart();
-		await Folder.delete(folder2.id);
+		await Folder.delete(folder2.id!);
 		await synchronizerStart();
 
 		await switchClient(1);
@@ -198,11 +198,11 @@ describe('Synchronizer.basics', () => {
 
 		await synchronizerStart();
 		await sleep(0.1);
-		await Folder.delete(folder1.id);
+		await Folder.delete(folder1.id!);
 
 		await switchClient(1);
 
-		await Folder.delete(folder2.id);
+		await Folder.delete(folder2.id!);
 		await synchronizerStart();
 
 		await switchClient(2);
@@ -220,7 +220,7 @@ describe('Synchronizer.basics', () => {
 
 	it('items should be downloaded again when user cancels in the middle of delta operation', (async () => {
 		const folder1 = await Folder.save({ title: 'folder1' });
-		await Note.save({ title: 'un', is_todo: 1, parent_id: folder1.id });
+		await Note.save({ title: 'un', is_todo: 1, parent_id: folder1.id! });
 		await synchronizerStart();
 
 		await switchClient(2);
@@ -238,7 +238,7 @@ describe('Synchronizer.basics', () => {
 
 	it('should skip items that cannot be synced', (async () => {
 		const folder1 = await Folder.save({ title: 'folder1' });
-		const note1 = await Note.save({ title: 'un', is_todo: 1, parent_id: folder1.id });
+		const note1 = await Note.save({ title: 'un', is_todo: 1, parent_id: folder1.id! });
 		const noteId = note1.id;
 		await synchronizerStart();
 		let disabledItems = await BaseItem.syncDisabledItems(syncTargetId());
@@ -264,7 +264,7 @@ describe('Synchronizer.basics', () => {
 
 	it('should handle items that are read-only on the sync target', (async () => {
 		const folder = await Folder.save({ title: 'folder' });
-		const note = await Note.save({ title: 'un', is_todo: 1, parent_id: folder.id });
+		const note = await Note.save({ title: 'un', is_todo: 1, parent_id: folder.id! });
 		const noteId = note.id;
 		await synchronizerStart();
 		await Note.save({ id: noteId, title: 'un mod' });
@@ -272,10 +272,10 @@ describe('Synchronizer.basics', () => {
 		await synchronizerStart();
 		synchronizer().testingHooks_ = [];
 
-		const noteReload = await Note.load(note.id);
-		expect(noteReload.title).toBe(note.title);
+		const noteReload = await Note.load(note.id!);
+		expect(noteReload!.title).toBe(note.title);
 
-		const conflictNote: NoteEntity = (await Note.all()).find((n: NoteEntity) => !!n.is_conflict);
+		const conflictNote: NoteEntity = (await Note.all()).find((n: NoteEntity) => !!n.is_conflict)!;
 		expect(conflictNote).toBeTruthy();
 		expect(conflictNote.title).toBe('un mod');
 		expect(conflictNote.id).not.toBe(note.id);
@@ -295,9 +295,9 @@ describe('Synchronizer.basics', () => {
 
 		await synchronizerStart();
 
-		const localF2 = await Folder.load(remoteF2.id);
+		const localF2 = await Folder.load(remoteF2.id!);
 
-		expect(localF2.title === remoteF2.title).toBe(true);
+		expect(localF2!.title === remoteF2.title).toBe(true);
 
 		// Then that folder that has been renamed locally should be set in such a way
 		// that synchronizing it applies the title change remotely, and that new title
@@ -310,14 +310,14 @@ describe('Synchronizer.basics', () => {
 
 		await synchronizerStart();
 
-		remoteF2 = await Folder.load(remoteF2.id);
+		remoteF2 = (await Folder.load(remoteF2.id!))!;
 
-		expect(remoteF2.title === localF2.title).toBe(true);
+		expect(remoteF2.title === localF2!.title).toBe(true);
 	}));
 
 	it('should create remote items with UTF-8 content', (async () => {
 		const folder = await Folder.save({ title: 'Fahrräder' });
-		await Note.save({ title: 'Fahrräder', body: 'Fahrräder', parent_id: folder.id });
+		await Note.save({ title: 'Fahrräder', body: 'Fahrräder', parent_id: folder.id! });
 		const all = await allNotesFolders();
 
 		await synchronizerStart();
@@ -327,27 +327,27 @@ describe('Synchronizer.basics', () => {
 
 	it('should update remote items but not pull remote changes', (async () => {
 		const folder = await Folder.save({ title: 'folder1' });
-		const note = await Note.save({ title: 'un', parent_id: folder.id });
+		const note = await Note.save({ title: 'un', parent_id: folder.id! });
 		await synchronizerStart();
 
 		await switchClient(2);
 
 		await synchronizerStart();
-		await Note.save({ title: 'deux', parent_id: folder.id });
+		await Note.save({ title: 'deux', parent_id: folder.id! });
 		await synchronizerStart();
 
 		await switchClient(1);
 
 		await Note.save({ title: 'un UPDATE', id: note.id });
-		await synchronizerStart(null, { syncSteps: ['update_remote'] });
+		await synchronizerStart(-1, { syncSteps: ['update_remote'] });
 		const all = await allNotesFolders();
 		expect(all.length).toBe(2);
 
 		await switchClient(2);
 
 		await synchronizerStart();
-		const note2 = await Note.load(note.id);
-		expect(note2.title).toBe('un UPDATE');
+		const note2 = await Note.load(note.id!);
+		expect(note2!.title).toBe('un UPDATE');
 	}));
 
 	it('should create a new Welcome notebook on each client', (async () => {
@@ -383,8 +383,8 @@ describe('Synchronizer.basics', () => {
 
 		await synchronizerStart();
 
-		const f1_1 = await Folder.load(f1.id);
-		expect(f1_1.title).toBe('Welcome MOD');
+		const f1_1 = await Folder.load(f1.id!);
+		expect(f1_1!.title).toBe('Welcome MOD');
 	}));
 
 	it('should not wipe out user data when syncing with an empty target', (async () => {
@@ -443,7 +443,7 @@ describe('Synchronizer.basics', () => {
 		await switchClient(2);
 
 		await synchronizerStart();
-		await Note.delete(note.id);
+		await Note.delete(note.id!);
 		await synchronizerStart();
 
 		await switchClient(1);

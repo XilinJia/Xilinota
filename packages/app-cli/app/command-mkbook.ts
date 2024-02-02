@@ -1,4 +1,4 @@
-const BaseCommand = require('./base-command').default;
+import BaseCommand from './base-command';
 const { app } = require('./app.js');
 import { _ } from '@xilinota/lib/locale';
 import BaseModel from '@xilinota/lib/BaseModel';

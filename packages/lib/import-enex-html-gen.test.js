@@ -22,7 +22,7 @@ const beautifyHtml = (html) => {
 		try {
 			cleanHtml.clean(html, { wrap: 0 }, (...cleanedHtml) => resolve(cleanedHtml.join('')));
 		} catch (error) {
-			console.warn(`Could not clean HTML - the "unclean" version will be used: ${error.message}: ${html.trim().substr(0, 512).replace(/[\n\r]/g, ' ')}...`);
+			console.warn(`Could not clean HTML - the "unclean" version will be used: ${error.message}: ${html.trim().substring(0, 512).replace(/[\n\r]/g, ' ')}...`);
 			resolve([html].join(''));
 		}
 	});
@@ -47,7 +47,6 @@ const compareOutputToExpected = (options) => {
 	const outputFile = fileWithPath(`${options.testName}.html`);
 	const testTitle = `should convert from Enex to Html: ${options.testName}`;
 
-	// eslint-disable-next-line jest/require-top-level-describe
 	it(testTitle, (async () => {
 		const enexInput = await shim.fsDriver().readFile(inputFile);
 		const expectedOutput = await shim.fsDriver().readFile(outputFile);

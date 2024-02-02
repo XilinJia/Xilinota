@@ -2,7 +2,7 @@ import { setupDatabaseAndSynchronizer, db, switchClient } from '../../testing/te
 import SearchEngine from '../../services/searchengine/SearchEngine';
 import SearchEngineUtils from '../../services/searchengine/SearchEngineUtils';
 import Setting from '../../models/Setting';
-const Note = require('../../models/Note').default;
+import Note from '../../models/Note';
 
 
 let searchEngine: any = null;
@@ -25,7 +25,7 @@ describe('services_SearchEngineUtils', () => {
 
 			Setting.setValue('showCompletedTodos', true);
 
-			const rows = await SearchEngineUtils.notesForQuery('abcd', true, null, searchEngine);
+			const rows = await SearchEngineUtils.notesForQuery('abcd', true, undefined, searchEngine);
 
 			expect(rows.length).toBe(3);
 			expect(rows.map(r=>r.id)).toContain(note1.id);
@@ -51,7 +51,7 @@ describe('services_SearchEngineUtils', () => {
 
 			Setting.setValue('showCompletedTodos', false);
 
-			const rows = await SearchEngineUtils.notesForQuery('abcd', true, null, searchEngine);
+			const rows = await SearchEngineUtils.notesForQuery('abcd', true, undefined, searchEngine);
 
 			expect(rows.length).toBe(2);
 			expect(rows.map(r=>r.id)).toContain(note1.id);
@@ -74,7 +74,7 @@ describe('services_SearchEngineUtils', () => {
 
 			Setting.setValue('showCompletedTodos', false);
 
-			const rows = await SearchEngineUtils.notesForQuery('abcd', false, null, searchEngine);
+			const rows = await SearchEngineUtils.notesForQuery('abcd', false, undefined, searchEngine);
 
 			expect(rows.length).toBe(3);
 			expect(rows.map(r=>r.id)).toContain(note1.id);

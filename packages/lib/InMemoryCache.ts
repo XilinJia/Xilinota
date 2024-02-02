@@ -33,7 +33,7 @@ export default class Cache {
 		this.maxRecords_ = maxRecords;
 	}
 
-	private checkExpiredRecords() {
+	private checkExpiredRecords(): void {
 		const now = Date.now();
 
 		for (const key in this.expirableKeys_) {
@@ -62,7 +62,7 @@ export default class Cache {
 		return defaultValue;
 	}
 
-	public setValue(key: string, value: any, ttl = 0) {
+	public setValue(key: string, value: any, ttl = 0): void {
 		this.checkExpiredRecords();
 
 		this.records_[key] = {

@@ -12,8 +12,9 @@ const { splitCommandString } = require('@xilinota/utils');
 const { reg } = require('@xilinota/lib/registry.js');
 const { _ } = require('@xilinota/lib/locale');
 const shim = require('@xilinota/lib/shim').default;
-const Entities = require('html-entities').AllHtmlEntities;
-const htmlentities = new Entities().encode;
+// const Entities = require('html-entities').AllHtmlEntities;
+// const htmlentities = new Entities().encode;
+const htmlentities = require('html-entities').encode;
 
 const chalk = require('chalk');
 const tk = require('terminal-kit');
@@ -584,7 +585,7 @@ class AppGui {
 	}
 
 	stdout(text) {
-		if (text === null || text === undefined) return;
+		if (text === '' || text === null || text === undefined) return;
 
 		const lines = text.split('\n');
 		for (let i = 0; i < lines.length; i++) {
@@ -701,7 +702,7 @@ class AppGui {
 				if (resourceIdRegex.test(url)) {
 					noteLinks[index] = {
 						type: 'item',
-						id: url.substr(2),
+						id: url.substring(2),
 					};
 				} else if (hasProtocol(url, ['http', 'https', 'file', 'ftp'])) {
 					noteLinks[index] = {

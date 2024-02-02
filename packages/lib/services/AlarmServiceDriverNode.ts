@@ -2,7 +2,8 @@ import eventManager from '../eventManager';
 import { Notification } from '../models/Alarm';
 import shim from '../shim';
 import Setting from '../models/Setting';
-const notifier = require('node-notifier');
+import Logger from '@xilinota/utils/Logger';
+import notifier from 'node-notifier';
 
 interface Options {
 	appName: string;
@@ -20,11 +21,11 @@ export default class AlarmServiceDriverNode {
 		this.appName_ = options.appName;
 	}
 
-	public setService(s: any) {
+	public setService(s: any): void {
 		this.service_ = s;
 	}
 
-	public logger() {
+	public logger(): Logger {
 		return this.service_.logger();
 	}
 

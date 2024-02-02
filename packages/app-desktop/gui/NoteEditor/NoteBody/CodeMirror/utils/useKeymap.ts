@@ -6,7 +6,9 @@ import shim from '@xilinota/lib/shim';
 import { reg } from '@xilinota/lib/registry';
 import setupVim from './setupVim';
 
-export default function useKeymap(CodeMirror: any) {
+export default function useKeymap(this: any, CodeMirror: any) {
+
+	const self = this;
 
 	function save() {
 		void CommandService.instance().execute('synchronize');
@@ -82,7 +84,7 @@ export default function useKeymap(CodeMirror: any) {
 	function registerKeymap() {
 		const keymapItems = KeymapService.instance().getKeymapItems();
 		// Register all commands with the codemirror editor
-		// eslint-disable-next-line github/array-foreach -- Old code before rule was applied
+
 		keymapItems.forEach((key) => { registerXilinotaCommand(key); });
 	}
 
@@ -98,7 +100,7 @@ export default function useKeymap(CodeMirror: any) {
 			reg.logger().warn('CodeMirror commands cannot accept a value:', cmd);
 		}
 
-		return this.execCommand(editorCommandToCodeMirror(cmd.name));
+		return self.execCommand(editorCommandToCodeMirror(cmd.name));
 	});
 
 	useEffect(() => {
@@ -178,6 +180,6 @@ export default function useKeymap(CodeMirror: any) {
 
 		setupEmacs();
 		setupVim(CodeMirror);
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+
 	}, []);
 }

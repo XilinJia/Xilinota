@@ -4,7 +4,7 @@ import XilinotaError from '../../XilinotaError';
 import time from '../../time';
 import { FileApi } from '../../file-api';
 import { AppType } from '../../models/Setting';
-const { fileExtension, filename } = require('../../path-utils');
+import { fileExtension, filename } from '../../path-utils';
 
 export enum LockType {
 	None = 0,
@@ -27,14 +27,14 @@ export interface Lock {
 }
 
 function lockIsActive(lock: Lock, currentDate: Date, lockTtl: number): boolean {
-	return currentDate.getTime() - lock.updatedTime < lockTtl;
+	return currentDate.getTime() - (lock.updatedTime ?? 0) < lockTtl;
 }
 
-export function lockNameToObject(name: string, updatedTime: number = null): Lock {
+export function lockNameToObject(name: string, updatedTime: number = 0): Lock {
 	const p = name.split('_');
 
 	const lock: Lock = {
-		id: null,
+		id: undefined,
 		type: Number(p[0]) as LockType,
 		clientType: Number(p[1]) as LockClientType,
 		clientId: p[2],
@@ -54,7 +54,7 @@ export function appTypeToLockType(appType: AppType): LockClientType {
 	throw new Error(`Invalid app type: ${appType}`);
 }
 
-export function hasActiveLock(locks: Lock[], currentDate: Date, lockTtl: number, lockType: LockType, clientType: LockClientType = null, clientId: string = null) {
+export function hasActiveLock(locks: Lock[], currentDate: Date, lockTtl: number, lockType: LockType, clientType: LockClientType | undefined = undefined, clientId: string = '') {
 	const lock = activeLock(locks, currentDate, lockTtl, lockType, clientType, clientId);
 	return !!lock;
 }
@@ -62,13 +62,13 @@ export function hasActiveLock(locks: Lock[], currentDate: Date, lockTtl: number,
 // Finds if there's an active lock for this clientType and clientId and returns it.
 // If clientType and clientId are not specified, returns the first active lock
 // of that type instead.
-export function activeLock(locks: Lock[], currentDate: Date, lockTtl: number, lockType: LockType, clientType: LockClientType = null, clientId: string = null) {
+export function activeLock(locks: Lock[], currentDate: Date, lockTtl: number, lockType: LockType, clientType: LockClientType | undefined = undefined, clientId: string = '') {
 	if (lockType === LockType.Exclusive) {
 		const activeLocks = locks
 			.slice()
 			.filter((lock: Lock) => lockIsActive(lock, currentDate, lockTtl) && lock.type === lockType)
 			.sort((a: Lock, b: Lock) => {
-				if (a.updatedTime === b.updatedTime) {
+				if (!a.updatedTime || !b.updatedTime || a.updatedTime === b.updatedTime) {
 					return a.clientId < b.clientId ? -1 : +1;
 				}
 				return a.updatedTime < b.updatedTime ? -1 : +1;
@@ -135,17 +135,15 @@ export const defaultLockTtl = 1000 * 60 * 3;
 
 export default class LockHandler {
 
-	private api_: FileApi = null;
+	private api_: FileApi | null = null;
 	private refreshTimers_: RefreshTimers = {};
 	private autoRefreshInterval_: number = 1000 * 60;
 	private lockTtl_: number = defaultLockTtl;
 
-	public constructor(api: FileApi, options: LockHandlerOptions = null) {
-		if (!options) options = {};
-
+	public constructor(api: FileApi, options: LockHandlerOptions = {}) {
 		this.api_ = api;
-		if ('lockTtl' in options) this.lockTtl_ = options.lockTtl;
-		if ('autoRefreshInterval' in options) this.autoRefreshInterval_ = options.autoRefreshInterval;
+		if (options.lockTtl && 'lockTtl' in options) this.lockTtl_ = options.lockTtl;
+		if (options.autoRefreshInterval && 'autoRefreshInterval' in options) this.autoRefreshInterval_ = options.autoRefreshInterval;
 	}
 
 	public get lockTtl(): number {
@@ -159,7 +157,7 @@ export default class LockHandler {
 	}
 
 	public get useBuiltInLocks() {
-		return this.api_.supportsLocks;
+		return this.api_?.supportsLocks;
 	}
 
 	private lockFilename(lock: Lock) {
@@ -182,7 +180,9 @@ export default class LockHandler {
 		return lockNameToObject(filename(file.path), file.updated_time);
 	}
 
-	public async locks(lockType: LockType = null): Promise<Lock[]> {
+	public async locks(lockType: LockType | null = null): Promise<Lock[]> {
+		if (!this.api_) return [];
+
 		if (this.useBuiltInLocks) {
 			const locks = (await this.api_.listLocks()).items;
 			return locks;
@@ -193,7 +193,7 @@ export default class LockHandler {
 
 		const output = [];
 		for (const file of result.items) {
-			const type = this.lockTypeFromFilename(file.path);
+			const type = file.path ? this.lockTypeFromFilename(file.path) : LockType.None;
 			if (type === LockType.None) continue;
 			if (lockType && type !== lockType) continue;
 			const lock = this.lockFileToObject(file);
@@ -204,7 +204,7 @@ export default class LockHandler {
 	}
 
 	private async saveLock(lock: Lock) {
-		await this.api_.put(this.lockFilePath(lock), JSON.stringify(lock));
+		await this.api_?.put(this.lockFilePath(lock), JSON.stringify(lock));
 	}
 
 	// This is for testing only
@@ -213,6 +213,8 @@ export default class LockHandler {
 	}
 
 	private async acquireSyncLock(clientType: LockClientType, clientId: string): Promise<Lock> {
+		if (!this.api_) throw new XilinotaError('Cannot acquire sync lock because this.api_ is undefined');
+
 		if (this.useBuiltInLocks) return this.api_.acquireLock(LockType.Sync, clientType, clientId);
 
 		try {
@@ -233,7 +235,7 @@ export default class LockHandler {
 				if (syncLock) {
 					// Normally the second pass should happen immediately afterwards, but if for some reason
 					// (slow network, etc.) it took more than 10 seconds then refresh the lock.
-					if (isFirstPass || Date.now() - syncLock.updatedTime > 1000 * 10) {
+					if (isFirstPass || Date.now() - (syncLock.updatedTime ?? 0) > 1000 * 10) {
 						await this.saveLock(syncLock);
 					}
 					return syncLock;
@@ -261,7 +263,9 @@ export default class LockHandler {
 		return `(${lock.clientType} #${lock.clientId})`;
 	}
 
-	private async acquireExclusiveLock(clientType: LockClientType, clientId: string, options: AcquireLockOptions = null): Promise<Lock> {
+	private async acquireExclusiveLock(clientType: LockClientType, clientId: string, options: AcquireLockOptions = {}): Promise<Lock> {
+		if (!this.api_) throw new XilinotaError('Cannot acquire exclusive lock because this.api_ is undefined');
+
 		if (this.useBuiltInLocks) return this.api_.acquireLock(LockType.Exclusive, clientType, clientId);
 
 		// The logic to acquire an exclusive lock, while avoiding race conditions is as follow:
@@ -345,10 +349,10 @@ export default class LockHandler {
 	}
 
 	public async currentDate() {
+		if (!this.api_) throw new XilinotaError('Cannot get current date because this.api_ is undefined');
 		return this.api_.remoteDate();
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	public startAutoLockRefresh(lock: Lock, errorHandler: Function): string {
 		const handle = this.autoLockRefreshHandle(lock);
 		if (this.refreshTimers_[handle]) {
@@ -419,7 +423,7 @@ export default class LockHandler {
 		delete this.refreshTimers_[handle];
 	}
 
-	public async acquireLock(lockType: LockType, clientType: LockClientType, clientId: string, options: AcquireLockOptions = null): Promise<Lock> {
+	public async acquireLock(lockType: LockType, clientType: LockClientType, clientId: string, options: AcquireLockOptions = {}): Promise<Lock> {
 		options = {
 			...defaultAcquireLockOptions(),
 			...options,
@@ -435,6 +439,8 @@ export default class LockHandler {
 	}
 
 	public async releaseLock(lockType: LockType, clientType: LockClientType, clientId: string) {
+		if (!this.api_) throw new XilinotaError('Cannot release lock because this.api_ is undefined');
+
 		if (this.useBuiltInLocks) {
 			await this.api_.releaseLock(lockType, clientType, clientId);
 			return;

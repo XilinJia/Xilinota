@@ -1,7 +1,7 @@
 import shim from './shim';
-const moment = require('moment');
+import moment from 'moment';
 
-type ConditionHandler = ()=> boolean;
+type ConditionHandler = () => boolean;
 
 class Time {
 
@@ -38,7 +38,7 @@ class Time {
 		return this.timeFormat() ? this.timeFormat().includes('HH') : true;
 	}
 
-	public formatDateToLocal(date: Date, format: string = null) {
+	public formatDateToLocal(date: Date, format: string = '') {
 		return this.formatMsToLocal(date.getTime(), format);
 	}
 
@@ -97,20 +97,20 @@ class Time {
 		return moment.unix(ms / 1000).format('HH:mm:ss');
 	}
 
-	public formatMsToLocal(ms: number, format: string = null) {
-		if (format === null) format = this.dateTimeFormat();
+	public formatMsToLocal(ms: number, format: string = '') {
+		if (format === '') format = this.dateTimeFormat();
 		return moment(ms).format(format);
 	}
 
-	public formatLocalToMs(localDateTime: any, format: string = null) {
-		if (format === null) format = this.dateTimeFormat();
+	public formatLocalToMs(localDateTime: any, format: string = '') {
+		if (format === '') format = this.dateTimeFormat();
 		const m = moment(localDateTime, format);
 		if (m.isValid()) return m.toDate().getTime();
 		throw new Error(`Invalid input for formatLocalToMs: ${localDateTime}`);
 	}
 
 	// Mostly used as a utility function for the DateTime Electron component
-	public anythingToDateTime(o: any, defaultValue: Date = null) {
+	public anythingToDateTime(o: any, defaultValue: Date | null = null) {
 		if (o && o.toDate) return o.toDate();
 		if (!o) return defaultValue;
 		let m = moment(o, time.dateTimeFormat());
@@ -119,7 +119,7 @@ class Time {
 		return m.isValid() ? m.toDate() : defaultValue;
 	}
 
-	public anythingToMs(o: any, defaultValue: number = null) {
+	public anythingToMs(o: any, defaultValue: number = 0) {
 		if (o && o.toDate) return o.toDate();
 		if (!o) return defaultValue;
 		// There are a few date formats supported by Xilinota that are not supported by
@@ -133,7 +133,6 @@ class Time {
 	}
 
 	public msleep(ms: number) {
-		// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 		return new Promise((resolve: Function) => {
 			shim.setTimeout(() => {
 				resolve();

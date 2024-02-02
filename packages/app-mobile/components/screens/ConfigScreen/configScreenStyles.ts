@@ -1,7 +1,10 @@
 import { TextStyle, ViewStyle, StyleSheet } from 'react-native';
-const { themeStyle } = require('../../global-style.js');
+import { themeStyle } from '../../global-style';
+
 
 export interface ConfigScreenStyles {
+	[key: string]: any;
+
 	body: ViewStyle;
 
 	settingContainer: ViewStyle;
@@ -26,7 +29,7 @@ export interface ConfigScreenStyles {
 }
 
 const configScreenStyles = (themeId: number): ConfigScreenStyles => {
-	const theme = themeStyle(themeId);
+	const theme = themeStyle(themeId.toString());
 
 	const settingContainerStyle: ViewStyle = {
 		flex: 1,

@@ -21,8 +21,8 @@ describe('services/ResourceService', () => {
 		const service = new ResourceService();
 
 		const folder1 = await Folder.save({ title: 'folder1' });
-		let note1 = await Note.save({ title: 'ma note', parent_id: folder1.id });
-		note1 = await shim.attachFileToNote(note1, `${supportDir}/photo.jpg`);
+		let note1 = await Note.save({ title: 'ma note', parent_id: folder1.id! });
+		note1 = (await shim.attachFileToNote(note1, `${supportDir}/photo.jpg`))!;
 		const resource1 = (await Resource.all())[0];
 		const resourcePath = Resource.fullPath(resource1);
 
@@ -31,7 +31,7 @@ describe('services/ResourceService', () => {
 
 		expect(!!(await Resource.load(resource1.id))).toBe(true);
 
-		await Note.delete(note1.id);
+		await Note.delete(note1.id!);
 		await service.deleteOrphanResources(0);
 
 		expect(!!(await Resource.load(resource1.id))).toBe(true);
@@ -52,14 +52,14 @@ describe('services/ResourceService', () => {
 		const service = new ResourceService();
 
 		const folder1 = await Folder.save({ title: 'folder1' });
-		let note1 = await Note.save({ title: 'ma note', parent_id: folder1.id });
-		const note2 = await Note.save({ title: 'ma deuxième note', parent_id: folder1.id });
-		note1 = await shim.attachFileToNote(note1, `${supportDir}/photo.jpg`);
+		let note1 = await Note.save({ title: 'ma note', parent_id: folder1.id! });
+		const note2 = await Note.save({ title: 'ma deuxième note', parent_id: folder1.id! });
+		note1 = (await shim.attachFileToNote(note1, `${supportDir}/photo.jpg`))!;
 		const resource1 = (await Resource.all())[0];
 
 		await service.indexNoteResources();
 
-		await Note.delete(note1.id);
+		await Note.delete(note1.id!);
 
 		await service.indexNoteResources();
 
@@ -88,8 +88,8 @@ describe('services/ResourceService', () => {
 		const service = new ResourceService();
 
 		const folder1 = await Folder.save({ title: 'folder1' });
-		let note1 = await Note.save({ title: 'ma note', parent_id: folder1.id });
-		note1 = await shim.attachFileToNote(note1, `${supportDir}/photo.jpg`);
+		let note1 = await Note.save({ title: 'ma note', parent_id: folder1.id! });
+		note1 = (await shim.attachFileToNote(note1, `${supportDir}/photo.jpg`))!;
 		const resource1 = (await Resource.all())[0];
 
 		await service.indexNoteResources();
@@ -107,7 +107,7 @@ describe('services/ResourceService', () => {
 		const service = new ResourceService();
 
 		const folder1 = await Folder.save({ title: 'folder1' });
-		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id });
+		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id! });
 		await shim.attachFileToNote(note1, `${supportDir}/photo.jpg`);
 
 		await service.indexNoteResources();
@@ -143,7 +143,7 @@ describe('services/ResourceService', () => {
 		await setupAndEnableEncryption(encryptionService(), masterKey, '123456');
 		await loadMasterKeysFromSettings(encryptionService());
 		const folder1 = await Folder.save({ title: 'folder1' });
-		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id });
+		const note1 = await Note.save({ title: 'ma note', parent_id: folder1.id! });
 		await shim.attachFileToNote(note1, `${supportDir}/photo.jpg`); // R1
 		await resourceService().indexNoteResources();
 		await synchronizer().start();
@@ -156,7 +156,7 @@ describe('services/ResourceService', () => {
 		await loadMasterKeysFromSettings(encryptionService());
 		await decryptionWorker().start();
 		{
-			const n1 = await Note.load(note1.id);
+			const n1 = await Note.load(note1.id!);
 			await shim.attachFileToNote(n1, `${supportDir}/photo.jpg`); // R2
 		}
 		await synchronizer().start();
@@ -173,8 +173,8 @@ describe('services/ResourceService', () => {
 		SearchEngine.instance().setDb(db()); // /!\ Note that we use the global search engine here, which we shouldn't but will work for now
 
 		const folder1 = await Folder.save({ title: 'folder1' });
-		let note1 = await Note.save({ title: 'ma note', parent_id: folder1.id });
-		note1 = await shim.attachFileToNote(note1, `${supportDir}/photo.jpg`);
+		let note1 = await Note.save({ title: 'ma note', parent_id: folder1.id! });
+		note1 = (await shim.attachFileToNote(note1, `${supportDir}/photo.jpg`))!;
 		await resourceService().indexNoteResources();
 		const bodyWithResource = note1.body;
 		await Note.save({ id: note1.id, body: '' });
@@ -200,7 +200,7 @@ describe('services/ResourceService', () => {
 
 		const note = await Note.save({});
 		await shim.attachFileToNote(note, `${supportDir}/photo.jpg`);
-		await Note.delete(note.id);
+		await Note.delete(note.id!);
 		const resource = (await Resource.all())[0];
 
 		await resourceService().indexNoteResources();
@@ -223,7 +223,7 @@ describe('services/ResourceService', () => {
 
 		const note = await Note.save({});
 		await shim.attachFileToNote(note, `${supportDir}/photo.jpg`);
-		await Note.delete(note.id);
+		await Note.delete(note.id!);
 		const resource = (await Resource.all())[0];
 		await synchronizer().start();
 

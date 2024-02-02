@@ -2,11 +2,12 @@ import Logger from '@xilinota/utils/Logger';
 import Alarm from '../models/Alarm';
 
 import Note from '../models/Note';
+import BaseService from './BaseService';
 
-export default class AlarmService {
+export default class AlarmService extends BaseService {
 
 	private static driver_: any;
-	private static logger_: Logger;
+	// private static logger_: Logger;
 	// private static inAppNotificationHandler_:any;
 
 	public static setDriver(v: any) {
@@ -20,13 +21,13 @@ export default class AlarmService {
 		return this.driver_;
 	}
 
-	public static setLogger(v: Logger) {
-		this.logger_ = v;
-	}
+	// public static setLogger(v: Logger) {
+	// 	this.logger_ = v;
+	// }
 
-	public static logger() {
-		return this.logger_;
-	}
+	// public static logger() {
+	// 	return this.logger_;
+	// }
 
 	public static setInAppNotificationHandler(v: any) {
 		// this.inAppNotificationHandler_ = v;
@@ -74,23 +75,23 @@ export default class AlarmService {
 				clearAlarm = !!alarm;
 			}
 
-			if (!clearAlarm && alarm) {
-				// Alarm already exists and set at the right time
+			if (alarm) {
+				if (!clearAlarm) {
+					// Alarm already exists and set at the right time
 
-				// For persistent notifications (those that stay active after the app has been closed, like on mobile), if we have
-				// an alarm object we can be sure that the notification has already been set, so there's nothing to do.
-				// For non-persistent notifications however we need to check that the notification has been set because, for example,
-				// if the app has just started the notifications need to be set again. so we do this below.
-				if (!driver.hasPersistentNotifications() && !driver.notificationIsSet(alarm.id)) {
-					const notification = await Alarm.makeNotification(alarm, note);
-					this.logger().info(`Scheduling (non-persistent) notification for note ${note.id}`, notification);
-					driver.scheduleNotification(notification);
+					// For persistent notifications (those that stay active after the app has been closed, like on mobile), if we have
+					// an alarm object we can be sure that the notification has already been set, so there's nothing to do.
+					// For non-persistent notifications however we need to check that the notification has been set because, for example,
+					// if the app has just started the notifications need to be set again. so we do this below.
+					if (!driver.hasPersistentNotifications() && !driver.notificationIsSet(alarm.id)) {
+						const notification = await Alarm.makeNotification(alarm, note);
+						this.logger().info(`Scheduling (non-persistent) notification for note ${note.id}`, notification);
+						driver.scheduleNotification(notification);
+					}
+
+					return;
 				}
 
-				return;
-			}
-
-			if (clearAlarm) {
 				this.logger().info(`Clearing notification for note ${noteId}`);
 				await driver.clearNotification(alarm.id);
 				await Alarm.delete(alarm.id);

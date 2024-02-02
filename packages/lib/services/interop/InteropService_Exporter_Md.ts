@@ -10,20 +10,20 @@ import { MarkupToHtml } from '@xilinota/renderer';
 
 export default class InteropService_Exporter_Md extends InteropService_Exporter_Base {
 
-	private destDir_: string;
-	private resourceDir_: string;
-	private createdDirs_: string[];
+	private destDir_: string = '';
+	private resourceDir_: string = '';
+	private createdDirs_: string[] = [];
 
 	public async init(destDir: string) {
 		this.destDir_ = destDir;
-		this.resourceDir_ = destDir ? `${destDir}/_resources` : null;
+		this.resourceDir_ = destDir ? `${destDir}/_resources` : '';
 		this.createdDirs_ = [];
 
 		await shim.fsDriver().mkdir(this.destDir_);
 		await shim.fsDriver().mkdir(this.resourceDir_);
 	}
 
-	private async makeDirPath_(item: any, pathPart: string = null, findUniqueFilename = true) {
+	private async makeDirPath_(item: any, pathPart: string = '', findUniqueFilename = true) {
 		let output = '';
 		while (true) {
 			if (item.type_ === BaseModel.TYPE_FOLDER) {
@@ -31,7 +31,7 @@ export default class InteropService_Exporter_Md extends InteropService_Exporter_
 					output = `${pathPart}/${output}`;
 				} else {
 					output = `${friendlySafeFilename(item.title, null)}/${output}`;
-					if (findUniqueFilename) output = await shim.fsDriver().findUniqueFilename(output, null, true);
+					if (findUniqueFilename) output = await shim.fsDriver().findUniqueFilename(output, [], true);
 				}
 			}
 			if (!item.parent_id) return output;
@@ -66,7 +66,6 @@ export default class InteropService_Exporter_Md extends InteropService_Exporter_
 		return await this.replaceItemIdsByRelativePaths_(noteBody, linkedNoteIds, notePaths, createRelativePath);
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
 	private async replaceItemIdsByRelativePaths_(noteBody: string, linkedItemIds: string[], paths: any, fn_createRelativePath: Function) {
 		let newBody = noteBody;
 
@@ -96,7 +95,7 @@ export default class InteropService_Exporter_Md extends InteropService_Exporter_
 				if (!note) continue;
 
 				const ext = note.markup_language === MarkupToHtml.MARKUP_LANGUAGE_HTML ? 'html' : 'md';
-				let notePath = `${await this.makeDirPath_(note, null, false)}${friendlySafeFilename(note.title, null)}.${ext}`;
+				let notePath = `${await this.makeDirPath_(note, '', false)}${friendlySafeFilename(note.title, null)}.${ext}`;
 				notePath = await shim.fsDriver().findUniqueFilename(`${this.destDir_}/${notePath}`, Object.values(context.notePaths), true);
 				context.notePaths[note.id] = notePath;
 			}
@@ -104,7 +103,7 @@ export default class InteropService_Exporter_Md extends InteropService_Exporter_
 			// Strip the absolute path to export dir and keep only the relative paths
 			const destDir = this.destDir_;
 			Object.keys(context.notePaths).map((id) => {
-				context.notePaths[id] = context.notePaths[id].substr(destDir.length + 1);
+				context.notePaths[id] = context.notePaths[id].substring(destDir.length + 1);
 			});
 
 			this.updateContext(context);
@@ -160,9 +159,9 @@ export default class InteropService_Exporter_Md extends InteropService_Exporter_
 		destResourcePath = await shim.fsDriver().findUniqueFilename(destResourcePath, Object.values(context.destResourcePaths), true);
 		await shim.fsDriver().copy(filePath, destResourcePath);
 
-		context.destResourcePaths[resource.id] = destResourcePath;
+		if (resource.id) context.destResourcePaths[resource.id] = destResourcePath;
 		this.updateContext(context);
 	}
 
-	public async close() {}
+	public async close() { }
 }

@@ -1,13 +1,15 @@
-import utils, { ItemIdToUrlHandler } from '../utils';
+import utils, { ItemIdToUrlHandler, ResourcesRecord } from '../utils';
 import createEventHandlingAttrs from './createEventHandlingAttrs';
-const Entities = require('html-entities').AllHtmlEntities;
-const htmlentities = new Entities().encode;
-const urlUtils = require('../urlUtils.js');
+import { encode } from 'html-entities';
+
+import urlUtils from '../urlUtils';
+
+// JS project can't do import
 const { getClassNameForMimeType } = require('font-awesome-filetypes');
 
 export interface Options {
 	title?: string;
-	resources?: any;
+	resources?: ResourcesRecord;
 	ResourceModel?: any;
 	linkRenderingType?: number;
 	plainResourceRendering?: boolean;
@@ -23,7 +25,7 @@ export interface LinkReplacementResult {
 	resourceFullPath: string;
 }
 
-export default function(href: string, options: Options = null): LinkReplacementResult {
+export default function(href: string, options: Options = {}): LinkReplacementResult {
 	options = {
 		title: '',
 		resources: {},
@@ -48,7 +50,7 @@ export default function(href: string, options: Options = null): LinkReplacementR
 	if (isResourceUrl) {
 		resourceId = resourceHrefInfo.itemId;
 
-		const result = options.resources[resourceId];
+		const result = options.resources ? options.resources[resourceId] : null;
 		const resourceStatus = utils.resourceStatus(options.ResourceModel, result);
 
 		if (result && result.item) {
@@ -62,9 +64,9 @@ export default function(href: string, options: Options = null): LinkReplacementR
 
 			return {
 				resourceReady: false,
-				html: `<a class="not-loaded-resource resource-status-${resourceStatus}" data-resource-id="${resourceId}">` + `<img src="data:image/svg+xml;utf8,${htmlentities(icon)}"/>`,
+				html: `<a class="not-loaded-resource resource-status-${resourceStatus}" data-resource-id="${resourceId}">` + `<img src="data:image/svg+xml;utf8,${encode(icon)}"/>`,
 				resource,
-				resourceFullPath: null,
+				resourceFullPath: '',
 			};
 		} else {
 			// If we are rendering a note link, we'll get here too, so in that
@@ -100,7 +102,7 @@ export default function(href: string, options: Options = null): LinkReplacementR
 			enableEditPopup: false,
 		}, onClick);
 	} else {
-		js = `onclick='${htmlentities(js)}'`;
+		js = `onclick='${encode(js)}'`;
 	}
 
 	if (hrefAttr.indexOf('#') === 0 && href.indexOf('#') === 0) js = ''; // If it's an internal anchor, don't add any JS since the webview is going to handle navigating to the right place
@@ -108,20 +110,20 @@ export default function(href: string, options: Options = null): LinkReplacementR
 	const attrHtml = [];
 	attrHtml.push('data-from-md');
 	if (resourceIdAttr) attrHtml.push(resourceIdAttr);
-	if (title) attrHtml.push(`title='${htmlentities(title)}'`);
-	if (mime) attrHtml.push(`type='${htmlentities(mime)}'`);
+	if (title) attrHtml.push(`title='${encode(title)}'`);
+	if (mime) attrHtml.push(`type='${encode(mime)}'`);
 
-	let resourceFullPath = resource && options?.ResourceModel?.fullPath ? options.ResourceModel.fullPath(resource) : null;
+	let resourceFullPath = resource && options?.ResourceModel?.fullPath ? options.ResourceModel.fullPath(resource) : '';
 
 	if (resourceId && options.itemIdToUrl) {
 		const url = options.itemIdToUrl(resourceId);
-		attrHtml.push(`href='${htmlentities(url)}'`);
+		attrHtml.push(`href='${encode(url)}'`);
 		resourceFullPath = url;
 	} else if (options.plainResourceRendering || options.linkRenderingType === 2) {
 		icon = '';
-		attrHtml.push(`href='${htmlentities(href)}'`);
+		attrHtml.push(`href='${encode(href)}'`);
 	} else {
-		attrHtml.push(`href='${htmlentities(hrefAttr)}'`);
+		attrHtml.push(`href='${encode(hrefAttr)}'`);
 		if (js) attrHtml.push(js);
 	}
 

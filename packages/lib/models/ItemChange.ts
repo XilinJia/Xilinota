@@ -2,7 +2,7 @@ import BaseModel, { ModelType } from '../BaseModel';
 import shim from '../shim';
 import eventManager from '../eventManager';
 import { ItemChangeEntity } from '../services/database/types';
-const Mutex = require('async-mutex').Mutex;
+import { Mutex } from 'async-mutex';
 
 export interface ChangeSinceIdOptions {
 	limit?: number;
@@ -23,15 +23,15 @@ export default class ItemChange extends BaseModel {
 	public static SOURCE_DECRYPTION = 2; // CAREFUL - SAME ID AS SOURCE_SYNC!
 	public static SOURCE_SHARE_SERVICE = 4;
 
-	public static tableName() {
+	public static tableName() : string {
 		return 'item_changes';
 	}
 
-	public static modelType() {
+	public static modelType() : ModelType {
 		return BaseModel.TYPE_ITEM_CHANGE;
 	}
 
-	public static async add(itemType: ModelType, itemId: string, type: number, changeSource: any = null, beforeChangeItemJson: string = null) {
+	public static async add(itemType: ModelType, itemId: string, type: number, changeSource: any = null, beforeChangeItemJson: string = '') : Promise<void> {
 		if (changeSource === null) changeSource = ItemChange.SOURCE_UNSPECIFIED;
 		if (!beforeChangeItemJson) beforeChangeItemJson = '';
 
@@ -64,15 +64,15 @@ export default class ItemChange extends BaseModel {
 		}
 	}
 
-	public static async lastChangeId() {
+	public static async lastChangeId() : Promise<number> {
 		const row = await this.db().selectOne('SELECT max(id) as max_id FROM item_changes');
-		return row && row.max_id ? row.max_id : 0;
+		return row && row.max_id ? row.max_id??0 : 0;
 	}
 
 	// Because item changes are recorded in the background, this function
 	// can be used for synchronous code, in particular when unit testing.
-	public static async waitForAllSaved() {
-		return new Promise((resolve) => {
+	public static async waitForAllSaved() : Promise<void> {
+		new Promise((resolve) => {
 			const iid = shim.setInterval(() => {
 				if (!ItemChange.saveCalls_.length) {
 					shim.clearInterval(iid);
@@ -94,7 +94,7 @@ export default class ItemChange extends BaseModel {
 		`, [lowestChangeId, cutOffDate]);
 	}
 
-	public static async changesSinceId(changeId: number, options: ChangeSinceIdOptions = null): Promise<ItemChangeEntity[]> {
+	public static async changesSinceId(changeId: number, options: ChangeSinceIdOptions = {}): Promise<ItemChangeEntity[]> {
 		options = {
 			limit: 100,
 			fields: ['id', 'item_type', 'item_id', 'type', 'created_time'],

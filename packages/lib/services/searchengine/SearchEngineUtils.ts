@@ -8,7 +8,7 @@ export interface NotesForQueryOptions {
 }
 
 export default class SearchEngineUtils {
-	public static async notesForQuery(query: string, applyUserSettings: boolean, options: NotesForQueryOptions = null, searchEngine: SearchEngine = null) {
+	public static async notesForQuery(query: string, applyUserSettings: boolean, options: NotesForQueryOptions = {}, searchEngine: SearchEngine|null = null) {
 		options = {
 			appendWildCards: false,
 			...options,
@@ -20,7 +20,7 @@ export default class SearchEngineUtils {
 
 		let searchType = SearchEngine.SEARCH_TYPE_FTS;
 		if (query.length && query[0] === '/') {
-			query = query.substr(1);
+			query = query.substring(1);
 			searchType = SearchEngine.SEARCH_TYPE_BASIC;
 		}
 
@@ -29,7 +29,7 @@ export default class SearchEngineUtils {
 			appendWildCards: options.appendWildCards,
 		});
 
-		const noteIds = results.map((n: any) => n.id);
+		const noteIds = results?.map((n: any) => n.id)??[];
 
 		// We need at least the note ID to be able to sort them below so if not
 		// present in field list, add it.L Also remember it was auto-added so that
@@ -59,7 +59,7 @@ export default class SearchEngineUtils {
 			fields: fields,
 			conditions: [`id IN ("${noteIds.join('","')}")`], ...options };
 
-		const notes = await Note.previews(null, previewOptions);
+		const notes = await Note.previews('', previewOptions);
 
 		// Filter completed todos
 		let filteredNotes = [...notes];

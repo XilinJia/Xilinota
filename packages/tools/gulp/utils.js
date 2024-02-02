@@ -1,5 +1,6 @@
 const fs = require('fs-extra');
-const execa = require('execa');
+// const execa = require('execa');
+
 const glob = require('glob');
 
 const utils = {};
@@ -16,13 +17,19 @@ utils.isMac = () => {
 	return process && process.platform === 'darwin';
 };
 
-utils.execCommandVerbose = function(commandName, args = []) {
-	console.info(`> ${commandName}`, args && args.length ? args : '');
-	const promise = execa(commandName, args);
-	promise.stdout.pipe(process.stdout);
-	promise.stderr.pipe(process.stderr);
-	return promise;
-};
+// XJ: function not used
+// utils.execCommandVerbose = function(commandName, args = []) {
+// 	console.info(`> ${commandName}`, args && args.length ? args : '');
+// 	try {
+// 		const execa = await import('execa');
+// 		const promise = execa(commandName, args);
+// 		promise.stdout.pipe(process.stdout);
+// 		promise.stderr.pipe(process.stderr);
+// 		return promise;
+// 	} catch (error) {
+// 		console.error('Error importing "execa":', error);
+// 	}
+// };
 
 utils.execCommand = function(command) {
 	const exec = require('child_process').exec;

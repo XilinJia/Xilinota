@@ -56,11 +56,11 @@ export interface PageProps {
 
 
 export default function Page(props: PageProps) {
-	const [error, setError] = useState(null);
-	const scaleRef = useRef<number>(null);
-	const canvasRef = useRef<HTMLCanvasElement>(null);
-	const textRef = useRef<HTMLDivElement>(null);
-	const wrapperRef = useRef<HTMLDivElement>(null);
+	const [error, setError] = useState<Error>();
+	const scaleRef = useRef<number>(0);
+	const canvasRef = useRef<HTMLCanvasElement>();
+	const textRef = useRef<HTMLDivElement>(document.createElement('div'));
+	const wrapperRef = useRef<HTMLDivElement>(document.createElement('div'));
 	const isVisible = useIsVisible(wrapperRef, props.container);
 	useVisibleOnSelect({
 		isVisible,
@@ -96,8 +96,10 @@ export default function Page(props: PageProps) {
 				if (textLayerDiv) textRef.current = textLayerDiv;
 			} catch (error) {
 				if (isCancelled()) return;
-				error.message = `Error rendering page no. ${props.pageNo}: ${error.message}`;
-				setError(error);
+				if (error instanceof Error) {
+					error.message = `Error rendering page no. ${props.pageNo}: ${error.message}`;
+					setError(error);
+				}
 				throw error;
 			}
 		};
@@ -132,7 +134,7 @@ export default function Page(props: PageProps) {
 
 	const onContextMenu = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
 		if (!props.textSelectable || !props.onTextSelect || !window.getSelection()) return;
-		const text = window.getSelection().toString();
+		const text = window.getSelection()?.toString();
 		if (!text) return;
 		props.onTextSelect(text);
 		e.preventDefault();
@@ -145,7 +147,7 @@ export default function Page(props: PageProps) {
 
 	return (
 		<PageWrapper onDoubleClick={onDoubleClick} isSelected={!!props.isSelected} onContextMenu={onContextMenu} onClick={onClick} ref={wrapperRef} style={style}>
-			{ error && <div>Error: {error}</div> }
+			{ error && <div>Error: {error.toString()}</div> }
 			{props.showPageNumbers && <PageInfo isSelected={!!props.isSelected}>{props.isAnchored ? '📌' : ''} Page {props.pageNo}</PageInfo>}
 		</PageWrapper>
 	);

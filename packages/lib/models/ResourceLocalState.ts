@@ -1,19 +1,21 @@
-import BaseModel from '../BaseModel';
+import BaseModel, { ModelType } from '../BaseModel';
 import { ResourceLocalStateEntity } from '../services/database/types';
 import Database from '../database';
 
 export default class ResourceLocalState extends BaseModel {
-	public static tableName() {
+	public static tableName(): string {
 		return 'resource_local_states';
 	}
 
-	public static modelType() {
+	public static modelType(): ModelType {
 		return BaseModel.TYPE_RESOURCE_LOCAL_STATE;
 	}
 
-	public static async byResourceId(resourceId: string) {
-		if (!resourceId) throw new Error('Resource ID not provided'); // Sanity check
-
+	public static async byResourceId(resourceId: string): Promise<ResourceLocalStateEntity> {
+		if (!resourceId) {
+			this.logger().error('Resource ID not provided'); // Sanity check
+			return {};
+		}
 		const result = await this.modelSelectOne('SELECT * FROM resource_local_states WHERE resource_id = ?', [resourceId]);
 
 		if (!result) {
@@ -26,12 +28,13 @@ export default class ResourceLocalState extends BaseModel {
 		return result;
 	}
 
-	public static saveQueries(o: ResourceLocalStateEntity) {
+	public static saveQueries(o: ResourceLocalStateEntity): { sql: string; params: any[]; }[] {
 		return [{ sql: 'DELETE FROM resource_local_states WHERE resource_id = ?', params: [o.resource_id] }, Database.insertQuery(this.tableName(), o)];
 	}
 
-	public static async save(o: ResourceLocalStateEntity) {
-		return this.db().transactionExecBatch(this.saveQueries(o));
+	public static async save(o: ResourceLocalStateEntity): Promise<ResourceLocalStateEntity> {
+		this.db().transactionExecBatch(this.saveQueries(o));
+		return o;
 	}
 
 	public static batchDelete(ids: string[], options: any = null) {

@@ -9,7 +9,7 @@ export const declaration: CommandDeclaration = {
 
 export const runtime = (): CommandRuntime => {
 	return {
-		execute: async (context: CommandContext, parentId: string = null) => {
+		execute: async (context: CommandContext, parentId: string = '') => {
 			parentId = parentId || context.state.selectedFolderId;
 			return CommandService.instance().execute('newFolder', parentId);
 		},

@@ -10,7 +10,7 @@ import { rootDir } from './tool-utils';
 
 const fetch = require('node-fetch');
 
-jest.mock('node-fetch', ()=>jest.fn());
+jest.mock('node-fetch', () => jest.fn());
 
 const manifests = {
 	'io.github.jackgruber.backup': {
@@ -178,7 +178,7 @@ describe('bundleDefaultPlugins', () => {
 
 			expect(mockFetch).toHaveBeenCalledTimes(testCase.numberOfCalls);
 
-			// eslint-disable-next-line github/array-foreach -- Old code before rule was applied
+
 			testCase.calledWith.forEach((callValue, index) => expect(mockFetch).toHaveBeenNthCalledWith(index + 1, callValue));
 
 			jest.clearAllMocks();

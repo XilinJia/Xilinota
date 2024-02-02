@@ -19,17 +19,17 @@ describe('utils/userData', () => {
 
 	it('should set and get user data on a note', async () => {
 		const folder = await Folder.save({});
-		let note = await Note.save({ parent_id: folder.id });
-		note = await Note.load(note.id, loadOptions);
+		let note = await Note.save({ parent_id: folder.id! });
+		note = (await Note.load(note.id!, loadOptions))!;
 		await msleep(5);
 		await setNoteUserData(note, 'org.xilinota', 'my-key', 'something');
 
-		const noteReloaded = await Note.load(note.id);
+		const noteReloaded = (await Note.load(note.id!))!;
 		expect(await getNoteUserData(noteReloaded, 'org.xilinota', 'my-key')).toBe('something');
 
 		// Check that the updated_time has been updated (for sync purposes), but
 		// not the user_updated_time.
-		expect(noteReloaded.updated_time).toBeGreaterThan(note.updated_time);
+		expect(noteReloaded.updated_time).toBeGreaterThan(note.updated_time!);
 		expect(noteReloaded.user_updated_time).toBe(note.updated_time);
 
 		// Check for non-existing props
@@ -42,15 +42,15 @@ describe('utils/userData', () => {
 		const tag = await Tag.save({});
 		const resource = await Resource.save({ mime: 'plain/text' });
 
-		await setItemUserData(ModelType.Folder, folder.id, 'foldertest', 'folderkey', 123);
-		expect(await getItemUserData(ModelType.Folder, folder.id, 'foldertest', 'folderkey')).toBe(123);
-		await deleteItemUserData(ModelType.Folder, folder.id, 'foldertest', 'folderkey');
-		expect(await getItemUserData(ModelType.Folder, folder.id, 'foldertest', 'folderkey')).toBe(undefined);
+		await setItemUserData(ModelType.Folder, folder.id!, 'foldertest', 'folderkey', 123);
+		expect(await getItemUserData(ModelType.Folder, folder.id!, 'foldertest', 'folderkey')).toBe(123);
+		await deleteItemUserData(ModelType.Folder, folder.id!, 'foldertest', 'folderkey');
+		expect(await getItemUserData(ModelType.Folder, folder.id!, 'foldertest', 'folderkey')).toBe(undefined);
 
-		await setItemUserData(ModelType.Tag, tag.id, 'tagtest', 'tagkey', 123);
-		expect(await getItemUserData(ModelType.Tag, tag.id, 'tagtest', 'tagkey')).toBe(123);
-		await deleteItemUserData(ModelType.Tag, tag.id, 'tagtest', 'tagkey');
-		expect(await getItemUserData(ModelType.Tag, tag.id, 'tagtest', 'tagkey')).toBe(undefined);
+		await setItemUserData(ModelType.Tag, tag.id!, 'tagtest', 'tagkey', 123);
+		expect(await getItemUserData(ModelType.Tag, tag.id!, 'tagtest', 'tagkey')).toBe(123);
+		await deleteItemUserData(ModelType.Tag, tag.id!, 'tagtest', 'tagkey');
+		expect(await getItemUserData(ModelType.Tag, tag.id!, 'tagtest', 'tagkey')).toBe(undefined);
 
 		await setItemUserData(ModelType.Resource, resource.id, 'resourcetest', 'resourcekey', 123);
 		expect(await getItemUserData(ModelType.Resource, resource.id, 'resourcetest', 'resourcekey')).toBe(123);
@@ -60,11 +60,11 @@ describe('utils/userData', () => {
 
 	it('should delete user data', async () => {
 		const folder = await Folder.save({});
-		let note = await Note.save({ parent_id: folder.id });
-		note = await Note.load(note.id, loadOptions);
+		let note = await Note.save({ parent_id: folder.id! })!;
+		note = (await Note.load(note.id!, loadOptions))!;
 		await setNoteUserData(note, 'org.xilinota', 'my-key', 'something');
 
-		let noteReloaded = await Note.load(note.id);
+		let noteReloaded = (await Note.load(note.id!))!;
 		expect(await getNoteUserData(noteReloaded, 'org.xilinota', 'my-key')).toBe('something');
 
 		noteReloaded = await deleteNoteUserData(noteReloaded, 'org.xilinota', 'my-key');
@@ -72,7 +72,7 @@ describe('utils/userData', () => {
 
 		// Check that it works if we set it again
 		await setNoteUserData(note, 'org.xilinota', 'my-key', 'something else');
-		noteReloaded = await Note.load(noteReloaded.id, loadOptions);
+		noteReloaded = (await Note.load(noteReloaded.id!, loadOptions))!;
 		expect(await getNoteUserData(noteReloaded, 'org.xilinota', 'my-key')).toBe('something else');
 	});
 

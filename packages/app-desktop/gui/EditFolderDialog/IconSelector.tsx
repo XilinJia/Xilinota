@@ -76,7 +76,7 @@ export const IconSelector = (props: Props) => {
 	}, [emojiButtonClassReady, props.onChange]);
 
 	const onClick = useCallback(() => {
-		picker.togglePicker(buttonRef.current);
+		if (picker && buttonRef.current) picker.togglePicker(buttonRef.current);
 	}, [picker]);
 
 	// const buttonText = props.icon ? props.icon.emoji : '...';

@@ -2,22 +2,25 @@ import Logger from '@xilinota/utils/Logger';
 import Setting from './models/Setting';
 import shim from './shim';
 import SyncTargetRegistry from './SyncTargetRegistry';
+import XilinotaError from './XilinotaError';
+import Database from './database';
+import XilinotaDatabase from './XilinotaDatabase';
 
 class Registry {
 
-	private syncTargets_: any = {};
-	private logger_: Logger = null;
+	private syncTargets_: Record<number, any> = {};
+	private logger_: Logger | null = null;
 	private schedSyncCalls_: boolean[] = [];
 	private waitForReSyncCalls_: boolean[] = [];
 	private setupRecurrentCalls_: boolean[] = [];
 	private timerCallbackCalls_: boolean[] = [];
 	private showErrorMessageBoxHandler_: any;
-	private scheduleSyncId_: any;
-	private recurrentSyncId_: any;
-	private db_: any;
+	private scheduleSyncId_: number | null = null;
+	private recurrentSyncId_: number | null = null;
+	private db_: XilinotaDatabase | null = null;
 	private isOnMobileData_ = false;
 
-	public logger() {
+	public logger(): Logger {
 		if (!this.logger_) {
 			// console.warn('Calling logger before it is initialized');
 			return new Logger();
@@ -26,36 +29,36 @@ class Registry {
 		return this.logger_;
 	}
 
-	public setLogger(l: Logger) {
+	public setLogger(l: Logger): void {
 		this.logger_ = l;
 	}
 
-	public setShowErrorMessageBoxHandler(v: any) {
+	public setShowErrorMessageBoxHandler(v: any): void {
 		this.showErrorMessageBoxHandler_ = v;
 	}
 
-	public showErrorMessageBox(message: string) {
+	public showErrorMessageBox(message: string): void {
 		if (!this.showErrorMessageBoxHandler_) return;
 		this.showErrorMessageBoxHandler_(message);
 	}
 
 	// If isOnMobileData is true, the doWifiConnectionCheck is not set
 	// and the sync.mobileWifiOnly setting is true it will cancel the sync.
-	public setIsOnMobileData(isOnMobileData: boolean) {
+	public setIsOnMobileData(isOnMobileData: boolean): void {
 		this.isOnMobileData_ = isOnMobileData;
 	}
 
-	public resetSyncTarget(syncTargetId: number = null) {
-		if (syncTargetId === null) syncTargetId = Setting.value('sync.target');
+	public resetSyncTarget(syncTargetId: number = -1): void {
+		if (syncTargetId === -1) syncTargetId = Setting.value('sync.target');
 		delete this.syncTargets_[syncTargetId];
 	}
 
-	public syncTargetNextcloud() {
+	public syncTargetNextcloud(): any {
 		return this.syncTarget(SyncTargetRegistry.nameToId('nextcloud'));
 	}
 
-	public syncTarget = (syncTargetId: number = null) => {
-		if (syncTargetId === null) syncTargetId = Setting.value('sync.target');
+	public syncTarget = (syncTargetId: number = -1): any => {
+		if (syncTargetId === -1) syncTargetId = Setting.value('sync.target');
 		if (this.syncTargets_[syncTargetId]) return this.syncTargets_[syncTargetId];
 
 		const SyncTargetClass = SyncTargetRegistry.classById(syncTargetId);
@@ -70,7 +73,7 @@ class Registry {
 	// This can be used when some data has been modified and we want to make
 	// sure it gets synced. So we wait for the current sync operation to
 	// finish (if one is running), then we trigger a sync just after.
-	public waitForSyncFinishedThenSync = async () => {
+	public waitForSyncFinishedThenSync = async (): Promise<void> => {
 		if (!Setting.value('sync.target')) {
 			this.logger().info('waitForSyncFinishedThenSync - cancelling because no sync target is selected.');
 			return;
@@ -86,15 +89,14 @@ class Registry {
 		}
 	};
 
-	public scheduleSync = async (delay: number = null, syncOptions: any = null, doWifiConnectionCheck = false) => {
+	public scheduleSync = async (delay: number | null = null, syncOptions: any = null, doWifiConnectionCheck = false) => {
 		this.schedSyncCalls_.push(true);
 
 		try {
 			if (delay === null) delay = 1000 * 10;
 			if (syncOptions === null) syncOptions = {};
 
-			// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-			let promiseResolve: Function = null;
+			let promiseResolve: Function;
 			const promise = new Promise((resolve) => {
 				promiseResolve = resolve;
 			});
@@ -163,7 +165,7 @@ class Registry {
 							const newContext = await sync.start(options);
 							Setting.setValue(contextKey, JSON.stringify(newContext));
 						} catch (error) {
-							if (error.code === 'alreadyStarted') {
+							if (error instanceof XilinotaError && error.code === 'alreadyStarted') {
 								this.logger().info(error.message);
 							} else {
 								promiseResolve();
@@ -194,7 +196,7 @@ class Registry {
 		}
 	};
 
-	public setupRecurrentSync() {
+	public setupRecurrentSync(): void {
 		this.setupRecurrentCalls_.push(true);
 
 		try {
@@ -223,15 +225,16 @@ class Registry {
 		}
 	}
 
-	public setDb = (v: any) => {
+	public setDb = (v: XilinotaDatabase | null): void => {
 		this.db_ = v;
 	};
 
-	public db() {
+	public db(): XilinotaDatabase {
+		if (!this.db_) throw ('Regidtry db_ is not assigned');
 		return this.db_;
 	}
 
-	private cancelTimers_() {
+	private cancelTimers_(): void {
 		if (this.recurrentSyncId_) {
 			shim.clearInterval(this.recurrentSyncId_);
 			this.recurrentSyncId_ = null;
@@ -261,5 +264,5 @@ class Registry {
 
 const reg = new Registry();
 
-// eslint-disable-next-line import/prefer-default-export
+
 export { reg };

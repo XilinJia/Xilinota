@@ -25,7 +25,11 @@ const callHook = (isUpdate: boolean, pluginEnabled = true, pluginInstalledViaGUI
 			enabled: pluginEnabled,
 			deleted: false,
 			hasBeenUpdated: false,
-		} : undefined,
+		} : {
+			enabled: false,
+			deleted: false,
+			hasBeenUpdated: false,
+		},
 	},
 	repoApi,
 	onPluginSettingsChange,

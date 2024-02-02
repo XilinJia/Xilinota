@@ -4,7 +4,7 @@ import { useRef, useCallback, MutableRefObject } from 'react';
 export type FocusNote = (noteId: string)=> void;
 
 const useFocusNote = (itemRefs: MutableRefObject<Record<string, HTMLDivElement>>) => {
-	const focusItemIID = useRef(null);
+	const focusItemIID = useRef('');
 
 	const focusNote: FocusNote = useCallback((noteId: string) => {
 		// - We need to focus the item manually otherwise focus might be lost when the
@@ -18,7 +18,7 @@ const useFocusNote = (itemRefs: MutableRefObject<Record<string, HTMLDivElement>>
 				if (itemRefs.current[noteId]) {
 					itemRefs.current[noteId].focus();
 					shim.clearInterval(focusItemIID.current);
-					focusItemIID.current = null;
+					focusItemIID.current = '';
 				}
 			}, 10);
 		} else {

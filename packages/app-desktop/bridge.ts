@@ -1,10 +1,11 @@
 import ElectronAppWrapper from './ElectronAppWrapper';
 import shim from '@xilinota/lib/shim';
 import { _, setLocale } from '@xilinota/lib/locale';
-import { BrowserWindow, nativeTheme, nativeImage, RelaunchOptions } from 'electron';
+import { BrowserWindow, nativeTheme, nativeImage, RelaunchOptions, dialog, Menu, MenuItem, shell, screen, app } from 'electron';
 import { execFile } from 'node:child_process';
-const { dirname, toSystemSlashes } = require('@xilinota/lib/path-utils');
-const ProgressBar = require('electron-progressbar');
+import { dirname, toSystemSlashes } from '@xilinota/lib/path-utils';
+import ProgressBar from 'electron-progressbar';
+
 interface LastSelectedPath {
 	file: string;
 	directory: string;
@@ -25,16 +26,16 @@ export class Bridge {
 	public constructor(electronWrapper: ElectronAppWrapper) {
 		this.electronWrapper_ = electronWrapper;
 		this.lastSelectedPaths_ = {
-			file: null,
-			directory: null,
+			file: '',
+			directory: '',
 		};
 	}
 
-	public electronApp() {
+	public electronApp(): ElectronAppWrapper {
 		return this.electronWrapper_;
 	}
 
-	public electronIsDev() {
+	public electronIsDev(): boolean {
 		return !this.electronApp().electronApp().isPackaged;
 	}
 
@@ -49,7 +50,7 @@ export class Bridge {
 	// in dev or prod, which makes it hard to access it from static files (for
 	// example from plain HTML files that load CSS or JS files). For this reason
 	// it should be avoided as much as possible.
-	public buildDir() {
+	public buildDir(): string {
 		return this.electronApp().buildDir();
 	}
 
@@ -57,19 +58,19 @@ export class Bridge {
 	// dir (usually by pulling files from node_modules). It can also be accessed
 	// using a relative path such as "../../vendor/lib/file.js" because it will
 	// be at the same location in both prod and dev mode (unlike the build dir).
-	public vendorDir() {
+	public vendorDir(): string {
 		return `${__dirname}/vendor`;
 	}
 
-	public env() {
+	public env(): string {
 		return this.electronWrapper_.env();
 	}
 
-	public processArgv() {
+	public processArgv(): string[] {
 		return process.argv;
 	}
 
-	public getLocale = () => {
+	public getLocale = (): any => {
 		return this.electronApp().electronApp().getLocale();
 	};
 
@@ -89,8 +90,7 @@ export class Bridge {
 	// Perhaps the easiest would be to patch electron-context-menu to
 	// support the renderer process again. Or possibly revert to an old
 	// version of electron-context-menu.
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	public setupContextMenu(_spellCheckerMenuItemsHandler: Function) {
+	public setupContextMenu(_spellCheckerMenuItemsHandler: Function): void {
 		require('electron-context-menu')({
 			allWindows: [this.window()],
 
@@ -116,76 +116,83 @@ export class Bridge {
 		});
 	}
 
-	public window() {
+	public window(): BrowserWindow {
 		return this.electronWrapper_.window();
 	}
 
-	public showItemInFolder(fullPath: string) {
-		return require('electron').shell.showItemInFolder(toSystemSlashes(fullPath));
+	public showItemInFolder(fullPath: string): void {
+		return shell.showItemInFolder(toSystemSlashes(fullPath));
 	}
 
-	public newBrowserWindow(options: any) {
+	public newBrowserWindow(options: any): BrowserWindow {
 		return new BrowserWindow(options);
 	}
 
-	public windowContentSize() {
-		if (!this.window()) return { width: 0, height: 0 };
-		const s = this.window().getContentSize();
+	public windowContentSize(): { width: number; height: number; } {
+		const win = this.window();
+		if (!win) return { width: 0, height: 0 };
+		const s = win.getContentSize();
 		return { width: s[0], height: s[1] };
 	}
 
-	public windowSize() {
-		if (!this.window()) return { width: 0, height: 0 };
-		const s = this.window().getSize();
+	public windowSize(): { width: number; height: number; } {
+		const win = this.window();
+		if (!win) return { width: 0, height: 0 };
+		const s = win.getSize();
 		return { width: s[0], height: s[1] };
 	}
 
-	public windowSetSize(width: number, height: number) {
-		if (!this.window()) return;
-		return this.window().setSize(width, height);
+	public windowSetSize(width: number, height: number): void {
+		const win = this.window();
+		if (!win) return;
+		return win.setSize(width, height);
 	}
 
-	public openDevTools() {
-		return this.window().webContents.openDevTools();
+	public openDevTools(): void {
+		return this.window()?.webContents.openDevTools();
 	}
 
-	public closeDevTools() {
-		return this.window().webContents.closeDevTools();
+	public closeDevTools(): void {
+		return this.window()?.webContents.closeDevTools();
 	}
 
-	public async showSaveDialog(options: any) {
-		const { dialog } = require('electron');
+	public async showSaveDialog(options: any): Promise<string | undefined> {
 		if (!options) options = {};
 		if (!('defaultPath' in options) && this.lastSelectedPaths_.file) options.defaultPath = this.lastSelectedPaths_.file;
-		const { filePath } = await dialog.showSaveDialog(this.window(), options);
-		if (filePath) {
-			this.lastSelectedPaths_.file = filePath;
+		const win = this.window();
+		if (win) {
+			const { filePath } = await dialog.showSaveDialog(win, options);
+			if (filePath) {
+				this.lastSelectedPaths_.file = filePath;
+			}
+			return filePath;
 		}
-		return filePath;
+		return '';
 	}
 
-	public async showOpenDialog(options: OpenDialogOptions = null) {
-		const { dialog } = require('electron');
-		if (!options) options = {};
+	public async showOpenDialog(options: OpenDialogOptions = {}): Promise<string[]> {
 		let fileType = 'file';
 		if (options.properties && options.properties.includes('openDirectory')) fileType = 'directory';
 		if (!('defaultPath' in options) && (this.lastSelectedPaths_ as any)[fileType]) options.defaultPath = (this.lastSelectedPaths_ as any)[fileType];
 		if (!('createDirectory' in options)) options.createDirectory = true;
-		const { filePaths } = await dialog.showOpenDialog(this.window(), options as any);
-		if (filePaths && filePaths.length) {
-			(this.lastSelectedPaths_ as any)[fileType] = dirname(filePaths[0]);
+		const win = this.window();
+		if (win) {
+			const { filePaths } = await dialog.showOpenDialog(win, options as any);
+			if (filePaths && filePaths.length) {
+				(this.lastSelectedPaths_ as any)[fileType] = dirname(filePaths[0]);
+			}
+			return filePaths;
 		}
-		return filePaths;
+		return [];
 	}
 
 	// Don't use this directly - call one of the showXxxxxxxMessageBox() instead
 	private showMessageBox_(window: any, options: any): number {
-		const { dialog } = require('electron');
 		if (!window) window = this.window();
 		return dialog.showMessageBoxSync(window, options);
 	}
 
-	public showErrorMessageBox(message: string) {
+	public showErrorMessageBox(message: string): number {
 		return this.showMessageBox_(this.window(), {
 			type: 'error',
 			message: message,
@@ -193,68 +200,72 @@ export class Bridge {
 		});
 	}
 
-	public showConfirmMessageBox(message: string, options: any = null) {
+	public showConfirmMessageBox(message: string, options: any = null): boolean {
 		options = {
 			buttons: [_('OK'), _('Cancel')],
 			...options,
 		};
 
-		const result = this.showMessageBox_(this.window(), { type: 'question',
+		const result = this.showMessageBox_(this.window(), {
+			type: 'question',
 			message: message,
 			cancelId: 1,
-			buttons: options.buttons, ...options });
+			buttons: options.buttons, ...options
+		});
 
 		return result === 0;
 	}
 
 	/* returns the index of the clicked button */
-	public showMessageBox(message: string, options: any = null) {
-		if (options === null) options = {};
+	public showMessageBox(message: string, options: any = {}): number {
 
-		const result = this.showMessageBox_(this.window(), { type: 'question',
+		const result = this.showMessageBox_(this.window(), {
+			type: 'question',
 			message: message,
-			buttons: [_('OK'), _('Cancel')], ...options });
+			buttons: [_('OK'), _('Cancel')], ...options
+		});
 
 		return result;
 	}
 
-	public showInfoMessageBox(message: string, options: any = {}) {
-		const result = this.showMessageBox_(this.window(), { type: 'info',
+	public showInfoMessageBox(message: string, options: any = {}): boolean {
+		const result = this.showMessageBox_(this.window(), {
+			type: 'info',
 			message: message,
-			buttons: [_('OK')], ...options });
+			buttons: [_('OK')], ...options
+		});
 		return result === 0;
 	}
 
-	public setLocale(locale: string) {
+	public setLocale(locale: string): void {
 		setLocale(locale);
 	}
 
-	public get Menu() {
-		return require('electron').Menu;
+	public get Menu(): typeof Electron.CrossProcessExports.Menu {
+		return Menu;
 	}
 
-	public get MenuItem() {
-		return require('electron').MenuItem;
+	public get MenuItem(): typeof Electron.CrossProcessExports.MenuItem {
+		return MenuItem;
 	}
 
-	public openExternal(url: string) {
-		return require('electron').shell.openExternal(url);
+	public openExternal(url: string): Promise<void> {
+		return shell.openExternal(url);
 	}
 
-	public async openItem(fullPath: string) {
-		return require('electron').shell.openPath(toSystemSlashes(fullPath));
+	public async openItem(fullPath: string): Promise<string> {
+		return shell.openPath(toSystemSlashes(fullPath));
 	}
 
-	public screen() {
-		return require('electron').screen;
+	public screen(): Electron.Screen {
+		return screen;
 	}
 
-	public shouldUseDarkColors() {
+	public shouldUseDarkColors(): boolean {
 		return nativeTheme.shouldUseDarkColors;
 	}
 
-	// eslint-disable-next-line @typescript-eslint/ban-types -- Old code before rule was applied
-	public addEventListener(name: string, fn: Function) {
+	public addEventListener(name: string, fn: Function): void {
 		if (name === 'nativeThemeUpdated') {
 			nativeTheme.on('updated', fn);
 		} else {
@@ -262,7 +273,7 @@ export class Bridge {
 		}
 	}
 
-	public ProgressBarDefinitive(msg = 'Preparing data...', detail = 'Wait...') {
+	public ProgressBarDefinitive(msg = 'Preparing data...', detail = 'Wait...'): any {
 		const progressBar = new ProgressBar({
 			indeterminate: false,
 			text: msg,
@@ -289,7 +300,7 @@ export class Bridge {
 		return progressBar;
 	}
 
-	public ProgressBarIndefinitive(msg = 'Preparing data...', detail = 'Wait...') {
+	public ProgressBarIndefinitive(msg = 'Preparing data...', detail = 'Wait...'): any {
 		const progressBar = new ProgressBar({
 			text: msg,
 			detail: detail,
@@ -297,11 +308,9 @@ export class Bridge {
 
 		progressBar
 			.on('completed', () => {
-				// console.info('completed...');
 				progressBar.detail = 'Task completed. Exiting...';
 			})
 			.on('aborted', (_value: number) => {
-				// console.info(`aborted... ${_value}`);
 			});
 
 		// setInterval(() => {
@@ -310,11 +319,10 @@ export class Bridge {
 		return progressBar;
 	}
 
-	public restart(linuxSafeRestart = true) {
+	public restart(linuxSafeRestart = true): void {
 		// Note that in this case we are not sending the "appClose" event
 		// to notify services and component that the app is about to close
 		// but for the current use-case it's not really needed.
-		const { app } = require('electron');
 
 		if (shim.isPortable()) {
 			const options = {
@@ -340,21 +348,21 @@ export class Bridge {
 		app.quit();
 	}
 
-	public createImageFromPath(path: string) {
+	public createImageFromPath(path: string): Electron.NativeImage {
 		return nativeImage.createFromPath(path);
 	}
 
 }
 
-let bridge_: Bridge = null;
+let bridge_: Bridge | null = null;
 
-export function initBridge(wrapper: ElectronAppWrapper) {
+export function initBridge(wrapper: ElectronAppWrapper): Bridge {
 	if (bridge_) throw new Error('Bridge already initialized');
 	bridge_ = new Bridge(wrapper);
 	return bridge_;
 }
 
-export default function bridge() {
+export default function bridge(): Bridge {
 	if (!bridge_) throw new Error('Bridge not initialized');
 	return bridge_;
 }

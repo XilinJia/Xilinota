@@ -2,7 +2,7 @@ import { EditorView, keymap } from '@codemirror/view';
 import { closeBrackets } from '@codemirror/autocomplete';
 import { EditorKeymap, EditorLanguageType, EditorSettings } from '../types';
 import createTheme from './theme';
-import { EditorState } from '@codemirror/state';
+import { EditorState, Extension } from '@codemirror/state';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { GFM as GitHubFlavoredMarkdownExtension } from '@lezer/markdown';
 import { MarkdownMathExtension } from './markdown/markdownMathParser';
@@ -12,7 +12,7 @@ import { defaultKeymap, emacsStyleKeymap } from '@codemirror/commands';
 import { vim } from '@replit/codemirror-vim';
 import { indentUnit } from '@codemirror/language';
 
-const configFromSettings = (settings: EditorSettings) => {
+const configFromSettings = (settings: EditorSettings): Extension[] => {
 	const languageExtension = (() => {
 		const openingBrackets = '`([{\'"‘“（《「『【〔〖〘〚'.split('');
 

@@ -9,8 +9,9 @@ export const declaration: CommandDeclaration = {
 
 export const runtime = (): CommandRuntime => {
 	return {
-		execute: async (context: CommandContext, noteIds: string[] = null) => {
-			if (noteIds === null) noteIds = context.state.selectedNoteIds;
+		execute: async (context: CommandContext, _noteIds: string[] | null = []) => {
+			let noteIds = _noteIds || []
+			if (!noteIds.length) noteIds = context.state.selectedNoteIds;
 			await PeersNote.sendToPeers(noteIds);
 		},
 		enabledCondition: '!noteIsReadOnly',

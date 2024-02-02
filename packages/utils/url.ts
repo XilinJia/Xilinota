@@ -91,7 +91,7 @@ export const fileUriToPath = (path: string, platform = 'linux') => {
 	// https://github.com/XilinJia/Xilinota/issues/5693
 
 	if (output.match(/^\/\/[a-zA-Z]:/)) {
-		return output.substr(2);
+		return output.substring(2);
 	}
 
 	return output;

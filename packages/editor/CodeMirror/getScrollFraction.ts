@@ -1,7 +1,7 @@
 import { EditorView } from '@codemirror/view';
 
 
-const getScrollFraction = (view: EditorView) => {
+const getScrollFraction = (view: EditorView): number => {
 	const maxScroll = view.scrollDOM.scrollHeight - view.scrollDOM.clientHeight;
 
 	// Prevent division by zero

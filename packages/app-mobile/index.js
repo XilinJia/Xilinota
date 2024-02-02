@@ -10,7 +10,13 @@
 import 'react-native-get-random-values';
 import 'react-native-url-polyfill/auto';
 
-import { LogBox, AppRegistry } from 'react-native';
+const React = require('react');
+const shim = require('@xilinota/lib/shim').default;
+shim.setReact(React);
+
+const { LogBox, AppRegistry } = require('react-native');
+
+// import { LogBox, AppRegistry } from 'react-native';
 const Root = require('./root').default;
 // import Root from './root';
 

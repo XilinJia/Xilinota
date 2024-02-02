@@ -1,7 +1,7 @@
 import { RuleOptions } from '../../MdToHtml';
 
 let katex = require('katex');
-const md5 = require('md5');
+import md5 from 'md5';
 const mhchemModule = require('./katex_mhchem.js');
 
 // Katex macros include circular references so we need

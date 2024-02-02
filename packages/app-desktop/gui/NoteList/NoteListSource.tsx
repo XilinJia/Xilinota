@@ -5,7 +5,7 @@ import BaseModel, { ModelType } from '@xilinota/lib/BaseModel';
 import NoteListItem from '../NoteListItem';
 import styled from 'styled-components';
 import ItemList from '../ItemList';
-const { connect } = require('react-redux');
+import { connect } from 'react-redux';
 import { Props } from './utils/types';
 import { itemIsReadOnlySync, ItemSlice } from '@xilinota/lib/models/utils/readOnly';
 import { FolderEntity } from '@xilinota/lib/services/database/types';
@@ -47,7 +47,7 @@ const NoteListComponent = (props: Props) => {
 			onContextMenu={() => {}}
 			draggable={!props.parentFolderIsReadOnly}
 		/>;
-		// eslint-disable-next-line @seiyab/react-hooks/exhaustive-deps -- Old code before rule was applied
+		
 	}, [style, props.themeId, width, itemHeight, props.provisionalNoteIds, props.selectedNoteIds, props.watchedNoteFiles,
 		props.notes,
 		props.notesParentType,
@@ -84,7 +84,7 @@ const NoteListComponent = (props: Props) => {
 };
 
 const mapStateToProps = (state: AppState) => {
-	const selectedFolder: FolderEntity = state.notesParentType === 'Folder' ? BaseModel.byId(state.folders, state.selectedFolderId) : null;
+	const selectedFolder: FolderEntity|null = state.notesParentType === 'Folder' ? BaseModel.byId(state.folders, state.selectedFolderId) : null;
 	const userId = state.settings['sync.userId'];
 
 	return {
