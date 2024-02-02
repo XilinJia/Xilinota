@@ -36,7 +36,8 @@
 		"paths": {
 			"react": [
 				"./node_modules/@types/react"
-			]
+			],
+			"@xilinota/*": ["./node_modules/@xilinota/*"]
 		},
 		"types": [
 			"jest",
