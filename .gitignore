@@ -33,9 +33,9 @@ _vieux/
 app/data/uploads/
 Assets/DownloadBadges*.psd
 Clipper-source/
-Clipper/joplin-webclipper-source.zip
+Clipper/xilinota-webclipper-source.zip
 INFO.md
-joplin-webclipper-source.zip
+xilinota-webclipper-source.zip
 Makefile
 Makefile.Debug
 Makefile.Release
@@ -394,8 +394,6 @@ packages/app-desktop/services/sortOrder/PerFolderSortOrderService.js
 packages/app-desktop/services/sortOrder/notesSortOrderUtils.test.js
 packages/app-desktop/services/sortOrder/notesSortOrderUtils.js
 packages/app-desktop/services/spellChecker/SpellCheckerServiceDriverNative.js
-packages/app-desktop/tools/notarizeMacApp.js
-packages/app-desktop/tools/renameReleaseAssets.js
 packages/app-desktop/utils/checkForUpdatesUtils.test.js
 packages/app-desktop/utils/checkForUpdatesUtils.js
 packages/app-desktop/utils/checkForUpdatesUtilsTestData.js
