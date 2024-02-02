@@ -1,5 +1,5 @@
 const gulp = require('gulp');
-const execa = require('execa');
+import execa from 'execa';
 
 const { stdout } = require('process');
 
