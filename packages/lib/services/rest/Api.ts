@@ -217,12 +217,17 @@ export default class Api {
 
 		this.checkToken_(request);
 
-		if (!this.authToken_) throw new Error('Auth token is not set');
-
+		if (!this.authToken_) {
+			if (parsedPath.fn === route_auth) {
+				await route_auth(request, id ?? '', link ?? '', null);
+			} else {
+				throw new Error('Auth token is not set');
+			}
+		}
 		const context: RequestContext = {
 			dispatch: this.dispatch,
 			token: this.token,
-			authToken: this.authToken_,
+			authToken: this.authToken_!,
 		};
 
 		try {
