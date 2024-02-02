@@ -1,5 +1,5 @@
 const gulp = require('gulp');
-// const execa = require('execa');
+const execa = require('execa');
 
 const { stdout } = require('process');
 
@@ -23,7 +23,7 @@ const execCommand = async (executableName, args, options = null) => {
 	}
 
 	try {
-		const execa = await import('execa');
+		// const execa = await import('execa');
 		const promise = execa(executableName, args);
 		if (options.showStdout && promise.stdout) promise.stdout.pipe(process.stdout);
 		if (options.showStderr && promise.stderr) promise.stderr.pipe(process.stderr);

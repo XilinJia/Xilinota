@@ -104,12 +104,12 @@ class BundledFile {
 
 		// try {
 		// const { execa } = await import('execa');
-			await execa('yarn', [
-				'run', 'uglifyjs',
-				'--compress',
-				'-o', this.bundleMinifiedPath,
-				this.bundleOutputPath,
-			]);
+		await execa('yarn', [
+			'run', 'uglifyjs',
+			'--compress',
+			'-o', this.bundleMinifiedPath,
+			this.bundleOutputPath,
+		]);
 		// } catch (error) {
 		// 	console.error('Error importing "execa":', error);
 		// }

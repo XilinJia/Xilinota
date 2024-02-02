@@ -1,7 +1,7 @@
-// const gulp = require('gulp');
+const gulp = require('gulp');
 // const ts = require('gulp-typescript');
-import * as gulp from 'gulp';
-import * as ts from 'gulp-typescript';
+// import * as gulp from 'gulp';
+// import * as ts from 'gulp-typescript';
 
 const utils = require('@xilinota/tools/gulp/utils');
 import { buildInjectedJS, watchInjectedJS } from './tools/buildInjectedJs';
