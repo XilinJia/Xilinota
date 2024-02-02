@@ -21,6 +21,7 @@
 		"target": "esnext",
 		"module": "es2015",
 		"noEmit": false,
+		"baseUrl": ".",
 		"allowImportingTsExtensions": false,
 		"sourceMap": true,
 		"diagnostics": true,
