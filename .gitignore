@@ -54,6 +54,10 @@ archive.bash
 docs/**/*.mustache
 .idea
 
+!packages/app-desktop/tools/notarizeMacApp.js
+!packages/app-desktop/tools/renameReleaseAssets.js
+
+
 # Yarn stuff
 # https://yarnpkg.com/getting-started/qa#which-files-should-be-gitignored
 

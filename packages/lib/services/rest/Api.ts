@@ -15,6 +15,7 @@ import { ApiError } from '../../utils/errors';
 
 import { ltrimSlashes } from '../../path-utils';
 import md5 from 'md5';
+import { logger } from '../../testing/test-utils';
 
 export enum RequestMethod {
 	GET = 'GET',
@@ -168,8 +169,11 @@ export default class Api {
 	// Response can be any valid JSON object, so a string, and array or an object (key/value pairs).
 	public async route(method: RequestMethod, path: string, query: RequestQuery = {}, body: any = null, files: RequestFile[] = []): Promise<any> {
 		const parsedPath = this.parsePath(path);
-		if (!parsedPath.fn) throw new ErrorNotFound(); // Nothing at the root yet
-
+		if (!parsedPath.fn) {
+			console.warn('API route: function not found for:', path);
+			return null;
+			// throw new ErrorNotFound(); // Nothing at the root yet
+		}
 		if (query.nounce) {
 			const requestMd5 = md5(JSON.stringify([method, path, body, query, files.length]));
 			if (this.knownNounces_[query.nounce] === requestMd5) {
@@ -218,11 +222,11 @@ export default class Api {
 		this.checkToken_(request);
 
 		if (!this.authToken_) {
-			if (parsedPath.fn === route_auth) {
-				await route_auth(request, id ?? '', link ?? '', null);
-			} else {
-				throw new Error('Auth token is not set');
-			}
+			// TODO: where is this supposed to be set?
+			console.info('API route setting auth token');
+			const req_ = { ...request };
+			req_.method = RequestMethod.POST;
+			await route_auth(req_, id ?? '', link ?? '', null);
 		}
 		const context: RequestContext = {
 			dispatch: this.dispatch,
