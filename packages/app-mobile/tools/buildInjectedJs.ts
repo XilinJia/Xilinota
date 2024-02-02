@@ -7,8 +7,8 @@ import { mkdirp, pathExists, readFile, writeFile } from 'fs-extra';
 import { dirname, extname, basename } from 'path';
 import md5File from 'md5-file';
 // can't upgrade execa to version 8.0.1
-const execa = require('execa');
-// import {execa} from 'execa';
+// const execa = require('execa');
+import execa from 'execa';
 
 // We need this to be transpiled to `const webpack = require('webpack')`.
 // As such, do a namespace import. See https://www.typescriptlang.org/tsconfig#esModuleInterop
