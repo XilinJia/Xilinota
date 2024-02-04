@@ -1,11 +1,11 @@
-const quotePath = (path: string) => {
+const quotePath = (path: string): string => {
 	if (!path) return '';
 	if (path.indexOf('"') < 0 && path.indexOf(' ') < 0) return path;
 	path = path.replace(/"/, '\\"');
 	return `"${path}"`;
 };
 
-export default (commandName: string, args: string[] = []) => {
+export default (commandName: string, args: string[] = []): string => {
 	const output = [quotePath(commandName)];
 
 	for (const arg of args) {

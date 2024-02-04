@@ -9,8 +9,8 @@ module.exports = {
 		'packages/app-mobile/**/*.ts',
 		'packages/app-desktop/**/*.tsx',
 		'packages/app-desktop/**/*.ts',
-		'packages/app-cli/**/*.tsx',
-		'packages/app-cli/**/*.ts',
+		// 'packages/app-cli/**/*.tsx',
+		// 'packages/app-cli/**/*.ts',
 	],
 	fn: async function() {
 		try {

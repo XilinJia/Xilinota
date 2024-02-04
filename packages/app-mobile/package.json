@@ -31,11 +31,9 @@
     "@types/react-native-sqlite-storage": "^6.0.5",
     "@types/react-native-vector-icons": "^6.4.18",
     "@types/socket.io-client": "3.0.0",
-    "@xilinota/editor": "^2.15.0",
     "@xilinota/lib": "^2.15.0",
     "@xilinota/react-native-alarm-notification": "^2.13.1",
     "@xilinota/react-native-saf-x": "^2.13.1",
-    "@xilinota/renderer": "^2.15.0",
     "@xilinota/utils": "^2.13.1",
     "assert-browserify": "2.0.0",
     "buffer": "6.0.3",
@@ -141,5 +139,8 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "resolutions": {
+    "react-native-camera@4.2.1": "patch:react-native-camera@npm%3A4.2.1#./.yarn/patches/react-native-camera-npm-4.2.1-24b2600a7e.patch"
   }
 }

@@ -1,1 +1,0 @@
-Should be <span style="color: red;">red</span>.

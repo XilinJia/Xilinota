@@ -41,7 +41,7 @@ Then in `app-cli/package.json`, all `@xilinota` dependencies and devdependencies
 ```json
 "dependencies": {
 	"@xilinota/lib": "1.8",
-	"@xilinota/renderer": "1.8",
+	"@xilinota/lib/renderer": "1.8",
 	"...": "..."
 },
 "devDependencies": {

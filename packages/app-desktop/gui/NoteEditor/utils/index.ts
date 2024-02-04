@@ -2,7 +2,7 @@ import { FormNote } from './types';
 
 import HtmlToMd from '@xilinota/lib/HtmlToMd';
 import Note from '@xilinota/lib/models/Note';
-import { MarkupToHtml } from '@xilinota/renderer';
+import { MarkupToHtml } from '@xilinota/lib/renderer';
 
 export async function htmlToMarkdown(markupLanguage: number, html: string, originalCss: string): Promise<string> {
 	let newBody = '';

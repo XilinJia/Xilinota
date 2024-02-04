@@ -8,7 +8,7 @@ import { _ } from '@xilinota/lib/locale';
 import { BackHandler, TextInput, View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { Theme } from '@xilinota/lib/themes/type';
 import CustomButton from '../CustomButton';
-import { SearchState } from '@xilinota/editor/types';
+import { SearchState } from '@xilinota/lib/editor/types';
 import { SearchControl } from './types';
 
 const buttonSize = 48;

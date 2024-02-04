@@ -1,5 +1,5 @@
 import { _ } from '../../locale';
-import { MarkupLanguage, MarkupToHtml } from '@xilinota/renderer';
+import { MarkupLanguage, MarkupToHtml } from '../../renderer';
 import { ItemFlow, ListRenderer } from '../plugins/api/noteListType';
 
 interface Props {

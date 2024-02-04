@@ -1,9 +1,9 @@
 import * as React from 'react';
 import { ForwardedRef } from 'react';
 import { useEffect, useState, useRef, forwardRef, useImperativeHandle } from 'react';
-import { EditorProps, LogMessageCallback, OnEventCallback, PluginData } from '@xilinota/editor/types';
-import createEditor from '@xilinota/editor/CodeMirror/createEditor';
-import CodeMirrorControl from '@xilinota/editor/CodeMirror/CodeMirrorControl';
+import { EditorProps, LogMessageCallback, OnEventCallback, PluginData } from '@xilinota/lib/editor/types';
+import createEditor from '@xilinota/lib/editor/CodeMirror/createEditor';
+import CodeMirrorControl from '@xilinota/lib/editor/CodeMirror/CodeMirrorControl';
 import { PluginStates } from '@xilinota/lib/services/plugins/reducer';
 import { ContentScriptType } from '@xilinota/lib/services/plugins/api/types';
 import shim from '@xilinota/lib/shim';
@@ -14,7 +14,7 @@ interface Props extends EditorProps {
 	style: React.CSSProperties;
 	pluginStates: PluginStates;
 
-	onEditorPaste: (event: Event)=> void;
+	onEditorPaste: (event: Event) => void;
 }
 
 const Editor = (props: Props, ref: ForwardedRef<CodeMirrorControl>) => {
@@ -33,7 +33,7 @@ const Editor = (props: Props, ref: ForwardedRef<CodeMirrorControl>) => {
 
 	useEffect(() => {
 		if (!editor) {
-			return () => {};
+			return () => { };
 		}
 
 		const pasteEventHandler = (_editor: any, event: Event) => {
@@ -80,7 +80,7 @@ const Editor = (props: Props, ref: ForwardedRef<CodeMirrorControl>) => {
 	}, [editor, props.pluginStates]);
 
 	useEffect(() => {
-		if (!editorContainerRef.current) return () => {};
+		if (!editorContainerRef.current) return () => { };
 
 		const editorProps: EditorProps = {
 			...props,

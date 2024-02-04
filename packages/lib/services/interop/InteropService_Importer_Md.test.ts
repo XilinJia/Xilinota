@@ -3,7 +3,7 @@ import Note from '../../models/Note';
 import Folder from '../../models/Folder';
 import * as fs from 'fs-extra';
 import { createTempDir, setupDatabaseAndSynchronizer, supportDir, switchClient } from '../../testing/test-utils';
-import { MarkupToHtml } from '@xilinota/renderer';
+import { MarkupToHtml } from '../../renderer';
 import { FolderEntity } from '../database/types';
 
 

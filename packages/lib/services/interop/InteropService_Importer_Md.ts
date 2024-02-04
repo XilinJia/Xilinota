@@ -11,7 +11,7 @@ import markdownUtils from '../../markdownUtils';
 import htmlUtils from '../../htmlUtils';
 import { unique } from '../../ArrayUtils';
 import { pregQuote } from '../../string-utils';
-import { MarkupToHtml } from '@xilinota/renderer';
+import { MarkupToHtml } from '../../renderer';
 
 export default class InteropService_Importer_Md extends InteropService_Importer_Base {
 	private importedNotes: Record<string, NoteEntity> = {};

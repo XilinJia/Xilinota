@@ -1,8 +1,8 @@
 import AsyncActionQueue from '@xilinota/lib/AsyncActionQueue';
 import { ToolbarButtonInfo } from '@xilinota/lib/services/commands/ToolbarButtonUtils';
 import { PluginStates } from '@xilinota/lib/services/plugins/reducer';
-import { MarkupLanguage } from '@xilinota/renderer';
-import { RenderResult, RenderResultPluginAsset } from '@xilinota/renderer/MarkupToHtml';
+import { MarkupLanguage } from '@xilinota/lib/renderer';
+import { RenderResult, RenderResultPluginAsset } from '@xilinota/lib/renderer/MarkupToHtml';
 import { MarkupToHtmlOptions } from './useMarkupToHtml';
 import { Action, Dispatch } from 'redux';
 

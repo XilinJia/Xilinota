@@ -27,7 +27,7 @@ const withRetry = async (fn) => {
 async function main() {
 	const rootDir = `${__dirname}/..`;
 
-	const sourceDir = `${rootDir}/../../packages/renderer/assets`;
+	const sourceDir = `${rootDir}/../../packages/lib/renderer/assets`;
 	const destDirs = [
 		`${rootDir}/gui/note-viewer/pluginAssets`,
 		`${rootDir}/pluginAssets`,

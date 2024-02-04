@@ -1,4 +1,4 @@
-import { MarkupLanguage, MarkupToHtml } from '@xilinota/renderer';
+import { MarkupLanguage, MarkupToHtml } from '@xilinota/lib/renderer';
 import { readmeFileTitleAndBody, replaceGitHubByWebsiteLinks } from './parser';
 import markupLanguageUtils from '@xilinota/lib/markupLanguageUtils';
 import { substrWithEllipsis } from '@xilinota/lib/string-utils';

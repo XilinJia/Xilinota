@@ -3,7 +3,7 @@
 import { msleep } from './time';
 import fetch from 'node-fetch';
 
-export const fetchWithRetry = async (url: string, opts: any = null) => {
+export const fetchWithRetry = async (url: string, opts: any = null): Promise<fetch.Response | null> => {
 	if (!opts) opts = {};
 	let retry = opts && opts.retry || 3;
 

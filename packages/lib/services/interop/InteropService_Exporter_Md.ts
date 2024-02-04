@@ -6,7 +6,7 @@ import Folder from '../../models/Folder';
 import Note from '../../models/Note';
 import { NoteEntity, ResourceEntity } from '../database/types';
 import { basename, dirname, friendlySafeFilename, safeFilename } from '../../path-utils';
-import { MarkupToHtml } from '@xilinota/renderer';
+import { MarkupToHtml } from '../../renderer';
 
 export default class InteropService_Exporter_Md extends InteropService_Exporter_Base {
 

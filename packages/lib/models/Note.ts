@@ -17,7 +17,7 @@ import LocalFile from './LocalFiles';
 import { Row } from '../database';
 import urlUtils from '../urlUtils';
 import resourceUtils from '../resourceUtils';
-import { MarkupToHtml } from '@xilinota/renderer';
+import { MarkupToHtml } from '../renderer';
 
 const { ALL_NOTES_FILTER_ID } = require('../reserved-ids');
 

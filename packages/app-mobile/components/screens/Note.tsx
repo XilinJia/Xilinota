@@ -54,7 +54,7 @@ import isEditableResource from '../NoteEditor/ImageEditor/isEditableResource';
 import VoiceTypingDialog from '../voiceTyping/VoiceTypingDialog';
 import { voskEnabled } from '../../services/voiceTyping/vosk';
 import { isSupportedLanguage } from '../../services/voiceTyping/vosk.android';
-import { ChangeEvent as EditorChangeEvent, SelectionRangeChangeEvent, UndoRedoDepthChangeEvent } from '@xilinota/editor/events';
+import { ChangeEvent as EditorChangeEvent, SelectionRangeChangeEvent, UndoRedoDepthChangeEvent } from '@xilinota/lib/editor/events';
 import { PeersNote } from '@xilinota/lib/models/Peers';
 import urlUtils from '@xilinota/lib/urlUtils';
 import { ItemSlice, itemIsReadOnlySync } from '@xilinota/lib/models/utils/readOnly';

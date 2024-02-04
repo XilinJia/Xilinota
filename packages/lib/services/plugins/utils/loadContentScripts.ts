@@ -1,6 +1,6 @@
 import { PluginStates } from '../reducer';
 import { ContentScriptType, ContentScriptContext, PostMessageHandler } from '../api/types';
-import { dirname } from '@xilinota/renderer/pathUtils';
+import { dirname } from '../../../renderer/pathUtils';
 import shim from '../../../shim';
 import Logger from '@xilinota/utils/Logger';
 import PluginService from '../PluginService';

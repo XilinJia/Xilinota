@@ -48,7 +48,7 @@ interface FsDriver {
 }
 
 const dummyFsDriver: FsDriver = {
-	appendFile: async (_path: string, _content: string, _encoding: string) => { },
+	appendFile: async (_path: string, _content: string, _encoding: string): Promise<void> => { },
 };
 
 class Logger {

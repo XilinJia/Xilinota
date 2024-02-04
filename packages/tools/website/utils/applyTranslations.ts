@@ -1,5 +1,5 @@
 import { unique } from '@xilinota/lib/ArrayUtils';
-import { attributesHtml, isSelfClosingTag } from '@xilinota/renderer/htmlUtils';
+import { attributesHtml, isSelfClosingTag } from '@xilinota/lib/renderer/htmlUtils';
 import { Translations } from '../../utils/translation';
 import { encode } from 'html-entities';
 

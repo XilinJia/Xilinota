@@ -1,5 +1,5 @@
 import { _ } from '@xilinota/lib/locale';
-import { MarkupToHtml } from '@xilinota/renderer';
+import { MarkupToHtml } from '@xilinota/lib/renderer';
 import { TinyMceEditorEvents } from './types';
 const taboverride = require('taboverride');
 

@@ -8,7 +8,7 @@ import time from './time';
 import shim from './shim';
 import { NoteEntity, ResourceEntity } from './services/database/types';
 import { enexXmlToMd } from './import-enex-md-gen';
-import { MarkupToHtml } from '@xilinota/renderer';
+import { MarkupToHtml } from './renderer';
 import { fileExtension, friendlySafeFilename } from './path-utils';
 
 import moment from 'moment';

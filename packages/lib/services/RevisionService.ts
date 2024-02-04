@@ -10,7 +10,7 @@ import BaseService from './BaseService';
 import { _ } from '../locale';
 import { ItemChangeEntity, NoteEntity, RevisionEntity } from './database/types';
 import Logger from '@xilinota/utils/Logger';
-import { MarkupLanguage } from '../../renderer';
+import { MarkupLanguage } from '../renderer';
 import XilinotaError from '../XilinotaError';
 import { substrWithEllipsis } from '../string-utils';
 import { sprintf } from 'sprintf-js';

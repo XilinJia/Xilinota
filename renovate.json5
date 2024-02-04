@@ -23,7 +23,6 @@
 		"**/bower_components/**",
 		"**/node_modules/**",
 		"Assets/**",
-		"packages/app-cli/tests/**",
 		"packages/app-clipper/popup",
 		"packages/app-mobile/android/app/build.gradle",
 		"packages/generate-plugin-doc/**",

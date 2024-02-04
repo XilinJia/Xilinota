@@ -11,7 +11,7 @@ import { setEncryptionEnabled } from '../services/synchronizer/syncInfoUtils';
 import { shimInit } from '../shim-init-node';
 import { verbose as nodeSqlite } from 'sqlite3';
 
-const sharp = require('sharp');
+import sharp from 'sharp';
 
 const snapshotBaseDir = `${supportDir}/syncTargetSnapshots`;
 

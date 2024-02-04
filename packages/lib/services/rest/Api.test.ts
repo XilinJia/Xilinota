@@ -10,7 +10,7 @@ import Tag from '../../models/Tag';
 import NoteTag from '../../models/NoteTag';
 import ResourceService from '../../services/ResourceService';
 import SearchEngine from '../../services/searchengine/SearchEngine';
-import { MarkupToHtml } from '@xilinota/renderer';
+import { MarkupToHtml } from '../../renderer';
 import { ResourceEntity } from '../database/types';
 
 const createFolderForPagination = async (num: number, time: number) => {

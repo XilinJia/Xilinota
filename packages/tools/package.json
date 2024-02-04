@@ -22,7 +22,6 @@
   "dependencies": {
     "@types/md5": "^2.3.5",
     "@xilinota/lib": "^2.15.0",
-    "@xilinota/renderer": "^2.15.0",
     "@xilinota/utils": "^2.13.1",
     "compare-versions": "6.1.0",
     "dayjs": "1.11.10",

@@ -6,7 +6,7 @@ import Folder from '../../models/Folder';
 import Resource from '../../models/Resource';
 import Note from '../../models/Note';
 import shim from '../../shim';
-import { MarkupToHtml } from '@xilinota/renderer';
+import { MarkupToHtml } from '../../renderer';
 import { NoteEntity, ResourceEntity } from '../database/types.js';
 import InteropService from './InteropService.js';
 import { fileExtension } from '../../path-utils.js';
@@ -257,7 +257,7 @@ describe('interop/InteropService_Exporter_Md', () => {
 		queueExportItem(BaseModel.TYPE_NOTE, note1);
 
 		const folder2 = await Folder.save({ title: 'folder2', parent_id: folder1.id! });
-		const note2 = await Note.save({ title: 'note2', parent_id: folder2.id !});
+		const note2 = await Note.save({ title: 'note2', parent_id: folder2.id! });
 		queueExportItem(BaseModel.TYPE_FOLDER, folder2.id);
 		queueExportItem(BaseModel.TYPE_NOTE, note2);
 

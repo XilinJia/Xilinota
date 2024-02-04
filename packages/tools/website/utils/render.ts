@@ -2,7 +2,7 @@ import * as Mustache from 'mustache';
 import { filename } from '@xilinota/lib/path-utils';
 import * as fs from 'fs-extra';
 import { Partials, TemplateParams } from './types';
-import { headerAnchor } from '@xilinota/renderer';
+import { headerAnchor } from '@xilinota/lib/renderer';
 import MarkdownIt from 'markdown-it';
 
 export async function loadMustachePartials(partialDir: string) {

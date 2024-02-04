@@ -1,1 +1,0 @@
-<table><thead><tr><th>Code</th><th>Description</th></tr><tr><td><pre><code>const test = "hello";</code></pre></td><td>abcd</td></tr><tr><td><pre><code>const test = "hello";</code></pre></td><td>abcd</td></tr></thead></table>

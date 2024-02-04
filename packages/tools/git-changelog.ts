@@ -110,17 +110,15 @@ export const filesApplyToPlatform = (files: string[], platform: string): boolean
 	const isMobile = ['android', 'ios'].includes(platform);
 
 	for (const file of files) {
-		if (file.startsWith('packages/app-cli') && platform === 'cli') return true;
+		// if (file.startsWith('packages/app-cli') && platform === 'cli') return true;
 		if (file.startsWith('packages/app-clipper') && platform === 'clipper') return true;
 		if (file.startsWith('packages/app-mobile') && isMobile) return true;
 		if (file.startsWith('packages/app-desktop') && platform === 'desktop') return true;
 		if (file.startsWith('packages/fork-htmlparser2') && isMainApp) return true;
 		if (file.startsWith('packages/fork-uslug') && isMainApp) return true;
-		if (file.startsWith('packages/htmlpack') && isMainApp) return true;
 		if (file.startsWith('packages/lib') && isMainApp) return true;
 		if (file.startsWith('packages/pdf-viewer') && platform === 'desktop') return true;
 		if (file.startsWith('packages/react-native-') && isMobile) return true;
-		if (file.startsWith('packages/renderer') && isMainApp) return true;
 		if (file.startsWith('packages/server') && platform === 'server') return true;
 		if (file.startsWith('packages/tools') && isMainApp) return true;
 		if (file.startsWith('packages/turndown') && isMainApp) return true;

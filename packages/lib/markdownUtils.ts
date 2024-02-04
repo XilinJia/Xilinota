@@ -1,4 +1,4 @@
-import { validateLinks } from '@xilinota/renderer';
+import { validateLinks } from './renderer';
 import markdownit from 'markdown-it';
 import urlUtils from './urlUtils';
 

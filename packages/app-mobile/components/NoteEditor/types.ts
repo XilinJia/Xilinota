@@ -1,6 +1,6 @@
 // Types related to the NoteEditor
 
-import { EditorControl as EditorBodyControl, EditorSettings as EditorBodySettings, SearchState } from '@xilinota/editor/types';
+import { EditorControl as EditorBodyControl, EditorSettings as EditorBodySettings, SearchState } from '@xilinota/lib/editor/types';
 
 export interface SearchControl {
 	findNext(): void;

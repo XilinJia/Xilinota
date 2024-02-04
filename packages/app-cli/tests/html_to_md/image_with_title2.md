@@ -1,1 +1,0 @@
-![](https://example.com/test.jpg "hello & &quot;&#40;ouch&#41;&quot;")

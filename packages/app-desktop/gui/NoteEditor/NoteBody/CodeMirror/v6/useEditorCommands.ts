@@ -4,9 +4,9 @@ import { CommandValue } from '../../../utils/types';
 import { commandAttachFileToBody } from '../../../utils/resourceHandling';
 import { _ } from '@xilinota/lib/locale';
 import dialogs from '../../../../dialogs';
-import { EditorCommandType } from '@xilinota/editor/types';
+import { EditorCommandType } from '@xilinota/lib/editor/types';
 import Logger from '@xilinota/utils/Logger';
-import CodeMirrorControl from '@xilinota/editor/CodeMirror/CodeMirrorControl';
+import CodeMirrorControl from '@xilinota/lib/editor/CodeMirror/CodeMirrorControl';
 
 const logger = Logger.create('CodeMirror 6 commands');
 

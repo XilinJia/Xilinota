@@ -1,1 +1,0 @@
-X<sub>1</sub> X<sup>1</sup> <ins>Insert</ins> <ins>Insert alt</ins> ~~Strike~~

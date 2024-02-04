@@ -24,7 +24,7 @@ import * as ArrayUtils from '../../../ArrayUtils';
 import Logger from '@xilinota/utils/Logger';
 import { mimeTypeFromHeaders } from '../../../net-utils';
 import { fileExtension, safeFileExtension, safeFilename, filename } from '../../../path-utils';
-import { MarkupToHtml } from '@xilinota/renderer';
+import { MarkupToHtml } from '../../../renderer';
 import { ErrorNotFound } from '../utils/errors';
 import { fileUriToPath } from '@xilinota/utils/url';
 

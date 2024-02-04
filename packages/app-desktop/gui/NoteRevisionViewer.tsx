@@ -7,7 +7,7 @@ import BaseModel from '@xilinota/lib/BaseModel';
 import Revision from '@xilinota/lib/models/Revision';
 import Setting from '@xilinota/lib/models/Setting';
 import RevisionService from '@xilinota/lib/services/RevisionService';
-import { MarkupToHtml } from '@xilinota/renderer';
+import { MarkupToHtml } from '@xilinota/lib/renderer';
 import time from '@xilinota/lib/time';
 import bridge from '../services/bridge';
 import markupLanguageUtils from '../utils/markupLanguageUtils';

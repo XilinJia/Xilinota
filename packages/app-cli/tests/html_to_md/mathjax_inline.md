@@ -1,1 +1,0 @@
-*Inline formulas* are surrounded by single dollar signs. For example, `$f(x) = ax^2 + bx + c$` renders as $f(x)=ax^2+bx+c$.

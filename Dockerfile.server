@@ -25,15 +25,11 @@ COPY tsconfig.json .
 COPY packages/turndown ./packages/turndown
 COPY packages/turndown-plugin-gfm ./packages/turndown-plugin-gfm
 COPY packages/fork-htmlparser2 ./packages/fork-htmlparser2
-COPY packages/server/package*.json ./packages/server/
 COPY packages/fork-sax ./packages/fork-sax
 COPY packages/fork-uslug ./packages/fork-uslug
-COPY packages/htmlpack ./packages/htmlpack
-COPY packages/renderer ./packages/renderer
 COPY packages/tools ./packages/tools
 COPY packages/utils ./packages/utils
 COPY packages/lib ./packages/lib
-COPY packages/server ./packages/server
 
 # For some reason there's both a .yarn/cache and .yarn/berry/cache that are
 # being generated, and both have the same content. Not clear why it does this

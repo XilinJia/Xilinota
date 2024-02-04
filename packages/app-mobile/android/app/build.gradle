@@ -112,7 +112,7 @@ android {
         applicationId "ac.mdiq.xilinota"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-		versionCode 2097726
+		versionCode 2097727
 		versionName "2.15.0"
 		ndk {
 			abiFilters "armeabi-v7a", "x86", "arm64-v8a", "x86_64"

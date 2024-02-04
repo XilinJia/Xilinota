@@ -1,1 +1,0 @@
-<img src=":/0415d61cc33e47afa6dde45948c3177a" width="500" height="500">

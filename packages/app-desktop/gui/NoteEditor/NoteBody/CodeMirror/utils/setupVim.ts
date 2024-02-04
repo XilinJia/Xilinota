@@ -1,4 +1,4 @@
-import CodeMirrorControl from '@xilinota/editor/CodeMirror/CodeMirrorControl';
+import CodeMirrorControl from '@xilinota/lib/editor/CodeMirror/CodeMirrorControl';
 
 const setupVim = (CodeMirror: CodeMirrorControl) => {
 	CodeMirror.Vim.defineAction('swapLineDown', CodeMirror.commands.swapLineDown);

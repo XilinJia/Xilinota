@@ -9,7 +9,7 @@ import { themeStyle } from '@xilinota/lib/theme';
 import { _ } from '@xilinota/lib/locale';
 import { EditorControl } from './types';
 import { useCallback } from 'react';
-import SelectionFormatting from '@xilinota/editor/SelectionFormatting';
+import SelectionFormatting from '@xilinota/lib/editor/SelectionFormatting';
 
 interface LinkDialogProps {
 	editorControl: EditorControl;

@@ -14,10 +14,10 @@ import { editorFont } from '../global-style';
 import { EditorControl, EditorSettings, SelectionRange } from './types';
 import { _ } from '@xilinota/lib/locale';
 import MarkdownToolbar from './MarkdownToolbar/MarkdownToolbar';
-import { ChangeEvent, EditorEvent, EditorEventType, SelectionRangeChangeEvent, UndoRedoDepthChangeEvent } from '@xilinota/editor/events';
-import { EditorCommandType, EditorKeymap, EditorLanguageType, PluginData, SearchState } from '@xilinota/editor/types';
-import supportsCommand from '@xilinota/editor/CodeMirror/editorCommands/supportsCommand';
-import SelectionFormatting, { defaultSelectionFormatting } from '@xilinota/editor/SelectionFormatting';
+import { ChangeEvent, EditorEvent, EditorEventType, SelectionRangeChangeEvent, UndoRedoDepthChangeEvent } from '@xilinota/lib/editor/events';
+import { EditorCommandType, EditorKeymap, EditorLanguageType, PluginData, SearchState } from '@xilinota/lib/editor/types';
+import supportsCommand from '@xilinota/lib/editor/CodeMirror/editorCommands/supportsCommand';
+import SelectionFormatting, { defaultSelectionFormatting } from '@xilinota/lib/editor/SelectionFormatting';
 
 type ChangeEventHandler = (event: ChangeEvent) => void;
 type UndoRedoDepthChangeHandler = (event: UndoRedoDepthChangeEvent) => void;

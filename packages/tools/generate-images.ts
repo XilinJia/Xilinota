@@ -3,7 +3,7 @@ import { dirname } from 'path';
 import { execCommand } from './tool-utils';
 import { fileExtension } from '@xilinota/lib/path-utils';
 import md5File from 'md5-file';
-const sharp = require('sharp');
+import sharp from 'sharp';
 
 interface Source {
 	id: number;
@@ -650,7 +650,7 @@ async function main() {
 				});
 			} else if (destExt === 'ico') {
 				const sources: string[] = operations.filter(o => {
-					return !!operation.images && operation.images.includes(o.imageName??'');
+					return !!operation.images && operation.images.includes(o.imageName ?? '');
 				}).map(o => {
 					return `${rootDir}/${o.dest}`;
 				});
@@ -660,7 +660,7 @@ async function main() {
 				throw new Error(`Unsupported extension: ${destExt}`);
 			}
 
-			s = s.toFile(destPath);
+			const sf = await s.toFile(destPath);
 		} else {
 			await copyFile(sourcePath, destPath);
 		}

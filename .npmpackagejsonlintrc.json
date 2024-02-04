@@ -5,13 +5,10 @@
 			{
 				"exceptions": [
 					"@xilinota/lib",
-					"@xilinota/renderer",
-					"@xilinota/editor",
 					"@xilinota/pdf-viewer",
 					"@xilinota/fork-htmlparser2",
 					"@xilinota/fork-sax",
 					"@xilinota/fork-uslug",
-					"@xilinota/htmlpack",
 					"@xilinota/turndown",
 					"@xilinota/turndown-plugin-gfm",
 					"@xilinota/tools",

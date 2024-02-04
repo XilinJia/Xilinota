@@ -14,7 +14,7 @@ import { _, closestSupportedLocale } from '@xilinota/lib/locale';
 import useContextMenu from './utils/useContextMenu';
 import { copyHtmlToClipboard } from '../../utils/clipboardUtils';
 import shim from '@xilinota/lib/shim';
-import { MarkupLanguage, MarkupToHtml } from '@xilinota/renderer';
+import { MarkupLanguage, MarkupToHtml } from '@xilinota/lib/renderer';
 import { reg } from '@xilinota/lib/registry';
 import BaseItem from '@xilinota/lib/models/BaseItem';
 import setupToolbarButtons from './utils/setupToolbarButtons';
@@ -27,7 +27,7 @@ import bridge from '../../../../services/bridge';
 import { TinyMceEditorEvents } from './utils/types';
 import type { Editor } from 'tinymce';
 import { xilinotaCommandToTinyMceCommands, TinyMceCommand } from './utils/xilinotaCommandToTinyMceCommands';
-import { RenderResult } from '@xilinota/renderer/MarkupToHtml';
+import { RenderResult } from '@xilinota/lib/renderer/MarkupToHtml';
 import { clipboard } from 'electron';
 const supportedLocales = require('./supportedLocales');
 

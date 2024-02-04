@@ -27,7 +27,7 @@ export const findInvalidImportPaths = (baseDir: string, fileContent: string): st
 			if (!matches) break;
 			const [line, packagePath] = matches;
 			const fullPath = normalize(`${baseDir}/${packagePath}`);
-			if (fullPath.includes('packages/lib/') || fullPath.includes('packages/renderer/')) output.push(line);
+			if (fullPath.includes('packages/lib/')) output.push(line);
 		}
 
 	}

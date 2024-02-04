@@ -27,7 +27,7 @@ export { htmlentities };
 
 // export const htmlentities = new Entities().encode;
 
-export const attributesHtml = (attr: Record<string, any>) => {
+export const attributesHtml = (attr: Record<string, any>): string => {
 	const output = [];
 
 	for (const n in attr) {
@@ -38,6 +38,6 @@ export const attributesHtml = (attr: Record<string, any>) => {
 	return output.join(' ');
 };
 
-export const isSelfClosingTag = (tagName: string) => {
+export const isSelfClosingTag = (tagName: string): boolean => {
 	return selfClosingElements.includes(tagName.toLowerCase());
 };

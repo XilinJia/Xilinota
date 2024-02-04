@@ -4,10 +4,9 @@ import splitCommandString from './splitCommandString';
 import { dirname } from 'path';
 import { pathExists } from 'fs-extra';
 
-let rootDir_ = '';
+let rootDir_: string = '';
 
-
-const getRootDir = async () => {
+const getRootDir = async (): Promise<string> => {
 	if (rootDir_) return rootDir_;
 
 	let p = dirname(dirname(dirname(__dirname)));

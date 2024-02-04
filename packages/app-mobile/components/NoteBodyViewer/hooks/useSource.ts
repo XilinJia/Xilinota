@@ -6,7 +6,7 @@ import { themeStyle } from '../../global-style';
 import markupLanguageUtils from '@xilinota/lib/markupLanguageUtils';
 import useEditPopup from './useEditPopup';
 import Logger from '@xilinota/utils/Logger';
-import assetsToHeaders from '@xilinota/renderer/assetsToHeaders';
+import assetsToHeaders from '@xilinota/lib/renderer/assetsToHeaders';
 
 const logger = Logger.create('NoteBodyViewer/useSource');
 interface UseSourceResult {

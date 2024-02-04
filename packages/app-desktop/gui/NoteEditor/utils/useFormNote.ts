@@ -3,12 +3,12 @@ import { FormNote, defaultFormNote, ResourceInfos } from './types';
 import { clearResourceCache, attachedResources } from './resourceHandling';
 import AsyncActionQueue from '@xilinota/lib/AsyncActionQueue';
 import { handleResourceDownloadMode } from './resourceHandling';
-import { splitHtml } from '@xilinota/renderer/HtmlToHtml';
+import { splitHtml } from '@xilinota/lib/renderer/HtmlToHtml';
 import Setting from '@xilinota/lib/models/Setting';
 import usePrevious from '../../hooks/usePrevious';
 import ResourceEditWatcher from '@xilinota/lib/services/ResourceEditWatcher/index';
 
-import { MarkupToHtml } from '@xilinota/renderer';
+import { MarkupToHtml } from '@xilinota/lib/renderer';
 import Note from '@xilinota/lib/models/Note';
 import { reg } from '@xilinota/lib/registry';
 import ResourceFetcher from '@xilinota/lib/services/ResourceFetcher';

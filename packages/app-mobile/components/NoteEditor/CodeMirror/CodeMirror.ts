@@ -9,10 +9,10 @@
 // wrapper to access CodeMirror functionalities. Anything else should be done
 // from NoteEditor.tsx.
 
-import { EditorSettings } from '@xilinota/editor/types';
-import createEditor from '@xilinota/editor/CodeMirror/createEditor';
+import { EditorSettings } from '@xilinota/lib/editor/types';
+import createEditor from '@xilinota/lib/editor/CodeMirror/createEditor';
 import { logMessage, postMessage } from './webviewLogger';
-import CodeMirrorControl from '@xilinota/editor/CodeMirror/CodeMirrorControl';
+import CodeMirrorControl from '@xilinota/lib/editor/CodeMirror/CodeMirrorControl';
 
 export function initCodeMirror(
 	parentElement: HTMLElement, initialText: string, settings: EditorSettings,

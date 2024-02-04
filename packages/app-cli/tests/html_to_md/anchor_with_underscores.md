@@ -1,4 +1,0 @@
-- http://example.com/a_test
-- http://example.com/a_test/___
-- Another *test*: http://example.com/a_test/*
-- And another **test**: [Test](http://example.com/_test_)

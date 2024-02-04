@@ -22,8 +22,6 @@ const {
 
 const localPackages = {
 	'@xilinota/lib': path.resolve(__dirname, '../lib/'),
-	'@xilinota/renderer': path.resolve(__dirname, '../renderer/'),
-	'@xilinota/editor': path.resolve(__dirname, '../editor/'),
 	'@xilinota/tools': path.resolve(__dirname, '../tools/'),
 	'@xilinota/utils': path.resolve(__dirname, '../utils/'),
 	'@xilinota/fork-htmlparser2': path.resolve(__dirname, '../fork-htmlparser2/'),

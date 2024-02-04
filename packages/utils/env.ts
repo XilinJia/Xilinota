@@ -12,7 +12,7 @@ export interface Options {
 	allowDuplicateKeys?: boolean;
 }
 
-export const parseEnvFile = (env_file: string, options: Options = {}) => {
+export const parseEnvFile = (env_file: string, options: Options = {}): Record<string, string> => {
 	options = {
 		logger: console,
 		overwrite: false,

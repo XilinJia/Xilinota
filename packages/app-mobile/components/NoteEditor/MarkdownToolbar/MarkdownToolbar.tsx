@@ -20,8 +20,8 @@ import Toolbar from './Toolbar';
 import { buttonSize } from './ToolbarButton';
 import { Theme } from '@xilinota/lib/themes/type';
 import ToggleSpaceButton from './ToggleSpaceButton';
-import { SearchState } from '@xilinota/editor/types';
-import SelectionFormatting from '@xilinota/editor/SelectionFormatting';
+import { SearchState } from '@xilinota/lib/editor/types';
+import SelectionFormatting from '@xilinota/lib/editor/SelectionFormatting';
 
 type OnAttachCallback = () => void;
 

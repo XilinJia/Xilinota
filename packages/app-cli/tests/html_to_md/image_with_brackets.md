@@ -1,1 +1,0 @@
-![](https://images.macrumors.com/filters:quality%2890%29/article/test.jpg?high)

@@ -1,4 +1,4 @@
-export default (command: string, options: any = null) => {
+export default (command: string, options: any = null): string[] => {
 	options = options || {};
 	if (!('handleEscape' in options)) {
 		options.handleEscape = true;

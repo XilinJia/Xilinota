@@ -1,4 +1,4 @@
-import type CodeMirror5Emulation from '@xilinota/editor/CodeMirror/CodeMirror5Emulation/CodeMirror5Emulation';
+import type CodeMirror5Emulation from '@xilinota/lib/editor/CodeMirror/CodeMirror5Emulation/CodeMirror5Emulation';
 import Shared from '@xilinota/lib/components/shared/note-screen-shared';
 import { useCallback, RefObject } from 'react';
 

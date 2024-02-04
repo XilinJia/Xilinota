@@ -10,7 +10,7 @@ import CommandService from '@xilinota/lib/services/CommandService';
 import convertToScreenCoordinates from '../../../../utils/convertToScreenCoordinates';
 import SpellCheckerService from '@xilinota/lib/services/spellChecker/SpellCheckerService';
 import { EditContextMenuFilterObject } from '@xilinota/lib/services/plugins/api/JoplinWorkspace';
-import type CodeMirrorControl from '@xilinota/editor/CodeMirror/CodeMirrorControl';
+import type CodeMirrorControl from '@xilinota/lib/editor/CodeMirror/CodeMirrorControl';
 import eventManager from '@xilinota/lib/eventManager';
 import bridge from '../../../../../services/bridge';
 

@@ -51,7 +51,7 @@ async function main() {
 			await utils.mkdirp(outputDir);
 
 			const encodedFiles = [];
-			const sourceAssetDir = `${rootDir}/../renderer/assets`;
+			const sourceAssetDir = `${rootDir}/../lib/renderer/assets`;
 			const files = walk(sourceAssetDir);
 
 			for (const file of files) {

@@ -5,11 +5,11 @@ import markupLanguageUtils from '../../markupLanguageUtils';
 import Folder from '../../models/Folder';
 import Note from '../../models/Note';
 import Setting from '../../models/Setting';
-import { MarkupToHtml , assetsToHeaders } from '@xilinota/renderer';
+import { MarkupToHtml, assetsToHeaders } from '../../renderer';
 import { FolderEntity, NoteEntity, ResourceEntity } from '../database/types';
 import { contentScriptsToRendererRules } from '../plugins/utils/loadContentScripts';
 import { basename, friendlySafeFilename, rtrimSlashes, dirname } from '../../path-utils';
-import htmlpack from '@xilinota/htmlpack';
+import htmlpack from '../../htmlpack';
 import { themeStyle } from '../../theme';
 import { escapeHtml } from '../../string-utils';
 
@@ -20,7 +20,7 @@ export default class InteropService_Exporter_Html extends InteropService_Exporte
 	private filePath_: string = '';
 	private createdDirs_: string[] = [];
 	private resourceDir_: string = '';
-	private markupToHtml_: MarkupToHtml|undefined;
+	private markupToHtml_: MarkupToHtml | undefined;
 	private resources_: ResourceEntity[] = [];
 	private style_: any;
 	private packIntoSingleFile_ = false;
@@ -54,7 +54,7 @@ export default class InteropService_Exporter_Html extends InteropService_Exporte
 				if (pathPart) {
 					output = `${pathPart}/${output}`;
 				} else {
-					output = `${friendlySafeFilename(item.title??'')}/${output}`;
+					output = `${friendlySafeFilename(item.title ?? '')}/${output}`;
 					output = await shim.fsDriver().findUniqueFilename(output);
 				}
 			}
@@ -67,7 +67,7 @@ export default class InteropService_Exporter_Html extends InteropService_Exporte
 
 	private async processNoteResources_(item: NoteEntity) {
 		const target = this.metadata().target;
-		const linkedResourceIds = await Note.linkedResourceIds(item.body??'');
+		const linkedResourceIds = await Note.linkedResourceIds(item.body ?? '');
 		const relativePath = target === 'directory' ? rtrimSlashes(await this.makeDirPath_(item, '..')) : '';
 		const resourcePaths = this.context() && this.context().resourcePaths ? this.context().resourcePaths : {};
 
@@ -110,7 +110,7 @@ export default class InteropService_Exporter_Html extends InteropService_Exporte
 			}
 
 			const bodyMd = await this.processNoteResources_(item);
-			const result = await this.markupToHtml_!.render(item.markup_language, bodyMd??'', this.style_, {
+			const result = await this.markupToHtml_!.render(item.markup_language, bodyMd ?? '', this.style_, {
 				resources: this.resources_,
 				plainResourceRendering: true,
 			});
@@ -124,7 +124,8 @@ export default class InteropService_Exporter_Html extends InteropService_Exporte
 			// The source path is a bit hard-coded but shouldn't change.
 			for (let i = 0; i < result.pluginAssets.length; i++) {
 				const asset = result.pluginAssets[i];
-				const filePath = asset.pathIsAbsolute ? asset.path : `${libRootPath}/node_modules/@xilinota/renderer/assets/${asset.name}`;
+				// const filePath = asset.pathIsAbsolute ? asset.path : `${libRootPath}/node_modules/@xilinota/lib/renderer/assets/${asset.name}`;
+				const filePath = asset.pathIsAbsolute ? asset.path : `../../renderer/assets/${asset.name}`;
 				const destPath = `${dirname(noteFilePath)}/pluginAssets/${asset.name}`;
 				const dir = dirname(destPath);
 				await shim.fsDriver().mkdir(dir);

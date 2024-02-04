@@ -5,7 +5,7 @@ import ItemChange from '../models/ItemChange';
 import Revision from '../models/Revision';
 import BaseModel, { ModelType } from '../BaseModel';
 import RevisionService from '../services/RevisionService';
-import { MarkupLanguage } from '../../renderer';
+import { MarkupLanguage } from '../renderer';
 
 describe('services/RevisionService', () => {
 

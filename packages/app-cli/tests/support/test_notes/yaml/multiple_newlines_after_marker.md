@@ -1,7 +1,0 @@
----
-title: Example
----
-
-
-
-note body

@@ -308,7 +308,7 @@ export default class FsDriverRN extends FsDriverBase {
 				// Probably { [Error: File does not exist] framesToPop: 1, code: 'EUNSPECIFIED' }
 				//     or   { [Error: The file {file} couldn’t be opened because there is no such file.], code: 'ENSCOCOAERRORDOMAIN260' }
 				// which unfortunately does not have a proper error code. Can be ignored.
-				logger.warn('RN stat', error, path_);
+				// logger.warn('RN stat', error, path_);
 				return null;
 			} else {
 				throw error;

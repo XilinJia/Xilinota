@@ -1,4 +1,0 @@
-![](:/39e66095b2cd427e9f13464487514d2e)
-![](:/39e66095b2cd427e9f13464487514d2e "some-title")
-![some-alt-text](:/39e66095b2cd427e9f13464487514d2e)
-![some-alt-text](:/39e66095b2cd427e9f13464487514d2e "some-title")

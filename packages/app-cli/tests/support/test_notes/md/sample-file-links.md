@@ -1,1 +1,0 @@
-![sample](file://../../photo.jpg)

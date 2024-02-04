@@ -11,11 +11,11 @@ interface PerfTimer {
 
 const perfTimers_: PerfTimer[] = [];
 
-export function timerPush(name: string) {
+export function timerPush(name: string): void {
 	perfTimers_.push({ name, startTime: Date.now() });
 }
 
-export function timerPop() {
+export function timerPop(): void {
 	const t = perfTimers_.pop() as PerfTimer;
 
 	console.info(`Time: ${t.name}: ${Date.now() - t.startTime}`);
