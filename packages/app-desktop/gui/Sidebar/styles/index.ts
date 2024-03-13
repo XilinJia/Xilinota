@@ -44,7 +44,18 @@ export const StyledHeaderLabel = styled.span`
 	font-weight: bold;
 `;
 
-export const StyledListItem = styled.div`
+type StyledListItemProps = {
+	depth?: number;
+	selected?: boolean;
+	className?: string;
+	onDragStart?: React.DragEventHandler<HTMLDivElement>;
+	onDragOver?: React.DragEventHandler<HTMLDivElement>;
+	onDrop?: React.DragEventHandler<HTMLDivElement>;
+	draggable?: boolean;
+	'data-folder-id'?: string;
+};
+
+export const StyledListItem = styled.div<StyledListItemProps>`
 	box-sizing: border-box;
 	height: 30px;
 	display: flex;
@@ -67,7 +78,13 @@ function listItemTextColor(props: any) {
 	return props.theme.color2;
 }
 
-export const StyledListItemAnchor = styled.a`
+type StyledListItemAnchorProps = {
+	selected?: boolean;
+	shareId?: string;
+	isConflictFolder?: boolean;
+};
+
+export const StyledListItemAnchor = styled.a<StyledListItemAnchorProps>`
 	font-size: ${(props: any) => Math.round(props.theme.fontSize * 1.0833333)}px;
 	text-decoration: none;
 	color: ${(props: any) => listItemTextColor(props)};

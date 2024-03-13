@@ -72,6 +72,10 @@ This is a major updates based on massive technical enhancements.
 * Ensured strict type and null safety checking
 * Fixed a major problems in editor and local files sync related to Android 11 and newer
 
+### Version 2.15.1
+
+Fixed sidebar display issue on desktop
+
 ### Prior versions:
 [Desktop](readme/about/changelog/desktop.md)
 

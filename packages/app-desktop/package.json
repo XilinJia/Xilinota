@@ -1,6 +1,6 @@
 {
   "name": "@xilinota/app-desktop",
-  "version": "2.15.0",
+  "version": "2.15.1",
   "description": "Xilinota for Desktop",
   "main": "main.js",
   "private": true,

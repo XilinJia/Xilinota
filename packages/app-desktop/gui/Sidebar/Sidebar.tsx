@@ -82,7 +82,8 @@ interface Props {
 	noteCount?: number;
 
 	dispatch?: Dispatch;
-	onClick?: () => void;
+	// onClick?: () => void;
+	onClick?: (event: any) => void;
 	onFolderDragStart_?: React.DragEventHandler<HTMLDivElement>;
 	onFolderDragOver_?: React.DragEventHandler<HTMLDivElement>;
 	onFolderDrop_?: React.DragEventHandler<HTMLDivElement>;
@@ -135,19 +136,14 @@ function FolderItem(props: Props): React.JSX.Element {
 	const shareIcon = shareId && !parentId ? <StyledShareIcon className="fas fa-share-alt"></StyledShareIcon> : null;
 
 	return (
-		// depth, selected not exist
-		// <StyledListItem depth={depth} selected={selected} className={`list-item-container list-item-depth-${depth} ${selected ? 'selected' : ''}`} onDragStart={onFolderDragStart_} onDragOver={onFolderDragOver_} onDrop={onFolderDrop_} draggable={true} data-folder-id={folderId}>
-		<StyledListItem className={`list-item-container list-item-depth-${depth} ${selected ? 'selected' : ''}`} onDragStart={onFolderDragStart_} onDragOver={onFolderDragOver_} onDrop={onFolderDrop_} draggable={true} data-folder-id={folderId}>
-			{/* onFolderToggleClick_ needs event argument */}
-			{/* <ExpandLink themeId={props.themeId} hasChildren={hasChildren} folderId={folderId} onClick={onFolderToggleClick_} isExpanded={isExpanded} /> */}
-			<ExpandLink themeId={props.themeId} hasChildren={hasChildren} folderId={folderId} isExpanded={isExpanded} />
+		<StyledListItem depth={depth} selected={selected} className={`list-item-container list-item-depth-${depth} ${selected ? 'selected' : ''}`} onDragStart={onFolderDragStart_} onDragOver={onFolderDragOver_} onDrop={onFolderDrop_} draggable={true} data-folder-id={folderId}>
+			<ExpandLink themeId={props.themeId} hasChildren={hasChildren} folderId={folderId} onClick={props.onFolderToggleClick_} isExpanded={isExpanded} />
 			<StyledListItemAnchor
 				ref={anchorRef}
 				className="list-item"
-				// the following not exist
-				// isConflictFolder={folderId === Folder.conflictFolderId()}
-				// selected={selected}
-				// shareId={shareId}
+				isConflictFolder={folderId === Folder.conflictFolderId()}
+				selected={selected}
+				shareId={shareId}
 				href="#"
 				data-id={folderId}
 				data-type={BaseModel.TYPE_FOLDER}
@@ -156,8 +152,7 @@ function FolderItem(props: Props): React.JSX.Element {
 				onClick={() => {
 					if (folderId && folderItem_click) folderItem_click(folderId);
 				}}
-			// onFolderToggleClick_ needs event argument
-			// onDoubleClick={onFolderToggleClick_}
+				onDoubleClick={props.onFolderToggleClick_}
 			>
 				{showFolderIcon && folderIcon ? renderFolderIcon(folderIcon) : null}<StyledSpanFix className="title" style={{ lineHeight: 0 }}>{folderTitle}</StyledSpanFix>
 				{shareIcon} {noteCountComp}
@@ -651,9 +646,7 @@ const SidebarComponent = (props: Props): React.JSX.Element => {
 		// }
 
 		return (
-			// depth selected not exist
-			// <StyledListItem depth={0} selected={selected}
-			<StyledListItem
+			<StyledListItem depth={0} selected={selected}
 				className={`list-item-container ${selected ? 'selected' : ''}`}
 				key={tag.id}
 				onDrop={onTagDrop_}
@@ -664,8 +657,7 @@ const SidebarComponent = (props: Props): React.JSX.Element => {
 					ref={anchorRef}
 					className="list-item"
 					href="#"
-					// selected not exist
-					// selected={selected}
+					selected={selected}
 					data-id={tag.id}
 					data-type={BaseModel.TYPE_TAG}
 					onContextMenu={itemContextMenu}

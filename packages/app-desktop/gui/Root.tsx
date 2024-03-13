@@ -232,15 +232,11 @@ class RootComponent extends React.Component<Props, any> {
 		};
 
 		return (
-			// disableVendorPrefixes not exist
-			// <StyleSheetManager disableVendorPrefixes>
-			<StyleSheetManager>
+			<StyleSheetManager disableVendorPrefixes>
 				<ThemeProvider theme={theme}>
 					<StyleSheetContainer themeId={this.props.themeId}></StyleSheetContainer>
 					<MenuBar />
 					<GlobalStyle />
-					{/* style doesn't exist?? */}
-					{/* <Navigator style={navigatorStyle} screens={screens} className={`profile-${this.props.profileConfigCurrentProfileId}`} /> */}
 					<Navigator style={navigatorStyle} screens={screens} className={`profile-${this.props.profileConfigCurrentProfileId}`} />
 					{this.renderModalMessage(this.modalDialogProps())}
 					{this.renderDialogs()}
