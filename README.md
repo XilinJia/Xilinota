@@ -60,21 +60,14 @@ As this is a fork from Joplin with substantial new development, it's imaginable 
 
 ## Change logs
 
-### Version 2.15.0
-
-This is a major updates based on massive technical enhancements.
-* Large and broad dependencies updates
-* Code quality enhancements
-* Converted many JavaScript codes to TypeScript
-* Converted most CJS syntax to ESM
-* Replaced many usage of 'any'
-* Clarified many signatures of functions and interfaces
-* Ensured strict type and null safety checking
-* Fixed a major problems in editor and local files sync related to Android 11 and newer
-
 ### Version 2.15.1
 
-Fixed sidebar display issue on desktop
+* on desktop, fixed sidebar display issue
+* on Android:
+* removed fingerprint function due to security vulnerability of the dependency
+* migrated to the well maintained library react-native-vision-camera for camera functions
+* set newArchEnabled=false as some dependencies don't support fabric yet
+* fixed "text must be in <Text>" bug
 
 ### Prior versions:
 [Desktop](readme/about/changelog/desktop.md)

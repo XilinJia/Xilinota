@@ -1209,16 +1209,16 @@ class AppComponent extends React.Component<Props, State> {
 							<View style={{ flex: 1, backgroundColor: theme.backgroundColor }}>
 								{/* dispatch not exist */}
 								{/* {shouldShowMainContent && <AppNav screens={appNavInit} dispatch={this.props.dispatch} />} */}
-								{shouldShowMainContent && <AppNav screens={appNavInit} />}
+								{shouldShowMainContent ? <AppNav screens={appNavInit} /> : null}
 							</View>
 							<DropdownAlert alert={(func: any) => (this.dropdownAlert_ = func)} />
-							{!shouldShowMainContent && <BiometricPopup
+							{!shouldShowMainContent ? <BiometricPopup
 								dispatch={this.props.dispatch}
 								themeId={this.props.themeId}
 								sensorInfo={this.state.sensorInfo!}
-							/>}
+							/> : null}
 						</XilinotaSafeAreaView>
-					</MenuProvider>,
+					</MenuProvider>
 				</SideMenu>
 			</View>
 		);

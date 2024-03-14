@@ -1,16 +1,16 @@
 import Logger from '@xilinota/utils/Logger';
-import FingerprintScanner, { Errors } from 'react-native-fingerprint-scanner';
+// import FingerprintScanner, { Errors } from 'react-native-fingerprint-scanner';
 import { _ } from '@xilinota/lib/locale';
 
 const logger = Logger.create('biometricAuthenticate');
 
 export default async () => {
 	try {
-		logger.info('Authenticate...');
-		await FingerprintScanner.authenticate({ description: _('Verify your identity') });
-		logger.info('Authenticate done');
+		logger.info('Biometric fingerprint is no longer supported.');
+		// await FingerprintScanner.authenticate({ description: _('Verify your identity') });
+		// logger.info('Authenticate done');
 	} catch (error) {
-		const err = error as Errors;
+		const err = error as Error;
 		const errorName = err.name;
 
 		let errorMessage = err.message as string;
@@ -24,6 +24,6 @@ export default async () => {
 
 		throw error;
 	} finally {
-		FingerprintScanner.release();
+		// FingerprintScanner.release();
 	}
 };

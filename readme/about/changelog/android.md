@@ -1,5 +1,12 @@
 # Xilinota Android Changelog
 
+## [android-v2.15.1](https://https://github.com/XilinJia/Xilinota/releases/tag/v2.15.1) (Pre-release) - 2024-01-030T10:46:28Z
+
+* removed fingerprint function due to security vulnerability of the dependency
+* migrated to the well maintained library react-native-vision-camera for camera functions
+* set newArchEnabled=false as some dependencies don't support fabric yet
+* fixed "text must be in <Text>" bug
+
 ## [android-v2.15.0](https://https://github.com/XilinJia/Xilinota/releases/tag/v2.15.0) (Pre-release) - 2024-01-030T10:46:28Z
 
 This is a major updates based on massive technical enhancements.

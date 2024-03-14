@@ -961,7 +961,7 @@ class NoteScreenComponent extends BaseScreenComponent<Props, State> {
 		if (canResize) {
 			const resizeLargeImages = Setting.value('imageResizing');
 			if (resizeLargeImages === 'alwaysAsk') {
-				const userAnswer = await dialogs.pop(this, `${_('You are about to attach a large image (%dx%d pixels). Would you like to resize it down to %d pixels before attaching it?', dimensions.width, dimensions.height, maxSize)}\n\n${_('(You may disable this prompt in the options)')}`, [
+				const userAnswer = await dialogs.pop(this, `${_('You are about to attach a large image (%dx%d pixels). Would you like to resize it down to %d pixels square before attaching it?', dimensions.width, dimensions.height, maxSize)}\n\n${_('(You may disable this prompt in the options)')}`, [
 					{ text: _('Yes'), id: 'yes' },
 					{ text: _('No'), id: 'no' },
 					{ text: _('Cancel'), id: 'cancel' },
@@ -1023,6 +1023,7 @@ class NoteScreenComponent extends BaseScreenComponent<Props, State> {
 
 		try {
 			if (mimeType === 'image/jpeg' || mimeType === 'image/jpg' || mimeType === 'image/png') {
+				// logger.info('going to resize', localFilePath, targetPath)
 				const done = await this.resizeImage(localFilePath, targetPath, mimeType);
 				if (!done) return null;
 			} else {
@@ -1113,7 +1114,7 @@ class NoteScreenComponent extends BaseScreenComponent<Props, State> {
 		this.setState({ showCamera: true });
 	}
 
-	private cameraView_onPhoto(data: any): void {
+	private cameraView_onPhoto(data: { uri: string; }): void {
 		void this.attachFile(
 			{
 				uri: data.uri,

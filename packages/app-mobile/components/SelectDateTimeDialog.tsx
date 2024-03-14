@@ -103,7 +103,7 @@ export default class SelectDateTimeDialog extends React.PureComponent<any, any> 
 		return (
 			<View style={{ flex: 0, margin: 20, alignItems: 'center' }}>
 				<View style={{ flexDirection: 'row', alignItems: 'center' }}>
-					{ this.state.date && <Text style={{ ...theme.normalText, color: theme.color, marginRight: 10 }}>{time.formatDateToLocal(this.state.date)}</Text> }
+					{this.state.date ? <Text style={{ ...theme.normalText, color: theme.color, marginRight: 10 }}>{time.formatDateToLocal(this.state.date)}</Text> : null}
 					<Button title="Set date" onPress={this.onSetDate} />
 				</View>
 				<DateTimePickerModal
@@ -139,7 +139,7 @@ export default class SelectDateTimeDialog extends React.PureComponent<any, any> 
 						<View style={{ ...styles.modalView, backgroundColor: theme.backgroundColor }}>
 							{/*  borderBottomStyle not exist */}
 							{/* <View style={{ padding: 15, paddingBottom: 0, flex: 0, width: '100%', borderBottomWidth: 1, borderBottomColor: theme.dividerColor, borderBottomStyle: 'solid' }}> */}
-							<View style={{ padding: 15, paddingBottom: 0, flex: 0, width: '100%', borderBottomWidth: 1, borderBottomColor: theme.dividerColor}}>
+							<View style={{ padding: 15, paddingBottom: 0, flex: 0, width: '100%', borderBottomWidth: 1, borderBottomColor: theme.dividerColor }}>
 								<Text style={{ ...styles.modalText, color: theme.color, fontSize: 14, fontWeight: 'bold' }}>{_('Set alarm')}</Text>
 							</View>
 							{this.renderContent()}

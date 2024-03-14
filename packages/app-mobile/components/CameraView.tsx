@@ -1,12 +1,14 @@
-import { RNCamera } from 'react-native-camera';
-import React from 'react';
+import { Camera, useCameraDevice } from 'react-native-vision-camera'
+
+import React, { useRef } from 'react';
 const Component = React.Component;
 import { connect } from 'react-redux';
-import { View, TouchableOpacity, Text, Dimensions, GestureResponderEvent } from 'react-native';
+import { View, TouchableOpacity, Text, Dimensions, StyleSheet, GestureResponderEvent } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { _ } from '@xilinota/lib/locale';
 import shim from '@xilinota/lib/shim';
 import Setting from '@xilinota/lib/models/Setting';
+import Logger from '@xilinota/utils/Logger';
 
 // We need this to suppress the useless warning
 // https://github.com/oblador/react-native-vector-icons/issues/1465
@@ -29,8 +31,57 @@ interface State {
 
 Icon.loadFont().catch((error: any) => { console.info(error); });
 
+const logger = Logger.create('CameraView');
+
+interface HookWrapperProps {
+	onCameraInit: ((camera_: any) => void);
+}
+
+// react-native-vision-camera gets "not fabric compatible yet" error
+function HookWrapper({ onCameraInit }: HookWrapperProps): React.JSX.Element {
+	const device = useCameraDevice('back')
+
+	logger.info('in HookWrapper')
+
+	if (device == null) {
+		logger.info('device is null')
+		return <></>
+	}
+	const camera = useRef<Camera>(null)
+
+	onCameraInit(camera);
+
+	return (
+		<Camera
+			style={StyleSheet.absoluteFill}
+			device={device}
+			isActive={true}
+			ref={camera}
+			// onInitialized={onInitialized}
+			// onError={onError}
+			onStarted={() => 'Camera started!'}
+			onStopped={() => 'Camera stopped!'}
+			// format={format}
+			// fps={fps}
+			// photoHdr={format?.supportsPhotoHdr && enableHdr}
+			// videoHdr={format?.supportsVideoHdr && enableHdr}
+			// lowLightBoost={device.supportsLowLightBoost && enableNightMode}
+			// enableZoomGesture={false}
+			// animatedProps={cameraAnimatedProps}
+			// exposure={0}
+			// enableFpsGraph={true}
+			// orientation="portrait"
+			photo={true}
+		// video={true}
+		// audio={hasMicrophonePermission}
+		// frameProcessor={frameProcessor}
+		/>
+	)
+}
+
 class CameraView extends Component<Props, State> {
 	camera: any;
+
 	public constructor(props: Props) {
 		super(props);
 
@@ -43,6 +94,7 @@ class CameraView extends Component<Props, State> {
 			screenHeight: dimensions.height,
 		};
 
+		this.onCameraInit = this.onCameraInit.bind(this)
 		this.back_onPress = this.back_onPress.bind(this);
 		this.photo_onPress = this.photo_onPress.bind(this);
 		this.reverse_onPress = this.reverse_onPress.bind(this);
@@ -50,6 +102,10 @@ class CameraView extends Component<Props, State> {
 		this.onCameraReady = this.onCameraReady.bind(this);
 		this.onLayout = this.onLayout.bind(this);
 	}
+
+	onCameraInit = (camera_: any) => {
+		this.camera = camera_;
+	};
 
 	public onLayout(event: any) {
 		this.setState({
@@ -63,10 +119,10 @@ class CameraView extends Component<Props, State> {
 	}
 
 	private reverse_onPress() {
-		if (this.props.cameraType === RNCamera.Constants.Type.back) {
-			Setting.setValue('camera.type', RNCamera.Constants.Type.front);
+		if (this.props.cameraType === 'back') {
+			Setting.setValue('camera.type', 'front');
 		} else {
-			Setting.setValue('camera.type', RNCamera.Constants.Type.back);
+			Setting.setValue('camera.type', 'back');
 		}
 	}
 
@@ -84,16 +140,12 @@ class CameraView extends Component<Props, State> {
 
 		this.setState({ snapping: true });
 
-		const result = await this.camera.takePictureAsync({
-			quality: 0.8,
-			exif: true,
-			fixOrientation: true,
-		});
+		const result = await this.camera.current.takePhoto()
+		// logger.info('photo_onPress: uri:', result.path)
 
 		this.setState({ snapping: false });
 
-		if (this.props.onPhoto) this.props.onPhoto(result);
-
+		this.props.onPhoto({ uri: `file://${result.path}` });
 	}
 
 	public async onCameraReady() {
@@ -173,7 +225,7 @@ class CameraView extends Component<Props, State> {
 		return shim.mobilePlatform() === 'android';
 	}
 
-	public render() {
+	public render(): React.JSX.Element {
 		const photoIcon = this.state.snapping ? 'checkmark' : 'camera';
 
 		const displayRatios = this.supportsRatios() && this.state.ratios.length > 1;
@@ -196,56 +248,41 @@ class CameraView extends Component<Props, State> {
 		return (
 			<View style={{ ...this.props.style, position: 'relative' }} onLayout={this.onLayout}>
 				<View style={{ position: 'absolute', backgroundColor: '#000000', width: '100%', height: '100%' }} />
-				<RNCamera
-					style={({ position: 'absolute', ...cameraRect })}
-					ref={(ref: any) => {
-						this.camera = ref;
-					}}
-					type={this.props.cameraType}
-					captureAudio={false}
-					onCameraReady={this.onCameraReady}
-					androidCameraPermissionOptions={{
-						title: _('Permission to use camera'),
-						message: _('Your permission to use your camera is required.'),
-						buttonPositive: _('OK'),
-						buttonNegative: _('Cancel'),
-					}}
-
-					{...cameraProps}
-				>
-					<View style={{ flex: 1, justifyContent: 'space-between', flexDirection: 'column' }}>
-						<View style={{ flex: 1, justifyContent: 'flex-start' }}>
-							<TouchableOpacity onPress={this.back_onPress}>
-								<View style={{ marginLeft: 5, marginTop: 5, borderColor: '#00000040', borderWidth: 1, borderStyle: 'solid', borderRadius: 90, width: 50, height: 50, display: 'flex', backgroundColor: '#ffffff77', justifyContent: 'center', alignItems: 'center' }}>
+				<HookWrapper
+					onCameraInit={this.onCameraInit}
+				/>
+				<View style={{ flex: 1, justifyContent: 'space-between', flexDirection: 'column' }}>
+					<View style={{ flex: 1, justifyContent: 'flex-start' }}>
+						<TouchableOpacity onPress={this.back_onPress}>
+							<View style={{ marginLeft: 5, marginTop: 5, borderColor: '#00000040', borderWidth: 1, borderStyle: 'solid', borderRadius: 90, width: 50, height: 50, display: 'flex', backgroundColor: '#ffffff77', justifyContent: 'center', alignItems: 'center' }}>
+								<Icon
+									name={'arrow-back'}
+									style={{
+										fontSize: 40,
+										color: 'black',
+									}}
+								/>
+							</View>
+						</TouchableOpacity>
+					</View>
+					<View style={{ flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-end' }}>
+						<View style={{ flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
+							{/* {reverseCameraButton} */}
+							<TouchableOpacity onPress={this.photo_onPress} disabled={this.state.snapping}>
+								<View style={{ flexDirection: 'row', borderRadius: 90, width: 90, height: 90, backgroundColor: '#ffffffaa', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
 									<Icon
-										name={'arrow-back'}
+										name={photoIcon}
 										style={{
-											fontSize: 40,
+											fontSize: 60,
 											color: 'black',
 										}}
 									/>
 								</View>
 							</TouchableOpacity>
-						</View>
-						<View style={{ flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'flex-end' }}>
-							<View style={{ flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
-								{reverseCameraButton}
-								<TouchableOpacity onPress={this.photo_onPress} disabled={this.state.snapping}>
-									<View style={{ flexDirection: 'row', borderRadius: 90, width: 90, height: 90, backgroundColor: '#ffffffaa', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-										<Icon
-											name={photoIcon}
-											style={{
-												fontSize: 60,
-												color: 'black',
-											}}
-										/>
-									</View>
-								</TouchableOpacity>
-								{ratioButton}
-							</View>
+							{/* {ratioButton} */}
 						</View>
 					</View>
-				</RNCamera>
+				</View>
 			</View>
 		);
 	}

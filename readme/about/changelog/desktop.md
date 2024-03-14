@@ -1,5 +1,9 @@
 # Xilinota Desktop Changelog
 
+## [android-v2.15.1](https://https://github.com/XilinJia/Xilinota/releases/tag/v2.15.1) (Pre-release) - 2024-01-030T10:46:28Z
+
+* Fixed sidebar display issue 
+
 ## [android-v2.15.0](https://https://github.com/XilinJia/Xilinota/releases/tag/v2.15.0) (Pre-release) - 2024-01-030T10:46:28Z
 
 This is a major version updates based on massive technical enhancements.

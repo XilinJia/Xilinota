@@ -27,10 +27,10 @@ export default class GeolocationReact {
 
 		return new Promise((resolve, reject) => {
 			Geolocation.getCurrentPosition(
-				data => {
+				(data: unknown) => {
 					resolve(data);
 				},
-				error => {
+				(error: any) => {
 					reject(error);
 				},
 				options,

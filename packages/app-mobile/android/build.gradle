@@ -44,11 +44,12 @@ allprojects {
         // https://search.maven.org/artifact/com.alphacephei/vosk-android/0.3.46/aar
         maven { url "https://maven.apache.org" }
 
-        maven {
+        // fingerprint is disabled
+        // maven {
             // Required by react-native-fingerprint-scanner
             // https://github.com/hieuvp/react-native-fingerprint-scanner/issues/192
-            url "https://maven.aliyun.com/repository/jcenter"
-        }
+            // url "https://maven.aliyun.com/repository/jcenter"
+        // }
 
         // Also required for react-native-vosk?
         maven { url "https://maven.google.com" }

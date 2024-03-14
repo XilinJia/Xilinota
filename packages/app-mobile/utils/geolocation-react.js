@@ -25,9 +25,9 @@ export default class GeolocationReact {
         if (!('timeout' in options))
             options.timeout = 10000;
         return new Promise((resolve, reject) => {
-            Geolocation.getCurrentPosition(data => {
+            Geolocation.getCurrentPosition((data) => {
                 resolve(data);
-            }, error => {
+            }, (error) => {
                 reject(error);
             }, options);
         });

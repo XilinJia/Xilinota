@@ -1,6 +1,6 @@
 import Logger from '@xilinota/utils/Logger';
 import Setting from '@xilinota/lib/models/Setting';
-import FingerprintScanner from 'react-native-fingerprint-scanner';
+// import FingerprintScanner from 'react-native-fingerprint-scanner';
 const logger = Logger.create('sensorInfo');
 
 export interface SensorInfo {
@@ -42,16 +42,17 @@ export default async (): Promise<SensorInfo> => {
 		// `isSensorAvailable()` is pretty much useless. Instead we ask for
 		// fingerprint when the user turns on the feature and at that point we
 		// know if the device supports biometrics or not.
-		const result = await FingerprintScanner.isSensorAvailable();
-		logger.info('isSensorAvailable result', result);
-		supportedSensors = result;
+		// const result = await FingerprintScanner.isSensorAvailable();
+		// logger.info('isSensorAvailable result', result);
+		// supportedSensors = result;
+		logger.info('fingerprint is no longer supported')
 
-		if (result) {
-			if (result !== Setting.value('security.biometricsSupportedSensors')) {
-				hasChanged = true;
-				Setting.setValue('security.biometricsSupportedSensors', result);
-			}
-		}
+		// if (result) {
+		// 	if (result !== Setting.value('security.biometricsSupportedSensors')) {
+		// 		hasChanged = true;
+		// 		Setting.setValue('security.biometricsSupportedSensors', result);
+		// 	}
+		// }
 	} catch (error) {
 		logger.warn('Could not check for biometrics sensor:', error);
 		Setting.setValue('security.biometricsSupportedSensors', '');

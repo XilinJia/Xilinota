@@ -7,7 +7,6 @@ import { connect } from 'react-redux';
 
 // can't do: import DialogBox from 'react-native-dialogbox';
 const DialogBox = require('react-native-dialogbox').default;
-// can't do import for react-native-vector-icons/Ionicons
 import Icon from 'react-native-vector-icons/Ionicons';
 
 import Folder from '@xilinota/lib/models/Folder';
@@ -393,7 +392,7 @@ const SideMenuContentComponent = (props: Props): JSX.Element => {
 					}}
 				>
 					<View style={folderButtonStyle}>
-						{folderIcon ? renderFolderIcon(theme, folderIcon) : ''}
+						{folderIcon ? renderFolderIcon(theme, folderIcon) : null}
 						<Text numberOfLines={1} style={styles_.folderButtonText}>
 							{Folder.displayTitle(folder)}
 						</Text>
@@ -531,11 +530,8 @@ const SideMenuContentComponent = (props: Props): JSX.Element => {
 					onLongPress={async () => await tagItem_longPress(tag)}
 				>
 					<View style={tagButtonStyle}>
-						<Text style={buttonTextStyle}>
-							{tag.title}
-						</Text>
+						<Text style={buttonTextStyle}>{tag.title}</Text>
 					</View>
-
 				</TouchableOpacity>
 			</View>
 		);
@@ -803,11 +799,15 @@ const SideMenuContentComponent = (props: Props): JSX.Element => {
 
 	// Note: iOS uses accessibilityElementsHidden and Android uses importantForAccessibility
 	//       to hide elements from the screenreader.
+	// {/* <DialogBox
+	// 	ref={(_dialogbox: any) => {
+	// 		// dialogbox = _dialogbox;
+	// 	}}
+	// /> */}
 
 	return (
 		<View
 			style={style}
-
 			accessibilityElementsHidden={isHidden}
 			importantForAccessibility={isHidden ? 'no-hide-descendants' : undefined}
 		>
@@ -824,11 +824,6 @@ const SideMenuContentComponent = (props: Props): JSX.Element => {
 				</ScrollView>
 				{renderBottomPanel()}
 			</View>
-			<DialogBox
-				ref={(_dialogbox: any) => {
-					// dialogbox = _dialogbox;
-				}}
-			/>
 			{noteTagDialog}
 		</View>
 	);

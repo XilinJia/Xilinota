@@ -94,7 +94,7 @@
     "node-gyp": "10.0.1",
     "nodemon": "3.0.3"
   },
-  "packageManager": "yarn@4.0.2",
+  "packageManager": "yarn@4.1.1",
   "resolutions": {
     "app-builder-lib@24.4.0": "patch:app-builder-lib@npm%3A24.4.0#./.yarn/patches/app-builder-lib-npm-24.4.0-05322ff057.patch"
   }
