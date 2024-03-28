@@ -197,6 +197,6 @@
     "styled-components": "5.3.11",
     "styled-system": "5.1.5",
     "taboverride": "4.0.3",
-    "tinymce": "6.8.2"
+    "tinymce": "7.0.0"
   }
 }
