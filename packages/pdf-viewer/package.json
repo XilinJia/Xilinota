@@ -39,7 +39,7 @@
     "@fortawesome/react-fontawesome": "0.2.0",
     "@xilinota/lib": "^2.15.0",
     "async-mutex": "0.4.1",
-    "pdfjs-dist": "4.0.379",
+    "pdfjs-dist": "4.4.168",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "styled-components": "5.3.11"
