@@ -21,7 +21,7 @@
   "license": "AGPL-3.0-or-later",
   "dependencies": {
     "@types/md5": "^2.3.5",
-    "@xilinota/lib": "^2.15.0",
+    "@xilinota/lib": "^2.13.0",
     "@xilinota/utils": "^2.13.1",
     "compare-versions": "6.1.0",
     "dayjs": "1.11.10",
@@ -36,7 +36,7 @@
     "node-fetch": "2.7.0",
     "relative": "3.0.2",
     "request": "2.88.2",
-    "sharp": "0.32.6",
+    "sharp": "0.33.0",
     "source-map-support": "0.5.21",
     "style-to-js": "^1.1.10",
     "uri-template": "2.0.0",
