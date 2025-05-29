@@ -25,7 +25,7 @@
     "@xilinota/utils": "^2.13.1",
     "compare-versions": "6.1.0",
     "dayjs": "1.11.10",
-    "execa": "8.0.1",
+    "execa": "9.6.0",
     "fs-extra": "11.2.0",
     "gettext-parser": "7.0.1",
     "glob": "10.3.10",
