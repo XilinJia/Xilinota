@@ -156,7 +156,7 @@
     "@xilinota/lib": "^2.15.0",
     "@xilinota/utils": "^2.13.1",
     "async-mutex": "0.4.1",
-    "codemirror": "5.65.16",
+    "codemirror": "6.0.0",
     "color": "4.2.3",
     "compare-versions": "6.1.0",
     "countable": "3.0.1",
